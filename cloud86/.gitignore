@@ -1,0 +1,6 @@
+/.env
+/storage/labels/*
+!/storage/labels/.gitkeep
+/storage/logs/*
+!/storage/logs/.gitkeep
+

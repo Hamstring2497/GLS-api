@@ -1,0 +1,15 @@
+README.md
+pyproject.toml
+src/gls_exact/__init__.py
+src/gls_exact/api.py
+src/gls_exact/domain.py
+src/gls_exact/gls_client.py
+src/gls_exact/gls_mapping.py
+src/gls_exact/repository.py
+src/gls_exact.egg-info/PKG-INFO
+src/gls_exact.egg-info/SOURCES.txt
+src/gls_exact.egg-info/dependency_links.txt
+src/gls_exact.egg-info/requires.txt
+src/gls_exact.egg-info/top_level.txt
+tests/test_gls_mapping.py
+tests/test_repository.py

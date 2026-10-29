@@ -1,0 +1,175 @@
+# Exact GLS Werkplek voor Cloud86
+
+Zelfstandige PHP 8/MySQL-webapp voor het verwerken van Exact-leveringen en het maken van GLS-labels.
+Deze map is bedoeld voor het Cloud86 WooCommerce Power-pakket en heeft geen Composer-packages nodig.
+
+## Wat al werkt
+
+- beveiligde magazijnlogin;
+- handmatig toevoegen van een testlevering;
+- één of meer dozen met maximaal 32 kg per doos;
+- GLS `CreateLabel`-payload volgens de aangeleverde Shipping API;
+- veilige mockmodus zonder echte GLS-zendingen;
+- echte HTTPS-aanroep met subscription key wanneer testgegevens zijn ingevuld;
+- blokkeren van een tweede labelaanvraag voor dezelfde levering;
+- Base64-PDF-labels opslaan buiten de publieke webmap;
+- GLS Track & Trace-webhook met Bearer-token, deduplicatie en snelle HTTP 200-response;
+- opslag van track-en-tracecodes en GLS-statussen in MySQL.
+
+## Nog te activeren
+
+- Exact Online OAuth 2.0 en veilige refresh-tokenrotatie;
+- automatische import van verwerkte goederenleveringen;
+- terugschrijven van de GLS-code naar het overeengekomen Exact-veld;
+- `ConfirmLabel` aan het einde van de verzendhandeling of dag;
+- productiekeuring met de echte GLS-testomgeving.
+
+Deze onderdelen vereisen de appregistratie van Exact, de juiste administratie/division en GLS-testgegevens.
+
+## Lokale mapstructuur
+
+```text
+cloud86/
+├── public/                 Document root van het subdomein
+│   ├── index.php           Router en webinterface
+│   ├── .htaccess           Doorsturen naar de router
+│   └── assets/app.css
+├── src/                    Applicatielogica; niet publiek bereikbaar
+├── views/                  HTML-templates; niet publiek bereikbaar
+├── database/schema.sql     MySQL-tabellen
+├── storage/labels/         Afgeschermde PDF-labels
+└── .env                    Wachtwoorden en API-sleutels; nooit committen
+```
+
+## Installeren op Cloud86
+
+1. Maak in Plesk een subdomein aan, bijvoorbeeld `verzenden.voorbeeld.nl`.
+2. Upload of clone deze `cloud86`-map buiten de bestaande WordPress-installatie.
+3. Stel de document root van het subdomein in op `cloud86/public`.
+4. Selecteer PHP 8.2 of nieuwer en activeer HTTPS.
+5. Maak in Plesk een aparte MySQL-database en databasegebruiker aan.
+6. Importeer `database/schema.sql` via phpMyAdmin.
+7. Kopieer `.env.example` naar `.env` en vul de databasevelden in.
+8. Maak via Plesk Terminal het algemene gebruikersaccount aan. Het script genereert een willekeurig
+   wachtwoord van precies 10 tekens en toont dit precies één keer:
+
+   ```bash
+   php bin/create-user.php magazijn "BETEC Magazijn" admin
+   ```
+
+9. Zet `APP_ENV=production`, `APP_URL=https://gls.beteccontrols.nl` en vul `APP_KEY` in met 64
+   willekeurige hextekens. Genereer deze bijvoorbeeld met `php -r "echo bin2hex(random_bytes(32));"`.
+10. Laat `GLS_MODE=mock` staan totdat de acceptatietest volledig is afgerond.
+11. Controleer `https://gls.beteccontrols.nl/health`; dit moet JSON met `status: ok` geven.
+
+## GitHub en Cloud86 Git
+
+Gebruik een **privé GitHub-repository**. De applicatiecode mag in Git; `.env`, gebruikerswachtwoorden,
+API-sleutels, tokens en gegenereerde labels nooit. De meegeleverde `.gitignore` sluit deze bestanden uit.
+
+Eerste publicatie vanaf de ontwikkelcomputer:
+
+```bash
+git init
+git add .
+git commit -m "Eerste Exact GLS Cloud86-app"
+git branch -M main
+git remote add origin git@github.com:ORGANISATIE/NAAM-VAN-PRIVE-REPOSITORY.git
+git push -u origin main
+```
+
+Voeg daarna in Plesk bij het subdomein via **Git** de GitHub-repository toe. Gebruik voor een privé
+repository de door Plesk getoonde SSH public key als deploy key in GitHub, met alleen leesrechten.
+Stel automatische deployment in naar de applicatiemap, maar niet naar een map waarin `.env` wordt
+overschreven. Na een update:
+
+```bash
+git push origin main
+```
+
+Laat Plesk vervolgens de laatste `main`-versie ophalen/deployen. Databasewijzigingen worden bewust
+niet automatisch uitgevoerd; importeer een nieuwe migratie eerst gecontroleerd.
+
+## Exact Online-appregistratie
+
+Registreer in Exact Online/App Center een private webapp voor de eigen administratie:
+
+- **Naam:** `BETEC GLS Werkplek`
+- **Applicatie-URL:** `https://gls.beteccontrols.nl`
+- **Redirect URI:** `https://gls.beteccontrols.nl/oauth/exact/callback`
+- **Doel:** verwerkte goederenleveringen ophalen, verzendgegevens gebruiken voor GLS en
+  track-en-tracecodes terugschrijven.
+- **Scopes/rechten:** alleen de minimaal aangeboden scopes voor verkooporders/goederenleveringen,
+  afleveradressen en het bijwerken van leveringen. De exacte namen worden door het actuele
+  registratiescherm bepaald.
+
+Exact geeft daarna een Client ID, Client Secret en eventueel Webhook Secret. Plaats deze uitsluitend in
+`.env`. Deel het Client Secret niet via e-mail, GitHub of screenshots. De app gebruikt de OAuth 2.0
+authorization-code flow; een Exact-gebruiker met toegang tot de administratie geeft eenmalig toestemming.
+
+Relevante `.env`-waarden:
+
+```dotenv
+APP_ENV=production
+APP_URL=https://gls.beteccontrols.nl
+APP_TIMEZONE=Europe/Amsterdam
+APP_KEY=<64 willekeurige hextekens>
+
+DB_HOST=<server uit Plesk>
+DB_PORT=3306
+DB_DATABASE=<databasenaam uit Plesk>
+DB_USERNAME=<databasegebruiker uit Plesk>
+DB_PASSWORD=<uniek sterk databasewachtwoord>
+
+EXACT_BASE_URL=https://start.exactonline.nl
+EXACT_CLIENT_ID=<client-id uit Exact>
+EXACT_CLIENT_SECRET=<client-secret uit Exact>
+EXACT_REDIRECT_URI=https://gls.beteccontrols.nl/oauth/exact/callback
+EXACT_DIVISION=
+EXACT_WEBHOOK_SECRET=<webhook-secret uit Exact, indien gebruikt>
+```
+
+`EXACT_DIVISION` hoeft niet te worden gegokt. Na de eerste OAuth-verbinding vraagt de app deze op via
+Exact `current/Me` en bewaart hem versleuteld bij de OAuth-koppeling. Het `.env`-veld blijft voorlopig
+leeg en is alleen beschikbaar als expliciete noodconfiguratie.
+
+De mappen `src`, `views`, `database` en `storage` horen niet onder een zelfstandig publiek domein te
+vallen. De document root moet exact op `public` staan. Kan dat niet in Plesk, plaats dan de applicatie
+buiten `httpdocs` en laat Cloud86 de veilige document root instellen.
+
+## Testprocedure
+
+1. Log in.
+2. Voeg een levering toe met een fictief adres.
+3. Voeg twee dozen toe, bijvoorbeeld 4,5 en 7,2 kg.
+4. Klik op **Maak 2 GLS-label(s)**.
+5. Controleer dat er twee `MOCK-...` codes ontstaan.
+6. Controleer dat een tweede klik of directe herhaling wordt geblokkeerd.
+
+Mockmodus maakt geen PDF-label, omdat er geen echte labeldata van GLS terugkomt.
+
+## GLS-webhook
+
+De URL wordt:
+
+```text
+POST https://verzenden.voorbeeld.nl/webhooks/gls
+Authorization: Bearer <GLS_WEBHOOK_BEARER_TOKEN>
+Content-Type: application/json
+```
+
+Gebruik een willekeurig geheim van minimaal 32 bytes. Het endpoint accepteert een bericht slechts één
+keer, maar geeft bij een herhaling opnieuw HTTP 200 zodat het retrymechanisme van GLS niet vastloopt.
+
+## Belangrijke veiligheidsregels
+
+- `.env` mag nooit via de browser bereikbaar of in Git opgeslagen zijn.
+- Gebruik in productie uitsluitend HTTPS.
+- Er is één algemeen account voor het magazijn. Na vijf mislukte pogingen wordt dit account 15 minuten
+  geblokkeerd. Deel het wachtwoord alleen met medewerkers die de verzendapp gebruiken.
+- Geef de databasegebruiker alleen rechten op deze ene database.
+- Begin met de GLS-testomgeving; zet nooit direct productiegegevens in de app.
+- Herhaal een mislukte `CreateLabel` na een timeout niet blind. Controleer eerst in MyGLS of de zending
+  al bestaat, anders kunnen dubbele pakketten ontstaan.
+- De applicatie bewaart GLS-gebruikersnaam en wachtwoord niet in de database of logs.
+
