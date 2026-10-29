@@ -224,14 +224,16 @@ gecontroleerd worden toegepast.
 
 ### Laatste applicatieversie
 
-- Lokale, nog niet gepubliceerde wijziging: magazijnoverzicht met geselecteerde levering onder de
-  tabel, bewerkbaar vanuit Exact ingevuld afleveradres, Parcel/Freight-keuze en bewerkbare
-  referentie. De lokale PHP 8.3 smoke test (`cloud86/tests/smoke.php`) controleert de
-  voorinvulling, adresopslag, Parcel/Freight-payload, mocklabels, HTML-weergave en vergrendeling.
-  Voer vóór deployment
-  de SQL-migratie uit. Freight is voorlopig alleen Collo (`CO`); andere vrachtunitsoorten vragen
-  aparte invoervelden en een GLS-test. De keuze van GLS-producten en services, met
-  DirectDeliveryPlus als standaard, vraagt nog validatie van de actuele GLS-requestvelden.
+- Commit `cff3ecd` — **Add warehouse overview and editable GLS shipment details** — staat lokaal,
+  op `origin/main` en is via Plesk op Cloud86 gepubliceerd. Plesk meldde voltooiing van pull en
+  publicatie; `/health` gaf HTTP 200 in `mock`-modus en de nieuwe CSS is live bereikbaar.
+- De SQL-migratie `20261029_shipping_details.sql` is in phpMyAdmin voor `gls_exact` als geslaagd
+  bevestigd. De lokale PHP 8.3 smoke test controleert voorinvulling, adresopslag,
+  Parcel/Freight-payload, mocklabels, HTML-weergave en vergrendeling. Een ingelogde live
+  magazijnflow en echte GLS-aanroep zijn nog niet getest.
+- Freight is voorlopig alleen Collo (`CO`); andere vrachtunitsoorten vragen aparte invoervelden
+  en een GLS-test. De keuze van GLS-producten en services, met DirectDeliveryPlus als standaard,
+  vraagt nog validatie van de actuele GLS-requestvelden.
 
 - Commit `c9a1c9a` — **Import goods deliveries from Exact Online**.
 - Deze versie voegt tokenrefresh, `POST /exact/sync` en de knop **Leveringen ophalen** toe.
