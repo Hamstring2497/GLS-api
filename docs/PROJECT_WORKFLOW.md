@@ -224,7 +224,8 @@ gecontroleerd worden toegepast.
 
 ### Laatste applicatieversie
 
-- 29 oktober 2026: de volgende UI-uitbreiding staat **nog alleen lokaal, niet op GitHub of Cloud86**.
+- 29 oktober 2026: de volgende UI-uitbreiding staat lokaal en op GitHub in commit `ebcb9ba`,
+  maar is **nog niet op Cloud86 gepubliceerd** (Plesk vraagt opnieuw om inloggen).
   De titel is compacter; de tabel is breder, horizontaal scrollbaar en heeft adres-, vracht-,
   gewicht- en trackingkolommen. Gereedregels zijn donkergrijs. Type en vrachttype staan naast
   elkaar. Eenheden kunnen worden verwijderd en opnieuw opgeslagen; ook nul eenheden is geldig
@@ -240,8 +241,9 @@ gecontroleerd worden toegepast.
   e-mailadres geven, kan de magazijnmedewerker het alsnog invullen. De koppen Zending,
   Afleveradres en Eenheden staan op brede schermen naast hun invoervelden. Referentie staat
   op dezelfde regel als Type en Vrachttype. Nog niet live getest.
-- Laatste bevestigde GitHub- en Cloud86-commit blijft `eee1da1`. Eerstvolgende stap: de
-  SQL-migratie op Cloud86 toepassen, daarna deze code publiceren en ingelogd controleren.
+- Laatste bevestigde Cloud86-commit blijft `eee1da1`; publieke CSS bevat nog niet de nieuwe
+  tabelbreedte. Eerstvolgende stap: in Plesk inloggen, repository pullen en deployen; daarna
+  `/health` en de ingelogde werkplek controleren. De SQL-migratie is volgens de gebruiker gedaan.
 
 - Commit `cff3ecd` — **Add warehouse overview and editable GLS shipment details** — staat lokaal,
   op `origin/main` en is via Plesk op Cloud86 gepubliceerd. Plesk meldde voltooiing van pull en
