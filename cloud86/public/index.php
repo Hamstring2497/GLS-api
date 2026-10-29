@@ -102,6 +102,26 @@ try {
         redirect('/');
     }
 
+    if ($method === 'POST' && $path === '/exact/sync') {
+        Security::verifyCsrf();
+        if ((Security::user()['role'] ?? '') !== 'admin') {
+            abort(403, 'Alleen een beheerder kan Exact synchroniseren.');
+        }
+        $result = (new ExactService(Database::connect()))->syncGoodsDeliveries($repository);
+        $message = sprintf(
+            '%d levering(en) uit Exact toegevoegd; %d reeds bekend of al verzonden.',
+            $result['imported'],
+            $result['skipped']
+        );
+        if ($result['errors'] !== []) {
+            $message .= ' Controle nodig: ' . implode(' | ', array_slice($result['errors'], 0, 3));
+            flash('error', $message);
+        } else {
+            flash('success', $message);
+        }
+        redirect('/');
+    }
+
     if ($method === 'GET' && $path === '/deliveries/new') {
         view('deliveries/new');
     }

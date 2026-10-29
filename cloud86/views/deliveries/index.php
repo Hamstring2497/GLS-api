@@ -17,7 +17,14 @@
                 <span>Nog niet gekoppeld</span>
             <?php endif; ?>
         </div>
-        <?php if (!$exactStatus['connected']): ?><a class="button button-small" href="/oauth/exact/start">Exact koppelen</a><?php endif; ?>
+        <?php if (!$exactStatus['connected']): ?>
+            <a class="button button-small" href="/oauth/exact/start">Exact koppelen</a>
+        <?php else: ?>
+            <form method="post" action="/exact/sync">
+                <input type="hidden" name="_token" value="<?= e(\App\Security::csrfToken()) ?>">
+                <button class="button button-small" type="submit">Leveringen ophalen</button>
+            </form>
+        <?php endif; ?>
     </section>
 <?php endif; ?>
 

@@ -15,16 +15,17 @@ Deze map is bedoeld voor het Cloud86 WooCommerce Power-pakket en heeft geen Comp
 - Base64-PDF-labels opslaan buiten de publieke webmap;
 - GLS Track & Trace-webhook met Bearer-token, deduplicatie en snelle HTTP 200-response;
 - opslag van track-en-tracecodes en GLS-statussen in MySQL.
+- Exact Online OAuth 2.0 met versleutelde tokens en veilige refresh-tokenrotatie;
+- handmatig ophalen van recente, nog niet verzonden goederenleveringen uit Exact.
 
 ## Nog te activeren
 
-- Exact Online OAuth 2.0 en veilige refresh-tokenrotatie;
-- automatische import van verwerkte goederenleveringen;
+- periodieke automatische import van verwerkte goederenleveringen; handmatig ophalen is beschikbaar;
 - terugschrijven van de GLS-code naar het overeengekomen Exact-veld;
 - `ConfirmLabel` aan het einde van de verzendhandeling of dag;
 - productiekeuring met de echte GLS-testomgeving.
 
-Deze onderdelen vereisen de appregistratie van Exact, de juiste administratie/division en GLS-testgegevens.
+De resterende GLS-onderdelen vereisen de GLS-testgegevens en een gecontroleerde acceptatietest.
 
 ## Lokale mapstructuur
 
