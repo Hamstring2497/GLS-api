@@ -63,10 +63,25 @@ final class ExactService
 
         $limit = max(1, min(100, (int) Env::get('EXACT_SYNC_LIMIT', '50')));
         $path = sprintf('/api/v1/%d/salesorder/GoodsDeliveries', $status['division']);
+        $select = implode(',', [
+            'EntryID',
+            'EntryNumber',
+            'DeliveryNumber',
+            'DeliveryDate',
+            'DeliveryAccount',
+            'DeliveryAccountName',
+            'DeliveryAddress',
+            'DeliveryContactPersonFullName',
+            'TrackingNumber',
+        ]);
         try {
             $payload = $this->apiGet(
                 $path,
-                ['$top' => (string) $limit, '$orderby' => 'DeliveryDate desc']
+                [
+                    '$select' => $select,
+                    '$top' => (string) $limit,
+                    '$orderby' => 'DeliveryDate desc',
+                ]
             );
         } catch (ExactException $error) {
             // Niet iedere Exact-administratie accepteert DeliveryDate als OData-sorteerveld.
@@ -74,7 +89,10 @@ final class ExactService
             if ($error->httpStatus !== 400) {
                 throw $error;
             }
-            $payload = $this->apiGet($path, ['$top' => (string) $limit]);
+            $payload = $this->apiGet($path, [
+                '$select' => $select,
+                '$top' => (string) $limit,
+            ]);
         }
         $rows = $this->results($payload);
         usort($rows, static function (array $left, array $right): int {
@@ -266,7 +284,7 @@ final class ExactService
     /** @param array<string, mixed> $payload @return list<array<string, mixed>> */
     private function results(array $payload): array
     {
-        $results = $payload['d']['results'] ?? $payload['value'] ?? [];
+        $results = $payload['d']['results'] ?? $payload['value'] ?? $payload['d'] ?? [];
         return is_array($results) ? array_values(array_filter($results, 'is_array')) : [];
     }
 

@@ -211,9 +211,11 @@ gecontroleerd worden toegepast.
 - Deze versie voegt tokenrefresh, `POST /exact/sync` en de knop **Leveringen ophalen** toe.
 - De commit staat lokaal en op `origin/main` in GitHub.
 - Plesk heeft deze versie opgehaald; de eerste synchronisatie eindigde met HTTP 500.
-- De huidige, nog te publiceren reparatie probeert bij een Exact HTTP 400 opnieuw zonder
-  `DeliveryDate`-sortering en toont veilige Exact-fouten op het overzicht in plaats van een algemene
-  500-pagina.
+- Commit `be97150` toont veilige Exact-fouten op het overzicht en probeert bij een Exact HTTP 400
+  opnieuw zonder `DeliveryDate`-sortering. De eerste zichtbare API-fout meldde dat Exact een
+  expliciete `$select` of `$top=1` vereist.
+- De huidige, nog te publiceren reparatie vraagt daarom alleen de benodigde geldige velden op met
+  `$select` en ondersteunt ook Exact-responses waarin `d` direct een lijst bevat.
 
 ### Eerdere commits
 
