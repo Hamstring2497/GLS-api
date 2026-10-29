@@ -210,8 +210,10 @@ gecontroleerd worden toegepast.
 - Commit `c9a1c9a` — **Import goods deliveries from Exact Online**.
 - Deze versie voegt tokenrefresh, `POST /exact/sync` en de knop **Leveringen ophalen** toe.
 - De commit staat lokaal en op `origin/main` in GitHub.
-- Bij de laatste overdracht was nog niet bevestigd dat Plesk deze commit had opgehaald en dat de
-  synchronisatie succesvol met echte Exact-data was getest.
+- Plesk heeft deze versie opgehaald; de eerste synchronisatie eindigde met HTTP 500.
+- De huidige, nog te publiceren reparatie probeert bij een Exact HTTP 400 opnieuw zonder
+  `DeliveryDate`-sortering en toont veilige Exact-fouten op het overzicht in plaats van een algemene
+  500-pagina.
 
 ### Eerdere commits
 
@@ -222,8 +224,8 @@ gecontroleerd worden toegepast.
 
 Werk deze lijst in deze volgorde af:
 
-1. Bevestig dat Plesk/Cloud86 commit `c9a1c9a` heeft opgehaald.
-2. Klik in productie op **Leveringen ophalen** en noteer alleen de resultaatmelding, geen geheimen of
+1. Publiceer de reparatie voor de eerste Exact-synchronisatiefout naar GitHub en Cloud86.
+2. Klik opnieuw op **Leveringen ophalen** en noteer alleen de resultaatmelding, geen geheimen of
    volledige persoonsgegevens.
 3. Controleer de Exact-mapping met een echte levering: leveringsnummer, ordernummer, datum,
    ontvanger en afleveradres.

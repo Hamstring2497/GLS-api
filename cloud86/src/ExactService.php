@@ -58,15 +58,30 @@ final class ExactService
     {
         $status = $this->status();
         if (!$status['connected'] || $status['division'] === null) {
-            throw new \RuntimeException('Exact Online is nog niet gekoppeld.');
+            throw new ExactException('Exact Online is nog niet gekoppeld.');
         }
 
         $limit = max(1, min(100, (int) Env::get('EXACT_SYNC_LIMIT', '50')));
-        $payload = $this->apiGet(
-            sprintf('/api/v1/%d/salesorder/GoodsDeliveries', $status['division']),
-            ['$top' => (string) $limit, '$orderby' => 'DeliveryDate desc']
-        );
+        $path = sprintf('/api/v1/%d/salesorder/GoodsDeliveries', $status['division']);
+        try {
+            $payload = $this->apiGet(
+                $path,
+                ['$top' => (string) $limit, '$orderby' => 'DeliveryDate desc']
+            );
+        } catch (ExactException $error) {
+            // Niet iedere Exact-administratie accepteert DeliveryDate als OData-sorteerveld.
+            // Probeer bij een ongeldige query één keer zonder server-side sortering.
+            if ($error->httpStatus !== 400) {
+                throw $error;
+            }
+            $payload = $this->apiGet($path, ['$top' => (string) $limit]);
+        }
         $rows = $this->results($payload);
+        usort($rows, static function (array $left, array $right): int {
+            $leftDate = strtotime((string) ($left['DeliveryDate'] ?? $left['EntryDate'] ?? '')) ?: 0;
+            $rightDate = strtotime((string) ($right['DeliveryDate'] ?? $right['EntryDate'] ?? '')) ?: 0;
+            return $rightDate <=> $leftDate;
+        });
         $imported = 0;
         $skipped = 0;
         $errors = [];
@@ -167,8 +182,9 @@ final class ExactService
             $response = $this->sendGet($url, $accessToken);
         }
         if ($response['status'] < 200 || $response['status'] >= 300) {
-            throw new \RuntimeException(
-                sprintf('Exact API gaf HTTP %d: %s', $response['status'], $this->apiError($response['body']))
+            throw new ExactException(
+                sprintf('Exact API gaf HTTP %d: %s', $response['status'], $this->apiError($response['body'])),
+                $response['status']
             );
         }
         return json_decode($response['body'], true, 512, JSON_THROW_ON_ERROR);
@@ -192,7 +208,7 @@ final class ExactService
         $error = curl_error($handle);
         curl_close($handle);
         if ($body === false) {
-            throw new \RuntimeException('Exact API is niet bereikbaar: ' . $error);
+            throw new ExactException('Exact API is niet bereikbaar: ' . $error);
         }
         return ['status' => $status, 'body' => $body];
     }
@@ -202,7 +218,7 @@ final class ExactService
         $statement = $this->db->query('SELECT * FROM exact_tokens WHERE id = 1');
         $row = $statement->fetch();
         if (!$row) {
-            throw new \RuntimeException('Exact Online is nog niet gekoppeld.');
+            throw new ExactException('Exact Online is nog niet gekoppeld.');
         }
         if (!$forceRefresh && strtotime((string) $row['expires_at']) > time() + 30) {
             return Crypto::decrypt((string) $row['access_token']);
@@ -330,11 +346,11 @@ final class ExactService
         $error = curl_error($handle);
         curl_close($handle);
         if ($body === false || $status < 200 || $status >= 300) {
-            throw new \RuntimeException("Exact tokenaanvraag gaf HTTP {$status}. {$error}");
+            throw new ExactException("Exact tokenaanvraag gaf HTTP {$status}. {$error}", $status ?: null);
         }
         $tokens = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
         if (empty($tokens['access_token']) || empty($tokens['refresh_token'])) {
-            throw new \RuntimeException('Exact gaf geen complete OAuth-tokens terug.');
+            throw new ExactException('Exact gaf geen complete OAuth-tokens terug.');
         }
         return $tokens;
     }
@@ -356,7 +372,7 @@ final class ExactService
         $status = (int) curl_getinfo($handle, CURLINFO_RESPONSE_CODE);
         curl_close($handle);
         if ($body === false || $status !== 200) {
-            throw new \RuntimeException("Exact current/Me gaf HTTP {$status}.");
+            throw new ExactException("Exact current/Me gaf HTTP {$status}.", $status ?: null);
         }
         $payload = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
         $division = $payload['d']['results'][0]['CurrentDivision']
@@ -364,7 +380,7 @@ final class ExactService
             ?? $payload['value'][0]['CurrentDivision']
             ?? null;
         if (!is_numeric($division)) {
-            throw new \RuntimeException('Exact current/Me bevat geen CurrentDivision.');
+            throw new ExactException('Exact current/Me bevat geen CurrentDivision.');
         }
         return (int) $division;
     }

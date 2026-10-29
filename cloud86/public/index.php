@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Database;
 use App\DeliveryRepository;
 use App\Env;
+use App\ExactException;
 use App\ExactService;
 use App\GlsService;
 use App\HttpException;
@@ -107,7 +108,13 @@ try {
         if ((Security::user()['role'] ?? '') !== 'admin') {
             abort(403, 'Alleen een beheerder kan Exact synchroniseren.');
         }
-        $result = (new ExactService(Database::connect()))->syncGoodsDeliveries($repository);
+        try {
+            $result = (new ExactService(Database::connect()))->syncGoodsDeliveries($repository);
+        } catch (ExactException $error) {
+            error_log('Exact synchronisatie: ' . $error->getMessage());
+            flash('error', 'Ophalen uit Exact is mislukt: ' . $error->getMessage());
+            redirect('/');
+        }
         $message = sprintf(
             '%d levering(en) uit Exact toegevoegd; %d reeds bekend of al verzonden.',
             $result['imported'],
