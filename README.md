@@ -1,5 +1,9 @@
 # Exact GLS Werkplek
 
+> Nieuwe ontwikkelaar of Codex-sessie? Begin bij
+> [`docs/PROJECT_WORKFLOW.md`](docs/PROJECT_WORKFLOW.md) voor de architectuur, productieomgeving,
+> actuele stand en volgende stappen.
+
 > De Cloud86-versie staat in [`cloud86/`](cloud86/README.md). Het oorspronkelijke Python-prototype
 > blijft voorlopig aanwezig als gecontroleerde referentie voor de al geteste GLS-contracten.
 
