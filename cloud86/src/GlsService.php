@@ -6,6 +6,8 @@ namespace App;
 
 final class GlsService
 {
+    public const FREIGHT_UNITS = ['CO' => 32, 'LG' => 25, 'MP' => 300, 'PL' => 675, 'BP' => 850, 'RL' => 350, 'XL' => 1000];
+
     public function __construct(private readonly string $storagePath)
     {
     }
@@ -29,6 +31,9 @@ final class GlsService
         if (strlen(trim((string) $address['country_code'])) !== 2) {
             throw new \InvalidArgumentException('Landcode moet een ISO-code van twee letters zijn.');
         }
+        if (filter_var(trim((string) ($address['email'] ?? '')), FILTER_VALIDATE_EMAIL) === false) {
+            throw new \InvalidArgumentException('Vul eerst een geldig e-mailadres in bij het afleveradres.');
+        }
         if ($delivery['parcels'] === []) {
             throw new \InvalidArgumentException('Voeg minimaal één doos toe.');
         }
@@ -37,13 +42,18 @@ final class GlsService
         if (!in_array($shipType, ['P', 'F'], true) || $reference === '') {
             throw new \InvalidArgumentException('Controleer het verzendtype en de referentie.');
         }
+        $freightUnitType = (string) ($delivery['freight_unit_type'] ?? 'CO');
+        if ($shipType === 'F' && !isset(self::FREIGHT_UNITS[$freightUnitType])) {
+            throw new \InvalidArgumentException('Ongeldig vrachttype.');
+        }
+        $maxWeight = $shipType === 'F' ? self::FREIGHT_UNITS[$freightUnitType] : 32;
 
         $units = [];
         foreach ($delivery['parcels'] as $index => $parcel) {
             $weight = (float) $parcel['weight_kg'];
-            if ($weight <= 0 || $weight > 32) {
+            if ($weight <= 0 || $weight > $maxWeight) {
                 throw new \InvalidArgumentException(
-                    sprintf('Gewicht van doos %d moet groter dan 0 en maximaal 32 kg zijn.', $index + 1)
+                    sprintf('Gewicht van eenheid %d moet groter dan 0 en maximaal %d kg zijn.', $index + 1, $maxWeight)
                 );
             }
             $units[] = [
@@ -52,8 +62,7 @@ final class GlsService
                 'AdditionalInfo1' => 'Order: ' . $delivery['order_number'],
             ];
             if ($shipType === 'F') {
-                // Freight met de huidige doosinvoer gebruikt GLS-unitsoort Collo (maximaal 32 kg).
-                $units[$index]['UnitType'] = 'CO';
+                $units[$index]['UnitType'] = $freightUnitType;
             }
         }
 

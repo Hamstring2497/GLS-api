@@ -37,19 +37,25 @@
 <?php else: ?>
     <div class="table-wrap delivery-sheet">
         <table>
-            <thead><tr><th>Levering</th><th>Order</th><th>Type</th><th>Referentie</th><th>Datum</th><th>Ontvanger</th><th>Postcode</th><th>Plaats</th><th>Dozen</th><th>Status</th><th></th></tr></thead>
+            <thead><tr><th>Levering</th><th>Order</th><th>Datum</th><th>Ontvanger</th><th>Straat</th><th>Huisnr.</th><th>Postcode</th><th>Plaats</th><th>Land</th><th>Type</th><th>Vrachttype</th><th>Referentie</th><th>Eenheden</th><th>Gewicht</th><th>Tracking</th><th>Status</th><th></th></tr></thead>
             <tbody>
             <?php foreach ($deliveries as $delivery): ?>
-                <tr class="<?= $selectedDelivery && $selectedDelivery['exact_entry_id'] === $delivery['exact_entry_id'] ? 'selected-row' : '' ?>">
+                <tr class="<?= $selectedDelivery && $selectedDelivery['exact_entry_id'] === $delivery['exact_entry_id'] ? 'selected-row' : '' ?> <?= in_array($delivery['status'], ['ready', 'labels_created'], true) ? 'completed-row' : '' ?>">
                     <td><strong><?= e($delivery['delivery_number']) ?></strong></td>
                     <td><?= e($delivery['order_number']) ?></td>
-                    <td><?= $delivery['ship_type'] === 'F' ? 'Freight' : 'Parcel' ?></td>
-                    <td><?= e($delivery['shipment_reference'] ?: '—') ?></td>
                     <td><?= e($delivery['shipping_date'] ?: '—') ?></td>
                     <td><?= e($delivery['address']['name']) ?></td>
+                    <td><?= e($delivery['address']['street']) ?></td>
+                    <td><?= e($delivery['address']['house_no']) ?></td>
                     <td><?= e($delivery['address']['zip_code']) ?></td>
                     <td><?= e($delivery['address']['city']) ?></td>
+                    <td><?= e($delivery['address']['country_code']) ?></td>
+                    <td><?= $delivery['ship_type'] === 'F' ? 'Freight' : 'Parcel' ?></td>
+                    <td><?= $delivery['ship_type'] === 'F' ? e($delivery['freight_unit_type']) : '—' ?></td>
+                    <td><?= e($delivery['shipment_reference'] ?: '—') ?></td>
                     <td><?= count($delivery['parcels']) ?></td>
+                    <td><?= e(number_format(array_sum(array_map(static fn ($parcel): float => (float) $parcel['weight_kg'], $delivery['parcels'])), 3, ',', '.')) ?> kg</td>
+                    <td><?= e(implode(', ', $delivery['tracking_numbers']) ?: '—') ?></td>
                     <td><span class="badge badge-<?= e($delivery['status']) ?>"><?= e(['new' => 'Nieuw', 'ready' => 'Klaar voor labels', 'labels_created' => 'Labels gemaakt'][$delivery['status']] ?? $delivery['status']) ?></span></td>
                     <td><a href="/?delivery=<?= rawurlencode((string) $delivery['exact_entry_id']) ?>#selected-delivery">Selecteren →</a></td>
                 </tr>

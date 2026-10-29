@@ -16,7 +16,7 @@ final class DeliveryRepository
     public function all(): array
     {
         $rows = $this->db->query(
-            'SELECT * FROM deliveries ORDER BY created_at DESC LIMIT 250'
+            "SELECT * FROM deliveries WHERE status <> 'discarded' ORDER BY created_at DESC LIMIT 250"
         )->fetchAll();
 
         return array_map(fn (array $row): array => $this->hydrate($row), $rows);
@@ -77,13 +77,13 @@ final class DeliveryRepository
         ]);
     }
 
-    public function updateShippingDetails(string $id, string $shipType, string $reference): void
+    public function updateShippingDetails(string $id, string $shipType, string $reference, string $freightUnitType = 'CO'): void
     {
         $statement = $this->db->prepare(
-            "UPDATE deliveries SET ship_type = ?, shipment_reference = ?, updated_at = CURRENT_TIMESTAMP "
-            . "WHERE exact_entry_id = ? AND status <> 'labels_created'"
+            "UPDATE deliveries SET ship_type = ?, freight_unit_type = ?, shipment_reference = ?, updated_at = CURRENT_TIMESTAMP "
+            . "WHERE exact_entry_id = ? AND status IN ('new', 'ready')"
         );
-        $statement->execute([$shipType, $reference, $id]);
+        $statement->execute([$shipType, $freightUnitType, $reference, $id]);
     }
 
     /** @param list<float> $weights */
@@ -100,10 +100,10 @@ final class DeliveryRepository
                 $insert->execute([$id, $index + 1, $weight]);
             }
             $update = $this->db->prepare(
-                "UPDATE deliveries SET status = 'ready', updated_at = CURRENT_TIMESTAMP "
+                "UPDATE deliveries SET status = ?, updated_at = CURRENT_TIMESTAMP "
                 . 'WHERE exact_entry_id = ?'
             );
-            $update->execute([$id]);
+            $update->execute([$weights === [] ? 'new' : 'ready', $id]);
             $this->db->commit();
         } catch (\Throwable $error) {
             $this->db->rollBack();
@@ -116,12 +116,22 @@ final class DeliveryRepository
     {
         $statement = $this->db->prepare(
             "UPDATE deliveries SET address_json = ?, updated_at = CURRENT_TIMESTAMP "
-            . "WHERE exact_entry_id = ? AND status <> 'labels_created'"
+            . "WHERE exact_entry_id = ? AND status IN ('new', 'ready')"
         );
         $statement->execute([
             json_encode($address, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
             $id,
         ]);
+    }
+
+    public function discard(string $id): bool
+    {
+        $statement = $this->db->prepare(
+            "UPDATE deliveries SET status = 'discarded', updated_at = CURRENT_TIMESTAMP "
+            . "WHERE exact_entry_id = ? AND status IN ('new', 'ready')"
+        );
+        $statement->execute([$id]);
+        return $statement->rowCount() === 1;
     }
 
     /** @param array<string, mixed> $request @param array<string, mixed> $response @param list<string> $numbers */
@@ -190,6 +200,7 @@ final class DeliveryRepository
 
         return array_merge($row, [
             'ship_type' => $row['ship_type'] ?? 'P',
+            'freight_unit_type' => $row['freight_unit_type'] ?? 'CO',
             'shipment_reference' => ($row['shipment_reference'] ?? '') !== ''
                 ? $row['shipment_reference']
                 : substr((string) preg_replace('/\D/', '', (string) $row['order_number']), -4),

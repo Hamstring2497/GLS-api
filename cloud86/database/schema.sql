@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS deliveries (
     delivery_number VARCHAR(64) NOT NULL,
     order_number VARCHAR(64) NOT NULL,
     ship_type CHAR(1) NOT NULL DEFAULT 'P',
+    freight_unit_type CHAR(2) NOT NULL DEFAULT 'CO',
     shipment_reference VARCHAR(64) NULL,
     address_json JSON NOT NULL,
     shipping_date DATE NULL,

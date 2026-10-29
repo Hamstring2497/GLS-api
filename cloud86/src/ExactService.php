@@ -161,7 +161,7 @@ final class ExactService
                         ?? ''
                     )),
                     'phone' => trim((string) ($address['Phone'] ?? $address['PhoneNumber'] ?? '')),
-                    'email' => trim((string) ($address['Email'] ?? $address['EmailAddress'] ?? '')),
+                    'email' => $this->deliveryEmail($address, $row, (int) $status['division']),
                 ];
                 $this->validateImportedDelivery($data, $deliveryNumber);
                 $deliveries->save($data);
@@ -279,6 +279,34 @@ final class ExactService
             }
         }
         throw new \RuntimeException('geen afleveradres gevonden in Exact');
+    }
+
+    /** @param array<string, mixed> $address @param array<string, mixed> $delivery */
+    private function deliveryEmail(array $address, array $delivery, int $division): string
+    {
+        foreach (['Email', 'EmailAddress'] as $field) {
+            $email = trim((string) ($address[$field] ?? ''));
+            if (filter_var($email, FILTER_VALIDATE_EMAIL) !== false) {
+                return $email;
+            }
+        }
+        $accountId = trim((string) ($delivery['DeliveryAccount'] ?? ''));
+        if (preg_match('/^[a-f0-9-]{36}$/i', $accountId) !== 1) {
+            return '';
+        }
+        try {
+            $payload = $this->apiGet(sprintf(
+                "/api/v1/%d/crm/Accounts(guid'%s')",
+                $division,
+                rawurlencode($accountId)
+            ));
+            $account = $payload['d'] ?? $payload;
+            $email = is_array($account) ? trim((string) ($account['Email'] ?? '')) : '';
+            return filter_var($email, FILTER_VALIDATE_EMAIL) !== false ? $email : '';
+        } catch (ExactException $error) {
+            error_log('Exact account-e-mail niet beschikbaar: HTTP ' . ($error->httpStatus ?? 'onbekend'));
+            return '';
+        }
     }
 
     /** @param array<string, mixed> $payload @return list<array<string, mixed>> */

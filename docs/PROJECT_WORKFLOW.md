@@ -104,8 +104,8 @@ geteste referentie voor de GLS-contracten. Nieuwe productiewerkzaamheden horen i
 - Het overzicht toont leveringen als compacte tabel met status. Onder de geselecteerde regel staan
   de aflevergegevens per veld, vooraf ingevuld vanuit Exact. De medewerker kan het lokale adres
   vóór het maken van labels corrigeren; daarna zijn de adresvelden vergrendeld.
-- Het type is standaard Parcel (`P`). Freight (`F`) gebruikt voor de huidige doosinvoer GLS-unitsoort
-  Collo (`CO`). De referentie is standaard de laatste vier cijfers uit het ordernummer en kan vóór
+- Het type is standaard Parcel (`P`). Voor Freight (`F`) is de GLS-unitsoort apart te kiezen.
+  De referentie is standaard de laatste vier cijfers uit het ordernummer en kan vóór
   de labelaanvraag worden aangepast. Als het ordernummer geen cijfers bevat, moet een referentie
   handmatig worden ingevuld.
 - De huidige Exact-query selecteert nog geen ordernummer. Als Exact geen ordernummer levert, zet
@@ -224,6 +224,25 @@ gecontroleerd worden toegepast.
 
 ### Laatste applicatieversie
 
+- 29 oktober 2026: de volgende UI-uitbreiding staat **nog alleen lokaal, niet op GitHub of Cloud86**.
+  De titel is compacter; de tabel is breder, horizontaal scrollbaar en heeft adres-, vracht-,
+  gewicht- en trackingkolommen. Gereedregels zijn donkergrijs. Type en vrachttype staan naast
+  elkaar. Eenheden kunnen worden verwijderd en opnieuw opgeslagen; ook nul eenheden is geldig
+  en zet de levering terug op `new`. Zendingen zonder labels kunnen na bevestiging uit de
+  werkvoorraad worden verwijderd (`discarded`); Exact importeert ze niet opnieuw. Zendingen
+  met labels kunnen niet worden gewist. De nieuwe migratie
+  `cloud86/database/migrations/20261029_freight_unit_type.sql` is volgens de gebruiker op de
+  productiedatabase toegepast; de kolom is nog niet onafhankelijk gecontroleerd. PHP-smoketest,
+  syntaxiscontrole en `git diff --check`
+  zijn lokaal geslaagd; live magazijn- en GLS-test moeten nog gebeuren.
+- Vervolg lokaal: e-mailadres is verplicht bij handmatige invoer, adresbewerking en labelaanmaak.
+  Exact-import probeert het afleveradres en daarna het klantaccount; als beide geen geldig
+  e-mailadres geven, kan de magazijnmedewerker het alsnog invullen. De koppen Zending,
+  Afleveradres en Eenheden staan op brede schermen naast hun invoervelden. Referentie staat
+  op dezelfde regel als Type en Vrachttype. Nog niet live getest.
+- Laatste bevestigde GitHub- en Cloud86-commit blijft `eee1da1`. Eerstvolgende stap: de
+  SQL-migratie op Cloud86 toepassen, daarna deze code publiceren en ingelogd controleren.
+
 - Commit `cff3ecd` — **Add warehouse overview and editable GLS shipment details** — staat lokaal,
   op `origin/main` en is via Plesk op Cloud86 gepubliceerd. Plesk meldde voltooiing van pull en
   publicatie; `/health` gaf HTTP 200 in `mock`-modus en de nieuwe CSS is live bereikbaar.
@@ -231,8 +250,7 @@ gecontroleerd worden toegepast.
   bevestigd. De lokale PHP 8.3 smoke test controleert voorinvulling, adresopslag,
   Parcel/Freight-payload, mocklabels, HTML-weergave en vergrendeling. Een ingelogde live
   magazijnflow en echte GLS-aanroep zijn nog niet getest.
-- Freight is voorlopig alleen Collo (`CO`); andere vrachtunitsoorten vragen aparte invoervelden
-  en een GLS-test. De keuze van GLS-producten en services, met DirectDeliveryPlus als standaard,
+- De keuze van GLS-producten en services, met DirectDeliveryPlus als standaard,
   vraagt nog validatie van de actuele GLS-requestvelden.
 
 - Commit `c9a1c9a` — **Import goods deliveries from Exact Online**.

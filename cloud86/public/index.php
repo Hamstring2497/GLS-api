@@ -78,7 +78,7 @@ try {
         $deliveries = $repository->all();
         $selectedId = (string) ($_GET['delivery'] ?? '');
         $selected = $selectedId !== '' ? $repository->find($selectedId) : ($deliveries[0] ?? null);
-        if ($selectedId !== '' && $selected === null) {
+        if ($selectedId !== '' && ($selected === null || $selected['status'] === 'discarded')) {
             abort(404, 'Levering niet gevonden.');
         }
         view('deliveries/index', [
@@ -142,11 +142,14 @@ try {
 
     if ($method === 'POST' && $path === '/deliveries') {
         Security::verifyCsrf();
-        $required = ['exact_entry_id', 'delivery_number', 'order_number', 'name', 'street', 'house_no', 'zip_code', 'city', 'country_code'];
+        $required = ['exact_entry_id', 'delivery_number', 'order_number', 'name', 'street', 'house_no', 'zip_code', 'city', 'country_code', 'email'];
         foreach ($required as $field) {
             if (trim((string) ($_POST[$field] ?? '')) === '') {
                 abort(422, "Veld {$field} is verplicht.");
             }
+        }
+        if (filter_var(trim((string) $_POST['email']), FILTER_VALIDATE_EMAIL) === false) {
+            abort(422, 'Vul een geldig e-mailadres in.');
         }
         $repository->save(array_map(
             static fn ($value): string => trim((string) $value),
@@ -158,7 +161,7 @@ try {
 
     if ($method === 'GET' && preg_match('#^/deliveries/([^/]+)$#', $path, $matches)) {
         $delivery = $repository->find(rawurldecode($matches[1]));
-        if ($delivery === null) {
+        if ($delivery === null || $delivery['status'] === 'discarded') {
             abort(404, 'Levering niet gevonden.');
         }
         redirect('/?delivery=' . rawurlencode((string) $delivery['exact_entry_id']));
@@ -171,10 +174,10 @@ try {
         if ($delivery === null) {
             abort(404, 'Levering niet gevonden.');
         }
-        if ($delivery['status'] === 'labels_created') {
+        if (!in_array($delivery['status'], ['new', 'ready'], true)) {
             abort(409, 'Het adres kan na het aanmaken van labels niet meer worden gewijzigd.');
         }
-        $required = ['name', 'street', 'house_no', 'zip_code', 'city', 'country_code'];
+        $required = ['name', 'street', 'house_no', 'zip_code', 'city', 'country_code', 'email'];
         $address = [];
         foreach (['name', 'street', 'house_no', 'zip_code', 'city', 'country_code', 'contact', 'phone', 'email'] as $field) {
             $address[$field] = trim((string) ($_POST[$field] ?? ''));
@@ -186,7 +189,7 @@ try {
         if (preg_match('/^[A-Z]{2}$/', $address['country_code']) !== 1) {
             abort(422, 'Landcode moet uit twee letters bestaan.');
         }
-        if ($address['email'] !== '' && filter_var($address['email'], FILTER_VALIDATE_EMAIL) === false) {
+        if (filter_var($address['email'], FILTER_VALIDATE_EMAIL) === false) {
             abort(422, 'Vul een geldig e-mailadres in.');
         }
         $address['addressee_type'] = (string) ($delivery['address']['addressee_type'] ?? 'P');
@@ -202,7 +205,7 @@ try {
         if ($delivery === null) {
             abort(404, 'Levering niet gevonden.');
         }
-        if ($delivery['status'] === 'labels_created') {
+        if (!in_array($delivery['status'], ['new', 'ready'], true)) {
             abort(409, 'De verzendgegevens kunnen na labelaanmaak niet meer worden gewijzigd.');
         }
         $shipType = (string) ($_POST['ship_type'] ?? '');
@@ -210,10 +213,14 @@ try {
         if (!in_array($shipType, ['P', 'F'], true)) {
             abort(422, 'Kies Parcel of Freight.');
         }
+        $freightUnitType = (string) ($_POST['freight_unit_type'] ?? $delivery['freight_unit_type']);
+        if (!isset(GlsService::FREIGHT_UNITS[$freightUnitType])) {
+            abort(422, 'Kies een geldig vrachttype.');
+        }
         if ($reference === '' || strlen($reference) > 64) {
             abort(422, 'Vul een referentie van maximaal 64 tekens in.');
         }
-        $repository->updateShippingDetails($id, $shipType, $reference);
+        $repository->updateShippingDetails($id, $shipType, $reference, $freightUnitType);
         flash('success', 'Verzendgegevens opgeslagen.');
         redirect('/?delivery=' . rawurlencode($id));
     }
@@ -225,24 +232,36 @@ try {
         if ($delivery === null) {
             abort(404, 'Levering niet gevonden.');
         }
-        if ($delivery['status'] === 'labels_created') {
+        if (!in_array($delivery['status'], ['new', 'ready'], true)) {
             abort(409, 'De dozen kunnen na het aanmaken van labels niet meer worden gewijzigd.');
         }
         $weights = array_values(array_filter(
             array_map(static fn ($value): float => (float) str_replace(',', '.', (string) $value), $_POST['weights'] ?? []),
             static fn (float $value): bool => $value > 0
         ));
-        if ($weights === []) {
-            abort(422, 'Vul minimaal één geldig gewicht in.');
-        }
+        $maxWeight = $delivery['ship_type'] === 'F'
+            ? (GlsService::FREIGHT_UNITS[$delivery['freight_unit_type']] ?? 32)
+            : 32;
         foreach ($weights as $index => $weight) {
-            if ($weight > 32) {
-                abort(422, sprintf('Doos %d is zwaarder dan 32 kg.', $index + 1));
+            if ($weight > $maxWeight) {
+                abort(422, sprintf('Eenheid %d is zwaarder dan %d kg.', $index + 1, $maxWeight));
             }
         }
         $repository->replaceParcels($id, $weights);
-        flash('success', count($weights) . ' doos/dozen opgeslagen.');
+        flash('success', count($weights) . ' eenheid/eenheden opgeslagen.');
         redirect('/deliveries/' . rawurlencode($id));
+    }
+
+    if ($method === 'POST' && preg_match('#^/deliveries/([^/]+)/delete$#', $path, $matches)) {
+        Security::verifyCsrf();
+        if (($_POST['confirm_delete'] ?? '') !== 'yes') {
+            abort(422, 'Bevestig eerst het verwijderen van de zending.');
+        }
+        if (!$repository->discard(rawurldecode($matches[1]))) {
+            abort(409, 'Deze zending kan niet worden gewist. GLS-labels zijn mogelijk al aangemaakt.');
+        }
+        flash('success', 'Zending uit de werkvoorraad verwijderd. Exact importeert deze niet opnieuw.');
+        redirect('/');
     }
 
     if ($method === 'POST' && preg_match('#^/deliveries/([^/]+)/labels$#', $path, $matches)) {
@@ -252,8 +271,11 @@ try {
         if ($delivery === null) {
             abort(404, 'Levering niet gevonden.');
         }
-        if ($delivery['status'] === 'labels_created') {
-            abort(409, 'Voor deze levering zijn al labels gemaakt.');
+        if ($delivery['status'] !== 'ready') {
+            abort(409, 'Deze levering is niet gereed voor labels.');
+        }
+        if (filter_var((string) ($delivery['address']['email'] ?? ''), FILTER_VALIDATE_EMAIL) === false) {
+            abort(422, 'Vul eerst een geldig e-mailadres in bij het afleveradres.');
         }
         $payload = $gls->buildPayload($delivery);
         $result = $gls->createLabels($payload, $id);

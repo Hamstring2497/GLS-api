@@ -24,7 +24,7 @@
             <label>Landcode<input name="country_code" maxlength="2" value="NL" required></label>
             <label>Contactpersoon<input name="contact"></label>
             <label>Telefoon<input name="phone"></label>
-            <label>E-mail<input type="email" name="email"></label>
+            <label>E-mailadres *<input type="email" name="email" required></label>
         </div>
     </fieldset>
     <button class="button" type="submit">Levering opslaan</button>
