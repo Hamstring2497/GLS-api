@@ -101,6 +101,16 @@ geteste referentie voor de GLS-contracten. Nieuwe productiewerkzaamheden horen i
 ### C. Dozen en labels
 
 - De medewerker opent een levering en voert per doos een gewicht in.
+- Het overzicht toont leveringen als compacte tabel met status. Onder de geselecteerde regel staan
+  de aflevergegevens per veld, vooraf ingevuld vanuit Exact. De medewerker kan het lokale adres
+  vóór het maken van labels corrigeren; daarna zijn de adresvelden vergrendeld.
+- Het type is standaard Parcel (`P`). Freight (`F`) gebruikt voor de huidige doosinvoer GLS-unitsoort
+  Collo (`CO`). De referentie is standaard de laatste vier cijfers uit het ordernummer en kan vóór
+  de labelaanvraag worden aangepast. Als het ordernummer geen cijfers bevat, moet een referentie
+  handmatig worden ingevuld.
+- De huidige Exact-query selecteert nog geen ordernummer. Als Exact geen ordernummer levert, zet
+  de import tijdelijk het leveringsnummer in `order_number`. Controleer de veldmapping vóór de
+  referentie automatisch als definitief mag worden beschouwd.
 - Elk gewicht moet groter dan 0 en maximaal 32 kg zijn.
 - De app bouwt één GLS `CreateLabel`-request met het juiste aantal parcels.
 - In `mock` ontstaan alleen testcodes; er wordt geen echte GLS-zending gemaakt.
@@ -126,6 +136,8 @@ geteste referentie voor de GLS-contracten. Nieuwe productiewerkzaamheden horen i
 | `GET /deliveries` | overzicht |
 | `GET/POST /deliveries/new` | alleen een handmatige testlevering |
 | `GET /deliveries/{id}` | levering controleren en dozen beheren |
+| `POST /deliveries/{id}/address` | lokaal afleveradres vóór labelaanmaak aanpassen |
+| `POST /deliveries/{id}/shipping` | Parcel/Freight en referentie vóór labelaanmaak opslaan |
 | `POST /deliveries/{id}/parcels` | gewichten opslaan |
 | `POST /deliveries/{id}/labels` | GLS-labels maken |
 | `GET /labels/{filename}` | beschermd label downloaden |
@@ -147,6 +159,11 @@ De initiële tabellen staan in `cloud86/database/schema.sql`:
 Voer toekomstige wijzigingen uit met een afzonderlijke SQL-migratie. Plesk voert
 `database/schema.sql` niet automatisch opnieuw uit en mag bestaande productiegegevens niet
 overschrijven.
+
+Voor de nieuwe velden `ship_type` en `shipment_reference` staat de eenmalige migratie in
+`cloud86/database/migrations/20261029_shipping_details.sql`. Voer die uit op de bestaande
+database voordat de gewijzigde PHP-code wordt gedeployed. Bestaande leveringen krijgen Parcel
+als type; hun referentie wordt bij het tonen afgeleid van het ordernummer totdat die wordt opgeslagen.
 
 ## 7. Configuratie zonder geheimen
 
@@ -207,6 +224,15 @@ gecontroleerd worden toegepast.
 
 ### Laatste applicatieversie
 
+- Lokale, nog niet gepubliceerde wijziging: magazijnoverzicht met geselecteerde levering onder de
+  tabel, bewerkbaar vanuit Exact ingevuld afleveradres, Parcel/Freight-keuze en bewerkbare
+  referentie. De lokale PHP 8.3 smoke test (`cloud86/tests/smoke.php`) controleert de
+  voorinvulling, adresopslag, Parcel/Freight-payload, mocklabels, HTML-weergave en vergrendeling.
+  Voer vóór deployment
+  de SQL-migratie uit. Freight is voorlopig alleen Collo (`CO`); andere vrachtunitsoorten vragen
+  aparte invoervelden en een GLS-test. De keuze van GLS-producten en services, met
+  DirectDeliveryPlus als standaard, vraagt nog validatie van de actuele GLS-requestvelden.
+
 - Commit `c9a1c9a` — **Import goods deliveries from Exact Online**.
 - Deze versie voegt tokenrefresh, `POST /exact/sync` en de knop **Leveringen ophalen** toe.
 - De commit staat lokaal en op `origin/main` in GitHub.
@@ -231,13 +257,15 @@ Werk deze lijst in deze volgorde af:
    volledige persoonsgegevens.
 3. Controleer de Exact-mapping met een echte levering: leveringsnummer, ordernummer, datum,
    ontvanger en afleveradres.
-4. Pas de mapping defensief aan als de Exact-response andere velden gebruikt.
-5. Vraag/controleer GLS-testgegevens en de definitieve testendpoints.
-6. Voer een GLS-acceptatietest uit met een expliciete testlevering en controleer PDF/labelprinter.
-7. Spreek af naar welk Exact-veld de track-en-tracecode wordt teruggeschreven en implementeer dit.
-8. Implementeer en test `ConfirmLabel` op het overeengekomen moment.
-9. Activeer en test de GLS-webhook met een nieuw sterk Bearer-token.
-10. Voeg pas daarna geplande automatische Exact-import toe.
+4. Controleer de nieuwe overzichtsweergave en adresbewerking, en bevestig de GLS-veldmapping voor
+   DirectDeliveryPlus en de overige gewenste leveringsopties.
+5. Pas de mapping defensief aan als de Exact-response andere velden gebruikt.
+6. Vraag/controleer GLS-testgegevens en de definitieve testendpoints.
+7. Voer een GLS-acceptatietest uit met een expliciete testlevering en controleer PDF/labelprinter.
+8. Spreek af naar welk Exact-veld de track-en-tracecode wordt teruggeschreven en implementeer dit.
+9. Implementeer en test `ConfirmLabel` op het overeengekomen moment.
+10. Activeer en test de GLS-webhook met een nieuw sterk Bearer-token.
+11. Voeg pas daarna geplande automatische Exact-import toe.
 
 ## 12. Overdrachtssjabloon voor een nieuwe Codex-sessie
 

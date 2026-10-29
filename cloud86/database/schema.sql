@@ -2,6 +2,8 @@ CREATE TABLE IF NOT EXISTS deliveries (
     exact_entry_id VARCHAR(64) PRIMARY KEY,
     delivery_number VARCHAR(64) NOT NULL,
     order_number VARCHAR(64) NOT NULL,
+    ship_type CHAR(1) NOT NULL DEFAULT 'P',
+    shipment_reference VARCHAR(64) NULL,
     address_json JSON NOT NULL,
     shipping_date DATE NULL,
     status VARCHAR(32) NOT NULL DEFAULT 'new',

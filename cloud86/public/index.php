@@ -75,8 +75,15 @@ try {
 
     if ($method === 'GET' && $path === '/') {
         $exactStatus = (new ExactService(Database::connect()))->status();
+        $deliveries = $repository->all();
+        $selectedId = (string) ($_GET['delivery'] ?? '');
+        $selected = $selectedId !== '' ? $repository->find($selectedId) : ($deliveries[0] ?? null);
+        if ($selectedId !== '' && $selected === null) {
+            abort(404, 'Levering niet gevonden.');
+        }
         view('deliveries/index', [
-            'deliveries' => $repository->all(),
+            'deliveries' => $deliveries,
+            'selectedDelivery' => $selected,
             'exactStatus' => $exactStatus,
         ]);
     }
@@ -154,7 +161,61 @@ try {
         if ($delivery === null) {
             abort(404, 'Levering niet gevonden.');
         }
-        view('deliveries/show', ['delivery' => $delivery]);
+        redirect('/?delivery=' . rawurlencode((string) $delivery['exact_entry_id']));
+    }
+
+    if ($method === 'POST' && preg_match('#^/deliveries/([^/]+)/address$#', $path, $matches)) {
+        Security::verifyCsrf();
+        $id = rawurldecode($matches[1]);
+        $delivery = $repository->find($id);
+        if ($delivery === null) {
+            abort(404, 'Levering niet gevonden.');
+        }
+        if ($delivery['status'] === 'labels_created') {
+            abort(409, 'Het adres kan na het aanmaken van labels niet meer worden gewijzigd.');
+        }
+        $required = ['name', 'street', 'house_no', 'zip_code', 'city', 'country_code'];
+        $address = [];
+        foreach (['name', 'street', 'house_no', 'zip_code', 'city', 'country_code', 'contact', 'phone', 'email'] as $field) {
+            $address[$field] = trim((string) ($_POST[$field] ?? ''));
+            if (in_array($field, $required, true) && $address[$field] === '') {
+                abort(422, "Adresveld {$field} is verplicht.");
+            }
+        }
+        $address['country_code'] = strtoupper($address['country_code']);
+        if (preg_match('/^[A-Z]{2}$/', $address['country_code']) !== 1) {
+            abort(422, 'Landcode moet uit twee letters bestaan.');
+        }
+        if ($address['email'] !== '' && filter_var($address['email'], FILTER_VALIDATE_EMAIL) === false) {
+            abort(422, 'Vul een geldig e-mailadres in.');
+        }
+        $address['addressee_type'] = (string) ($delivery['address']['addressee_type'] ?? 'P');
+        $repository->updateAddress($id, $address);
+        flash('success', 'Afleveradres opgeslagen.');
+        redirect('/?delivery=' . rawurlencode($id));
+    }
+
+    if ($method === 'POST' && preg_match('#^/deliveries/([^/]+)/shipping$#', $path, $matches)) {
+        Security::verifyCsrf();
+        $id = rawurldecode($matches[1]);
+        $delivery = $repository->find($id);
+        if ($delivery === null) {
+            abort(404, 'Levering niet gevonden.');
+        }
+        if ($delivery['status'] === 'labels_created') {
+            abort(409, 'De verzendgegevens kunnen na labelaanmaak niet meer worden gewijzigd.');
+        }
+        $shipType = (string) ($_POST['ship_type'] ?? '');
+        $reference = trim((string) ($_POST['shipment_reference'] ?? ''));
+        if (!in_array($shipType, ['P', 'F'], true)) {
+            abort(422, 'Kies Parcel of Freight.');
+        }
+        if ($reference === '' || strlen($reference) > 64) {
+            abort(422, 'Vul een referentie van maximaal 64 tekens in.');
+        }
+        $repository->updateShippingDetails($id, $shipType, $reference);
+        flash('success', 'Verzendgegevens opgeslagen.');
+        redirect('/?delivery=' . rawurlencode($id));
     }
 
     if ($method === 'POST' && preg_match('#^/deliveries/([^/]+)/parcels$#', $path, $matches)) {

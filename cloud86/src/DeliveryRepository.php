@@ -39,6 +39,8 @@ final class DeliveryRepository
     public function save(array $data): void
     {
         $existing = $this->find((string) $data['exact_entry_id']);
+        $digits = preg_replace('/\D/', '', (string) $data['order_number']);
+        $defaultReference = substr((string) $digits, -4);
         $address = json_encode([
             'name' => trim((string) $data['name']),
             'street' => trim((string) $data['street']),
@@ -66,13 +68,22 @@ final class DeliveryRepository
 
         $statement = $this->db->prepare(
             'INSERT INTO deliveries '
-            . '(exact_entry_id, delivery_number, order_number, address_json, shipping_date, status, tracking_numbers_json) '
-            . 'VALUES (?, ?, ?, ?, ?, ?, ?)'
+            . '(exact_entry_id, delivery_number, order_number, ship_type, shipment_reference, address_json, shipping_date, status, tracking_numbers_json) '
+            . 'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $statement->execute([
-            $data['exact_entry_id'], $data['delivery_number'], $data['order_number'], $address,
+            $data['exact_entry_id'], $data['delivery_number'], $data['order_number'], 'P', $defaultReference, $address,
             $data['shipping_date'] ?: null, 'new', '[]',
         ]);
+    }
+
+    public function updateShippingDetails(string $id, string $shipType, string $reference): void
+    {
+        $statement = $this->db->prepare(
+            "UPDATE deliveries SET ship_type = ?, shipment_reference = ?, updated_at = CURRENT_TIMESTAMP "
+            . "WHERE exact_entry_id = ? AND status <> 'labels_created'"
+        );
+        $statement->execute([$shipType, $reference, $id]);
     }
 
     /** @param list<float> $weights */
@@ -98,6 +109,19 @@ final class DeliveryRepository
             $this->db->rollBack();
             throw $error;
         }
+    }
+
+    /** @param array<string, string> $address */
+    public function updateAddress(string $id, array $address): void
+    {
+        $statement = $this->db->prepare(
+            "UPDATE deliveries SET address_json = ?, updated_at = CURRENT_TIMESTAMP "
+            . "WHERE exact_entry_id = ? AND status <> 'labels_created'"
+        );
+        $statement->execute([
+            json_encode($address, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
+            $id,
+        ]);
     }
 
     /** @param array<string, mixed> $request @param array<string, mixed> $response @param list<string> $numbers */
@@ -164,11 +188,15 @@ final class DeliveryRepository
         );
         $statement->execute([$row['exact_entry_id']]);
 
-        return $row + [
+        return array_merge($row, [
+            'ship_type' => $row['ship_type'] ?? 'P',
+            'shipment_reference' => ($row['shipment_reference'] ?? '') !== ''
+                ? $row['shipment_reference']
+                : substr((string) preg_replace('/\D/', '', (string) $row['order_number']), -4),
             'address' => $address,
             'tracking_numbers' => $numbers,
             'parcels' => $statement->fetchAll(),
-        ];
+        ]);
     }
 }
 

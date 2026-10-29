@@ -1,23 +1,48 @@
 <?php $locked = $delivery['status'] === 'labels_created'; ?>
-<div class="page-heading">
+<div class="page-heading selected-heading" id="selected-delivery">
     <div>
         <p class="eyebrow">Levering <?= e($delivery['delivery_number']) ?></p>
         <h1><?= e($delivery['address']['name']) ?></h1>
         <p class="muted">Order <?= e($delivery['order_number']) ?> · <?= e($delivery['shipping_date'] ?: 'geen verzenddatum') ?></p>
     </div>
-    <span class="badge badge-<?= e($delivery['status']) ?>"><?= e($delivery['status']) ?></span>
+    <span class="badge badge-<?= e($delivery['status']) ?>"><?= e(['new' => 'Nieuw', 'ready' => 'Klaar voor labels', 'labels_created' => 'Labels gemaakt'][$delivery['status']] ?? $delivery['status']) ?></span>
 </div>
 
+<section class="panel shipping-panel">
+    <h2>Zending</h2>
+    <form method="post" action="/deliveries/<?= rawurlencode((string) $delivery['exact_entry_id']) ?>/shipping" class="shipping-form">
+        <input type="hidden" name="_token" value="<?= e(\App\Security::csrfToken()) ?>">
+        <label>Type
+            <select name="ship_type" <?= $locked ? 'disabled' : '' ?>>
+                <option value="P" <?= $delivery['ship_type'] === 'P' ? 'selected' : '' ?>>Parcel</option>
+                <option value="F" <?= $delivery['ship_type'] === 'F' ? 'selected' : '' ?>>Freight (collo, maximaal 32 kg per doos)</option>
+            </select>
+        </label>
+        <label>Referentie
+            <input type="text" name="shipment_reference" value="<?= e($delivery['shipment_reference']) ?>" maxlength="64" required <?= $locked ? 'disabled' : '' ?>>
+        </label>
+        <?php if (!$locked): ?><button class="button" type="submit">Zending opslaan</button><?php endif; ?>
+    </form>
+    <?php if (!$locked): ?><p class="muted">De referentie is vooraf ingevuld met de laatste vier cijfers van het ordernummer.</p><?php endif; ?>
+</section>
+
 <div class="detail-grid">
-    <section class="panel">
+    <section class="panel address-panel">
         <h2>Afleveradres</h2>
-        <address>
-            <?= e($delivery['address']['name']) ?><br>
-            <?= e($delivery['address']['street']) ?> <?= e($delivery['address']['house_no']) ?><br>
-            <?= e($delivery['address']['zip_code']) ?> <?= e($delivery['address']['city']) ?><br>
-            <?= e($delivery['address']['country_code']) ?>
-        </address>
-        <?php if (!empty($delivery['address']['email'])): ?><p><?= e($delivery['address']['email']) ?></p><?php endif; ?>
+        <p class="muted">Overgenomen uit Exact. Controleer en pas zo nodig aan vóór de labels worden gemaakt.</p>
+        <form method="post" action="/deliveries/<?= rawurlencode((string) $delivery['exact_entry_id']) ?>/address" class="address-form">
+            <input type="hidden" name="_token" value="<?= e(\App\Security::csrfToken()) ?>">
+            <?php foreach ([
+                'name' => 'Naam', 'street' => 'Straat', 'house_no' => 'Huisnummer',
+                'zip_code' => 'Postcode', 'city' => 'Plaats', 'country_code' => 'Landcode',
+                'contact' => 'Contactpersoon', 'phone' => 'Telefoonnummer', 'email' => 'E-mailadres',
+            ] as $field => $label): ?>
+                <label><?= e($label) ?><?= in_array($field, ['name', 'street', 'house_no', 'zip_code', 'city', 'country_code'], true) ? ' *' : '' ?>
+                    <input name="<?= e($field) ?>" value="<?= e($delivery['address'][$field] ?? '') ?>" <?= $locked ? 'disabled' : '' ?> <?= in_array($field, ['name', 'street', 'house_no', 'zip_code', 'city', 'country_code'], true) ? 'required' : '' ?> <?= $field === 'email' ? 'type="email"' : 'type="text"' ?> <?= $field === 'country_code' ? 'maxlength="2"' : '' ?>>
+                </label>
+            <?php endforeach; ?>
+            <?php if (!$locked): ?><button class="button" type="submit">Adres opslaan</button><?php endif; ?>
+        </form>
     </section>
 
     <section class="panel">

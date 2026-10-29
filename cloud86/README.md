@@ -17,6 +17,8 @@ Deze map is bedoeld voor het Cloud86 WooCommerce Power-pakket en heeft geen Comp
 - opslag van track-en-tracecodes en GLS-statussen in MySQL.
 - Exact Online OAuth 2.0 met versleutelde tokens en veilige refresh-tokenrotatie;
 - handmatig ophalen van recente, nog niet verzonden goederenleveringen uit Exact.
+- spreadsheetachtig leveringsoverzicht, bewerkbaar afleveradres, Parcel/Freight-keuze en
+  bewerkbare GLS-referentie (standaard de laatste vier cijfers van het ordernummer).
 
 ## Nog te activeren
 
@@ -50,6 +52,8 @@ cloud86/
 4. Selecteer PHP 8.2 of nieuwer en activeer HTTPS.
 5. Maak in Plesk een aparte MySQL-database en databasegebruiker aan.
 6. Importeer `database/schema.sql` via phpMyAdmin.
+   Voor een bestaande installatie: voer in plaats daarvan eenmalig
+   `database/migrations/20261029_shipping_details.sql` uit voordat de nieuwe code online gaat.
 7. Kopieer `.env.example` naar `.env` en vul de databasevelden in.
 8. Maak via Plesk Terminal het algemene gebruikersaccount aan. Het script genereert een willekeurig
    wachtwoord van precies 10 tekens en toont dit precies één keer:
@@ -139,6 +143,10 @@ vallen. De document root moet exact op `public` staan. Kan dat niet in Plesk, pl
 buiten `httpdocs` en laat Cloud86 de veilige document root instellen.
 
 ## Testprocedure
+
+Voer lokaal `php -d zend.assertions=1 -d assert.exception=1 tests/smoke.php` uit voor de
+opslag-, payload- en weergavetest. Deze test gebruikt een tijdelijke SQLite-database en
+mocklabels; hij maakt geen zending bij GLS en raakt de productie-MySQL-database niet.
 
 1. Log in.
 2. Voeg een levering toe met een fictief adres.

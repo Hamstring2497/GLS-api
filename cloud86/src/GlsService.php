@@ -32,6 +32,11 @@ final class GlsService
         if ($delivery['parcels'] === []) {
             throw new \InvalidArgumentException('Voeg minimaal één doos toe.');
         }
+        $shipType = (string) ($delivery['ship_type'] ?? 'P');
+        $reference = trim((string) ($delivery['shipment_reference'] ?? ''));
+        if (!in_array($shipType, ['P', 'F'], true) || $reference === '') {
+            throw new \InvalidArgumentException('Controleer het verzendtype en de referentie.');
+        }
 
         $units = [];
         foreach ($delivery['parcels'] as $index => $parcel) {
@@ -46,6 +51,10 @@ final class GlsService
                 'Weight' => $weight,
                 'AdditionalInfo1' => 'Order: ' . $delivery['order_number'],
             ];
+            if ($shipType === 'F') {
+                // Freight met de huidige doosinvoer gebruikt GLS-unitsoort Collo (maximaal 32 kg).
+                $units[$index]['UnitType'] = 'CO';
+            }
         }
 
         $deliveryAddress = [
@@ -55,8 +64,10 @@ final class GlsService
             'CountryCode' => strtoupper((string) $address['country_code']),
             'ZipCode' => strtoupper(str_replace(' ', '', (string) $address['zip_code'])),
             'City' => $address['city'],
-            'AddresseeType' => strtolower((string) ($address['addressee_type'] ?? 'P')),
         ];
+        if ($shipType === 'P') {
+            $deliveryAddress['AddresseeType'] = strtoupper((string) ($address['addressee_type'] ?? 'P'));
+        }
         foreach (['Contact' => 'contact', 'Phone' => 'phone', 'Email' => 'email'] as $gls => $local) {
             if (!empty($address[$local])) {
                 $deliveryAddress[$gls] = $address[$local];
@@ -68,8 +79,8 @@ final class GlsService
             'Password' => Env::get('GLS_PASSWORD', 'mock-password'),
             'ShippingSystemName' => 'Exact GLS Werkplek',
             'ShippingSystemVersion' => '0.2.0',
-            'ShipType' => 'P',
-            'Reference' => $delivery['delivery_number'],
+            'ShipType' => $shipType,
+            'Reference' => $reference,
             'LabelType' => Env::get('GLS_LABEL_TYPE', 'pdfa6s'),
             'TrackingLinkType' => 'U',
             'Addresses' => ['DeliveryAddress' => $deliveryAddress],
