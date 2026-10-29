@@ -14,7 +14,9 @@ final class Security
         session_set_cookie_params([
             'httponly' => true,
             'secure' => (($_SERVER['HTTPS'] ?? '') === 'on'),
-            'samesite' => 'Strict',
+            // Lax houdt POST-verzoeken van andere sites tegen, maar staat de top-level
+            // GET-redirect van Exact Online naar onze OAuth-callback wel toe.
+            'samesite' => 'Lax',
         ]);
         session_start();
     }
