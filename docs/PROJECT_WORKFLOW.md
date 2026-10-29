@@ -224,8 +224,9 @@ gecontroleerd worden toegepast.
 
 ### Laatste applicatieversie
 
-- 29 oktober 2026: de volgende UI-uitbreiding staat lokaal en op GitHub in commit `ebcb9ba`,
-  maar is **nog niet op Cloud86 gepubliceerd** (Plesk vraagt opnieuw om inloggen).
+- 29 oktober 2026: de UI-uitbreiding staat lokaal en op GitHub in commit `ebcb9ba` en is
+  via Plesk op Cloud86 gepubliceerd. Publicatie werd opnieuw gecontroleerd met de nieuwe CSS,
+  `/health` HTTP 200 (`GLS_MODE=mock`) en de ingelogde magazijnwerkplek.
   De titel is compacter; de tabel is breder, horizontaal scrollbaar en heeft adres-, vracht-,
   gewicht- en trackingkolommen. Gereedregels zijn donkergrijs. Type en vrachttype staan naast
   elkaar. Eenheden kunnen worden verwijderd en opnieuw opgeslagen; ook nul eenheden is geldig
@@ -233,7 +234,7 @@ gecontroleerd worden toegepast.
   werkvoorraad worden verwijderd (`discarded`); Exact importeert ze niet opnieuw. Zendingen
   met labels kunnen niet worden gewist. De nieuwe migratie
   `cloud86/database/migrations/20261029_freight_unit_type.sql` is volgens de gebruiker op de
-  productiedatabase toegepast; de kolom is nog niet onafhankelijk gecontroleerd. PHP-smoketest,
+  productiedatabase toegepast; de ingelogde pagina leest de nieuwe kolom zonder fout. PHP-smoketest,
   syntaxiscontrole en `git diff --check`
   zijn lokaal geslaagd; live magazijn- en GLS-test moeten nog gebeuren.
 - Vervolg lokaal: e-mailadres is verplicht bij handmatige invoer, adresbewerking en labelaanmaak.
@@ -241,9 +242,9 @@ gecontroleerd worden toegepast.
   e-mailadres geven, kan de magazijnmedewerker het alsnog invullen. De koppen Zending,
   Afleveradres en Eenheden staan op brede schermen naast hun invoervelden. Referentie staat
   op dezelfde regel als Type en Vrachttype. Nog niet live getest.
-- Laatste bevestigde Cloud86-commit blijft `eee1da1`; publieke CSS bevat nog niet de nieuwe
-  tabelbreedte. Eerstvolgende stap: in Plesk inloggen, repository pullen en deployen; daarna
-  `/health` en de ingelogde werkplek controleren. De SQL-migratie is volgens de gebruiker gedaan.
+- Laatste bevestigde GitHub- en Cloud86-commit voor deze publicatie: `7787aa3` (app-code
+  `ebcb9ba`). Eerstvolgende stap: een bestaande levering zonder e-mailadres aanvullen,
+  magazijnflow in mock-modus testen, en daarna GLS-acceptatietest afspreken.
 
 - Commit `cff3ecd` — **Add warehouse overview and editable GLS shipment details** — staat lokaal,
   op `origin/main` en is via Plesk op Cloud86 gepubliceerd. Plesk meldde voltooiing van pull en
