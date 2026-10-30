@@ -9,7 +9,8 @@ unset($_SESSION['flash']);
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex,nofollow">
     <title>Exact GLS Werkplek</title>
-    <link rel="stylesheet" href="/assets/app.css">
+    <?php $cssVersion = (string) (filemtime(__DIR__ . '/../public/assets/app.css') ?: '1'); ?>
+    <link rel="stylesheet" href="/assets/app.css?v=<?= e($cssVersion) ?>">
 </head>
 <body>
 <header class="topbar">

@@ -230,7 +230,9 @@ gecontroleerd worden toegepast.
   leveringstabel is compacter en lange ontvanger-, straat- en trackingwaarden mogen afbreken. De
   navigatie en tabelkop gebruiken donker BETEC-groen met een lichtgroen accent. Formulierlabels
   zijn klein, vet en donkergroen; invoervelden hebben een lichte achtergrond, een duidelijke
-  tweepixelrand en een zichtbare focusstatus. De PHP- en databaselogica zijn niet gewijzigd.
+  tweepixelrand en een zichtbare focusstatus. De stylesheet-URL bevat automatisch de
+  wijzigingstijd van het CSS-bestand, zodat browsers na een deployment niet de oude vormgeving uit
+  hun cache blijven tonen. De PHP- en databaselogica zijn verder niet gewijzigd.
   `git diff --check` en de negen Python-referentietests zijn geslaagd. De laatste bevestigde
   GitHub-commit is `e84c896`; de laatst bevestigde gepubliceerde applicatiecode op Cloud86 is
   `ebcb9ba`.
