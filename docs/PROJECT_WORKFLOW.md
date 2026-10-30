@@ -227,6 +227,11 @@ gecontroleerd worden toegepast.
   labelstatus. Hiervoor moet vóór deployment eenmalig
   `cloud86/database/migrations/20261030_delivery_merges.sql` op Cloud86 worden uitgevoerd. De
   migratie is nog niet op Cloud86 uitgevoerd en de commit is nog niet gepusht of via Plesk gepubliceerd.
+- 30 oktober 2026, aanvullende lokale wijziging nog niet op GitHub of Cloud86: een nog niet gekoppelde levering met
+  hetzelfde afleveradres, status `new` en zonder eigen dozen wordt in de tabel lichtgeel gemarkeerd
+  met **Samenvoegen?**. Een klik vraagt om bevestiging. **OK** koppelt de levering direct aan de
+  geselecteerde hoofdlevering; **Annuleren** opent haar afzonderlijk. Bestaande gekoppelde
+  leveringen blijven bij de snelle actie behouden. Deze aanvulling is nog niet gepubliceerd.
 
 ### Bevestigd werkend op Cloud86
 

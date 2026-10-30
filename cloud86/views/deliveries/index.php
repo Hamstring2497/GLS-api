@@ -32,6 +32,16 @@
     foreach ($deliveries as $listedDelivery) {
         $deliveryNumbersById[(string) $listedDelivery['exact_entry_id']] = (string) $listedDelivery['delivery_number'];
     }
+    $quickMergeCandidates = [];
+    foreach (($mergeCandidates ?? []) as $candidate) {
+        if (
+            empty($candidate['merged_into_exact_entry_id'])
+            && $candidate['status'] === 'new'
+            && $candidate['parcels'] === []
+        ) {
+            $quickMergeCandidates[(string) $candidate['exact_entry_id']] = $candidate;
+        }
+    }
     ?>
     <div class="delivery-split">
     <section class="delivery-list-pane" aria-label="Leveringen">
@@ -42,12 +52,16 @@
             <?php foreach ($deliveries as $delivery): ?>
                 <?php
                 $mergedIntoId = (string) ($delivery['merged_into_exact_entry_id'] ?? '');
+                $isQuickMergeCandidate = isset($quickMergeCandidates[(string) $delivery['exact_entry_id']]);
                 $targetId = $mergedIntoId !== '' ? $mergedIntoId : (string) $delivery['exact_entry_id'];
                 $deliveryUrl = '/?delivery=' . rawurlencode($targetId);
                 $missingData = delivery_missing_data($delivery);
                 if ($mergedIntoId !== '') {
                     $tableStatus = 'Bij levering ' . ($deliveryNumbersById[$mergedIntoId] ?? $mergedIntoId);
                     $tableStatusClass = 'merged';
+                } elseif ($isQuickMergeCandidate) {
+                    $tableStatus = 'Samenvoegen?';
+                    $tableStatusClass = 'merge-question';
                 } elseif ($delivery['status'] === 'labels_created') {
                     $tableStatus = 'Labels gemaakt';
                     $tableStatusClass = 'labels_created';
@@ -59,7 +73,7 @@
                     $tableStatusClass = 'ready';
                 }
                 ?>
-                <tr class="delivery-row <?= $selectedDelivery && $selectedDelivery['exact_entry_id'] === $delivery['exact_entry_id'] ? 'selected-row' : '' ?> <?= in_array($delivery['status'], ['ready', 'labels_created'], true) ? 'completed-row' : '' ?>" data-delivery-url="<?= e($deliveryUrl) ?>" tabindex="0" aria-label="Selecteer levering <?= e($delivery['delivery_number']) ?>" aria-selected="<?= $selectedDelivery && $selectedDelivery['exact_entry_id'] === $delivery['exact_entry_id'] ? 'true' : 'false' ?>">
+                <tr class="delivery-row <?= $selectedDelivery && $selectedDelivery['exact_entry_id'] === $delivery['exact_entry_id'] ? 'selected-row' : '' ?> <?= in_array($delivery['status'], ['ready', 'labels_created'], true) ? 'completed-row' : '' ?> <?= $isQuickMergeCandidate ? 'merge-candidate-row' : '' ?>" data-delivery-url="<?= e($deliveryUrl) ?>" data-merge-candidate="<?= $isQuickMergeCandidate ? '1' : '0' ?>" data-delivery-id="<?= e($delivery['exact_entry_id']) ?>" data-delivery-number="<?= e($delivery['delivery_number']) ?>" data-order-number="<?= e($delivery['order_number']) ?>" tabindex="0" aria-label="Selecteer levering <?= e($delivery['delivery_number']) ?>" aria-selected="<?= $selectedDelivery && $selectedDelivery['exact_entry_id'] === $delivery['exact_entry_id'] ? 'true' : 'false' ?>">
                     <td><strong><?= e($delivery['delivery_number']) ?></strong></td>
                     <td><?= e($delivery['order_number']) ?></td>
                     <td><?= e($delivery['shipping_date'] ?: '—') ?></td>
@@ -89,6 +103,15 @@
         <?php endif; ?>
     </section>
     </div>
+    <?php if ($selectedDelivery && $quickMergeCandidates !== []): ?>
+        <form id="quick-merge-form" method="post" action="/deliveries/<?= rawurlencode((string) $selectedDelivery['exact_entry_id']) ?>/merge" hidden>
+            <input type="hidden" name="_token" value="<?= e(\App\Security::csrfToken()) ?>">
+            <?php foreach (($selectedDelivery['merged_deliveries'] ?? []) as $mergedDelivery): ?>
+                <input type="hidden" name="merged_delivery_ids[]" value="<?= e($mergedDelivery['exact_entry_id']) ?>">
+            <?php endforeach; ?>
+            <input id="quick-merge-delivery-id" type="hidden" name="merged_delivery_ids[]" value="">
+        </form>
+    <?php endif; ?>
     <script>
     (() => {
         let detailsDirty = false;
@@ -115,6 +138,25 @@
             if (detailsDirty && !confirm('Er zijn nog niet-opgeslagen wijzigingen. Wilt u deze levering verlaten?')) {
                 event?.preventDefault();
                 return;
+            }
+            if (row.dataset.mergeCandidate === '1') {
+                const deliveryNumber = row.dataset.deliveryNumber || '';
+                const orderNumber = row.dataset.orderNumber || '';
+                const merge = confirm(
+                    `Levering ${deliveryNumber} (order ${orderNumber}) gaat naar hetzelfde adres.\n\n` +
+                    'Samenvoegen met de geselecteerde zending?\n\n' +
+                    'OK = samenvoegen · Annuleren = afzonderlijk openen'
+                );
+                if (merge) {
+                    const form = document.getElementById('quick-merge-form');
+                    const input = document.getElementById('quick-merge-delivery-id');
+                    if (form && input) {
+                        detailsDirty = false;
+                        input.value = row.dataset.deliveryId || '';
+                        form.submit();
+                        return;
+                    }
+                }
             }
             detailsDirty = false;
             location.href = url;

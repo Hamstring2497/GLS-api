@@ -172,6 +172,15 @@ $repository->save([
 ]);
 $repository->replaceParcels('merge-primary', [8.0]);
 assert(count($repository->mergeCandidates('merge-primary')) === 1);
+$deliveries = $repository->all();
+$selectedDelivery = $repository->find('merge-primary');
+$mergeCandidates = $repository->mergeCandidates('merge-primary');
+ob_start();
+require dirname(__DIR__) . '/views/deliveries/index.php';
+$mergeCandidateHtml = (string) ob_get_clean();
+assert(str_contains($mergeCandidateHtml, 'merge-candidate-row'));
+assert(str_contains($mergeCandidateHtml, 'Samenvoegen?'));
+assert(str_contains($mergeCandidateHtml, 'quick-merge-form'));
 $repository->setMergedDeliveries('merge-primary', ['merge-child']);
 $merged = $repository->find('merge-primary');
 assert(count($merged['merged_deliveries']) === 1);
