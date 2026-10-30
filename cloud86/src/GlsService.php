@@ -63,9 +63,11 @@ final class GlsService
             }
             $unit = [
                 'unitId' => $this->unitId($index + 1),
-                'unitType' => strtolower($shipType === 'F' ? $freightUnitType : 'CO'),
                 'weight' => $weight,
             ];
+            if ($shipType === 'F') {
+                $unit['unitType'] = strtolower($freightUnitType);
+            }
             $note1 = trim((string) ($address['note_1'] ?? ''));
             $note2 = trim((string) ($address['note_2'] ?? ''));
             $unit['additionalInfo1'] = $note1 !== '' ? $note1 : 'Order: ' . $delivery['order_number'];

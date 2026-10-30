@@ -65,7 +65,7 @@ assert($parcel['addresses']['deliveryAddress']['houseNoExt'] === 'A');
 assert($parcel['addresses']['deliveryAddress']['addresseeType'] === 'b');
 assert($parcel['units'][0]['additionalInfo1'] === 'Voorzijde');
 assert($parcel['units'][0]['additionalInfo2'] === 'Melden bij receptie');
-assert($parcel['units'][0]['unitType'] === 'co');
+assert(!isset($parcel['units'][0]['unitType']));
 assert(count($parcel['units']) === 2);
 assert(!isset($parcel['shippingDate']));
 $redactedParcel = $gls->redact($parcel);

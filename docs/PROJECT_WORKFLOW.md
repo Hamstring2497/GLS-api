@@ -231,8 +231,8 @@ gecontroleerd worden toegepast.
 - 30 oktober 2026, lokale GLS-voorbereiding (nog niet gepubliceerd): de PHP-payload is gecorrigeerd
   naar het actuele GLS Label API v1-schema. Requestvelden gebruiken nu exact lower camelCase,
   waaronder `username`, `shiptype`, `units`, `weight`, `addresses` en `deliveryAddress`.
-  Interne Parcel/Freight-codes worden bij verzending omgezet naar de kleine GLS-codes `p`/`f` en
-  unittypes zoals `co`. Huisnummer en toevoeging gaan apart als `houseNo` en `houseNoExt`; zakelijke
+  Interne Parcel/Freight-codes worden bij verzending omgezet naar de kleine GLS-codes `p`/`f`.
+  Unittypes zoals `co` worden uitsluitend voor Freight meegestuurd. Huisnummer en toevoeging gaan apart als `houseNo` en `houseNoExt`; zakelijke
   Exact-adressen gebruiken `addresseeType=b`. De officiële testendpoints voor `ValidateLogin`,
   `CreateLabel` en `ConfirmLabel` staan zonder geheimen in `.env.example`. Het nieuwe CLI-script
   `cloud86/bin/test-gls-connection.php` valideert de GLS-testlogin zonder een zending aan te maken.
