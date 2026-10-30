@@ -228,15 +228,19 @@ gecontroleerd worden toegepast.
 
 ### Laatste applicatieversie
 
-- 30 oktober 2026, in voorbereiding: synchronisatiemeldingen krijgen een knop **Gezien**. Een
-  synchronisatie zonder nieuwe leveringen wordt blauw/informatief weergegeven; gedeeltelijke
-  importproblemen worden amber en alleen een volledige fout blijft rood. Alle hoofdknoppen krijgen
-  dezelfde maat en een subtiel 3D-effect. Voor beheerders komt onder **Onderhoud** de dubbel
-  bevestigde actie **Tabel leegmaken en opnieuw ophalen**. Die verwijdert alleen de lokale
-  leveringen en dozen en synchroniseert daarna direct opnieuw met Exact; Exact-tokens, gebruikers,
-  instellingen en webhookhistorie blijven behouden. De negen Python-referentietests en
-  `git diff --check` zijn geslaagd; lokale PHP is niet beschikbaar. Publicatie en de eenmalige
-  productieactie moeten nog worden bevestigd.
+- 30 oktober 2026: applicatiecommit `e4a1dc2` staat lokaal, op GitHub en is via Plesk op Cloud86
+  gepubliceerd. Synchronisatiemeldingen hebben een knop **Gezien**; geen nieuwe leveringen wordt
+  blauw/informatief weergegeven, gedeeltelijke importproblemen amber en alleen een volledige fout
+  rood. De hoofdknoppen hebben dezelfde maat en een subtiel 3D-effect. Onder **Onderhoud** staat de
+  dubbel bevestigde actie **Tabel leegmaken en opnieuw ophalen**. Deze verwijdert uitsluitend lokale
+  leveringen en dozen; Exact-tokens, gebruikers, instellingen en webhookhistorie blijven behouden.
+  De productieactie verwijderde 20 lokale leveringen. De eerste herimport werd door Exact beperkt
+  met HTTP 429; na een korte wachttijd leverde een nieuwe synchronisatie 9 actuele leveringen op.
+  Leveringen `9080456`, `9080463` en `9080452` zijn bewust overgeslagen omdat in Exact het
+  afleveradres geen huisnummer (`house_no`) bevat. De knop **Gezien** is live gecontroleerd en
+  verbergt de melding. `/health` gaf `status: ok` en `gls_mode: mock`. Er was geen databasemigratie
+  nodig. De negen Python-referentietests en `git diff --check` zijn geslaagd; lokale PHP is niet
+  beschikbaar.
 - 30 oktober 2026: applicatiecommit `a3683b7` staat lokaal, op GitHub en is via Plesk op Cloud86
   gepubliceerd. Onder
   **Dozen en gewicht** staan **Zending opslaan** en **Adres opslaan** naast elkaar. De bestaande,
