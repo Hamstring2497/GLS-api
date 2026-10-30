@@ -27,16 +27,25 @@ unset($_SESSION['flash']);
         <nav>
             <?php if (\App\Security::user()): ?><span class="user-name"><?= e(\App\Security::user()['display_name']) ?></span><?php endif; ?>
             <a href="/">Leveringen</a>
-            <?php if (isset($selectedDelivery) && ($selectedDelivery['status'] ?? '') !== 'labels_created'): ?>
+            <?php if ((\App\Security::user()['role'] ?? '') === 'admin' || (isset($selectedDelivery) && ($selectedDelivery['status'] ?? '') !== 'labels_created')): ?>
                 <details class="maintenance-menu">
                     <summary>Onderhoud</summary>
                     <div class="maintenance-menu-panel">
-                        <form method="post" action="/deliveries/<?= rawurlencode((string) $selectedDelivery['exact_entry_id']) ?>/delete" data-delivery-number="<?= e($selectedDelivery['delivery_number']) ?>" onsubmit="return confirmShipmentDelete(this)">
-                            <input type="hidden" name="_token" value="<?= e(\App\Security::csrfToken()) ?>">
-                            <input type="hidden" name="confirm_delete" value="no">
-                            <input type="hidden" name="supervisor_confirmation" value="no">
-                            <button class="maintenance-delete" type="submit">Zending wissen</button>
-                        </form>
+                        <?php if (isset($selectedDelivery) && ($selectedDelivery['status'] ?? '') !== 'labels_created'): ?>
+                            <form method="post" action="/deliveries/<?= rawurlencode((string) $selectedDelivery['exact_entry_id']) ?>/delete" data-delivery-number="<?= e($selectedDelivery['delivery_number']) ?>" onsubmit="return confirmShipmentDelete(this)">
+                                <input type="hidden" name="_token" value="<?= e(\App\Security::csrfToken()) ?>">
+                                <input type="hidden" name="confirm_delete" value="no">
+                                <input type="hidden" name="supervisor_confirmation" value="no">
+                                <button class="maintenance-delete" type="submit">Zending wissen</button>
+                            </form>
+                        <?php endif; ?>
+                        <?php if ((\App\Security::user()['role'] ?? '') === 'admin'): ?>
+                            <form method="post" action="/maintenance/refresh-deliveries" onsubmit="return confirmTableRefresh(this)">
+                                <input type="hidden" name="_token" value="<?= e(\App\Security::csrfToken()) ?>">
+                                <input type="hidden" name="confirm_refresh" value="no">
+                                <button class="maintenance-refresh" type="submit">Tabel leegmaken en opnieuw ophalen</button>
+                            </form>
+                        <?php endif; ?>
                     </div>
                 </details>
             <?php endif; ?>
@@ -49,11 +58,13 @@ unset($_SESSION['flash']);
 </header>
 <main class="container">
     <?php if ($flashMessage): ?>
-        <div class="flash flash-<?= e($flashMessage['type']) ?>"><?= e($flashMessage['message']) ?></div>
+        <div class="flash flash-<?= e($flashMessage['type']) ?>" role="status">
+            <span class="flash-message"><?= e($flashMessage['message']) ?></span>
+            <button class="button button-small flash-dismiss" type="button" onclick="this.closest('.flash').remove()">Gezien</button>
+        </div>
     <?php endif; ?>
     <?= $content ?>
 </main>
-<?php if (isset($selectedDelivery) && ($selectedDelivery['status'] ?? '') !== 'labels_created'): ?>
 <script>
 function confirmShipmentDelete(form) {
     const number = form.dataset.deliveryNumber || '';
@@ -63,8 +74,13 @@ function confirmShipmentDelete(form) {
     form.elements.supervisor_confirmation.value = 'yes';
     return true;
 }
+function confirmTableRefresh(form) {
+    if (!confirm('De volledige levertabel, inclusief dozen en statussen, wordt verwijderd. Wilt u doorgaan?')) return false;
+    if (!confirm('Na het leegmaken worden de nieuwste leveringen direct opnieuw uit Exact opgehaald. Definitief uitvoeren?')) return false;
+    form.elements.confirm_refresh.value = 'yes';
+    return true;
+}
 </script>
-<?php endif; ?>
 </body>
 </html>
 

@@ -139,6 +139,27 @@ final class DeliveryRepository
         return $statement->rowCount() === 1;
     }
 
+    /**
+     * Verwijder de volledige lokale werkvoorraad. Exact-tokens, gebruikers en
+     * webhookhistorie vallen bewust buiten deze onderhoudsactie.
+     */
+    public function clearAll(): int
+    {
+        $this->db->beginTransaction();
+        try {
+            $count = (int) $this->db->query('SELECT COUNT(*) FROM deliveries')->fetchColumn();
+            // Expliciet verwijderen houdt deze actie ook correct in testomgevingen
+            // waar foreign-key cascades niet zijn ingeschakeld.
+            $this->db->exec('DELETE FROM parcels');
+            $this->db->exec('DELETE FROM deliveries');
+            $this->db->commit();
+            return $count;
+        } catch (\Throwable $error) {
+            $this->db->rollBack();
+            throw $error;
+        }
+    }
+
     /** @param array<string, mixed> $request @param array<string, mixed> $response @param list<string> $numbers */
     public function saveGlsResult(
         string $id,

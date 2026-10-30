@@ -93,8 +93,12 @@ assert(!str_contains($html, 'Openen →'));
 
 $layout = file_get_contents(dirname(__DIR__) . '/views/layout.php');
 assert(is_string($layout));
+assert(str_contains($layout, '>Gezien</button>'));
+assert(str_contains($layout, "this.closest('.flash').remove()"));
 assert(str_contains($layout, 'Onderhoud'));
 assert(str_contains($layout, 'Zending wissen'));
+assert(str_contains($layout, 'Tabel leegmaken en opnieuw ophalen'));
+assert(str_contains($layout, 'confirmTableRefresh'));
 assert(str_contains($layout, 'Haal uw supervisor'));
 assert(str_contains($layout, 'supervisor_confirmation'));
 
@@ -126,5 +130,9 @@ try {
 } catch (InvalidArgumentException $error) {
     assert(str_contains($error->getMessage(), 'e-mailadres'));
 }
+
+assert($repository->clearAll() === 2);
+assert($repository->all() === []);
+assert($db->query('SELECT COUNT(*) FROM parcels')->fetchColumn() == 0);
 
 echo "Smoke test geslaagd: adresregels, notities, vrachttype, dozen en vergrendeling.\n";

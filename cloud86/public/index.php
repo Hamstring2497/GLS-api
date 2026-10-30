@@ -129,7 +129,50 @@ try {
         );
         if ($result['errors'] !== []) {
             $message .= ' Controle nodig: ' . implode(' | ', array_slice($result['errors'], 0, 3));
-            flash('error', $message);
+            // De synchronisatie is uitgevoerd, maar enkele regels vragen aandacht. Dit is geen
+            // volledige applicatiefout en krijgt daarom een waarschuwing in plaats van rood.
+            flash('warning', $message);
+        } elseif ($result['imported'] === 0) {
+            flash('info', $message);
+        } else {
+            flash('success', $message);
+        }
+        redirect('/');
+    }
+
+    if ($method === 'POST' && $path === '/maintenance/refresh-deliveries') {
+        Security::verifyCsrf();
+        if ((Security::user()['role'] ?? '') !== 'admin') {
+            abort(403, 'Alleen een beheerder kan de levertabel opnieuw opbouwen.');
+        }
+        if (($_POST['confirm_refresh'] ?? '') !== 'yes') {
+            abort(422, 'Bevestig eerst dat de volledige levertabel opnieuw mag worden opgebouwd.');
+        }
+
+        $removed = $repository->clearAll();
+        try {
+            $result = (new ExactService(Database::connect()))->syncGoodsDeliveries($repository);
+        } catch (ExactException $error) {
+            error_log('Exact opnieuw ophalen na legen tabel: ' . $error->getMessage());
+            flash(
+                'warning',
+                sprintf(
+                    '%d lokale levering(en) verwijderd. Opnieuw ophalen uit Exact is nog niet gelukt: %s',
+                    $removed,
+                    $error->getMessage()
+                )
+            );
+            redirect('/');
+        }
+
+        $message = sprintf(
+            '%d lokale levering(en) verwijderd; %d levering(en) opnieuw uit Exact opgehaald.',
+            $removed,
+            $result['imported']
+        );
+        if ($result['errors'] !== []) {
+            $message .= ' Controle nodig: ' . implode(' | ', array_slice($result['errors'], 0, 3));
+            flash('warning', $message);
         } else {
             flash('success', $message);
         }
