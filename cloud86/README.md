@@ -157,6 +157,32 @@ mocklabels; hij maakt geen zending bij GLS en raakt de productie-MySQL-database 
 
 Mockmodus maakt geen PDF-label, omdat er geen echte labeldata van GLS terugkomt.
 
+## GLS-testomgeving activeren
+
+Vraag GLS eerst om toegang tot de **Label API-testomgeving** en plaats de ontvangen geheimen alleen
+in `cloud86/.env` op Cloud86. De niet-geheime testendpoints staan al in `.env.example`. Benodigd zijn:
+
+- de API-subscriptionkey voor header `Ocp-Apim-Subscription-Key`;
+- een geldige MyGLS-testgebruikersnaam en -wachtwoord;
+- indien GLS dit voor het contract vereist: het klantnummer;
+- bevestiging dat `pdfa6s` het gewenste A6-PDF-labeltype is.
+
+Zet daarna tijdelijk `GLS_MODE=test` en controleer uitsluitend de inlog, zonder een zending te maken:
+
+```bash
+cd gls.beteccontrols.nl/app/cloud86
+php bin/test-gls-connection.php
+```
+
+Het script toont alleen of de login is geslaagd en eventueel een GLS-transactie-ID; het toont geen
+wachtwoord of subscriptionkey. Zet bij een mislukte of uitgestelde acceptatietest `GLS_MODE` terug
+op `mock`.
+
+`GLS_SEND_SHIPPING_DATE=false` is de veilige standaard. Dan maakt `CreateLabel` wel labels en
+unitnummers, maar moet de werkelijk verzonden unit later met `ConfirmLabel` worden vrijgegeven.
+Kies pas na afstemming met GLS voor `true`; het meesturen van `shippingDate` geeft de zending direct
+vrij aan GLS.
+
 ## GLS-webhook
 
 De URL wordt:

@@ -56,7 +56,7 @@ final class DeliveryRepository
             'email' => trim((string) ($data['email'] ?? '')),
             'note_1' => trim((string) ($data['note_1'] ?? '')),
             'note_2' => trim((string) ($data['note_2'] ?? '')),
-            'addressee_type' => 'P',
+            'addressee_type' => 'B',
         ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
 
         if ($existing) {

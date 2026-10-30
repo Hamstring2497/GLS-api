@@ -62,60 +62,60 @@ final class GlsService
                 );
             }
             $unit = [
-                'UnitID' => $this->unitId($index + 1),
-                'Weight' => $weight,
+                'unitId' => $this->unitId($index + 1),
+                'unitType' => strtolower($shipType === 'F' ? $freightUnitType : 'CO'),
+                'weight' => $weight,
             ];
             $note1 = trim((string) ($address['note_1'] ?? ''));
             $note2 = trim((string) ($address['note_2'] ?? ''));
-            $unit['AdditionalInfo1'] = $note1 !== '' ? $note1 : 'Order: ' . $delivery['order_number'];
+            $unit['additionalInfo1'] = $note1 !== '' ? $note1 : 'Order: ' . $delivery['order_number'];
             if ($note2 !== '') {
-                $unit['AdditionalInfo2'] = $note2;
+                $unit['additionalInfo2'] = $note2;
             }
             $units[] = $unit;
-            if ($shipType === 'F') {
-                $units[$index]['UnitType'] = $freightUnitType;
-            }
         }
 
         $deliveryAddress = [
-            'Name1' => $address['name'],
-            'Street' => $address['street'],
-            'HouseNo' => trim((string) $address['house_no'] . ' ' . (string) ($address['house_no_addition'] ?? '')),
-            'CountryCode' => strtoupper((string) $address['country_code']),
-            'ZipCode' => strtoupper(str_replace(' ', '', (string) $address['zip_code'])),
-            'City' => $address['city'],
+            'name1' => $address['name'],
+            'street' => $address['street'],
+            'houseNo' => trim((string) $address['house_no']),
+            'zipCode' => strtoupper(str_replace(' ', '', (string) $address['zip_code'])),
+            'city' => $address['city'],
+            'countryCode' => strtoupper((string) $address['country_code']),
+            // Deze werkplek verwerkt zakelijke Exact-relaties; GLS-code "b" staat voor business.
+            'addresseeType' => 'b',
         ];
-        foreach (['Name2' => 'name_2', 'Name3' => 'name_3'] as $gls => $local) {
+        if (trim((string) ($address['house_no_addition'] ?? '')) !== '') {
+            $deliveryAddress['houseNoExt'] = trim((string) $address['house_no_addition']);
+        }
+        foreach (['name2' => 'name_2', 'name3' => 'name_3'] as $gls => $local) {
             if (trim((string) ($address[$local] ?? '')) !== '') {
                 $deliveryAddress[$gls] = trim((string) $address[$local]);
             }
         }
-        if ($shipType === 'P') {
-            $deliveryAddress['AddresseeType'] = strtoupper((string) ($address['addressee_type'] ?? 'P'));
-        }
-        foreach (['Contact' => 'contact', 'Phone' => 'phone', 'Email' => 'email'] as $gls => $local) {
+        foreach (['contact' => 'contact', 'phone' => 'phone', 'email' => 'email'] as $gls => $local) {
             if (!empty($address[$local])) {
                 $deliveryAddress[$gls] = $address[$local];
             }
         }
 
         $payload = [
-            'Username' => Env::get('GLS_USERNAME', 'mock-user'),
-            'Password' => Env::get('GLS_PASSWORD', 'mock-password'),
-            'ShippingSystemName' => 'Exact GLS Werkplek',
-            'ShippingSystemVersion' => '0.2.0',
-            'ShipType' => $shipType,
-            'Reference' => $reference,
-            'LabelType' => Env::get('GLS_LABEL_TYPE', 'pdfa6s'),
-            'TrackingLinkType' => 'U',
-            'Addresses' => ['DeliveryAddress' => $deliveryAddress],
-            'Units' => $units,
+            'username' => Env::get('GLS_USERNAME', 'mock-user'),
+            'password' => Env::get('GLS_PASSWORD', 'mock-password'),
+            'shippingSystemName' => 'Exact GLS Werkplek',
+            'shippingSystemVersion' => '0.3.0',
+            'shiptype' => strtolower($shipType),
+            'reference' => $reference,
+            'trackingLinkType' => 'u',
+            'units' => $units,
+            'labelType' => strtolower((string) Env::get('GLS_LABEL_TYPE', 'pdfa6s')),
+            'addresses' => ['deliveryAddress' => $deliveryAddress],
         ];
-        if (!empty($delivery['shipping_date'])) {
-            $payload['ShippingDate'] = $delivery['shipping_date'];
+        if ($this->sendShippingDate() && !empty($delivery['shipping_date'])) {
+            $payload['shippingDate'] = $delivery['shipping_date'] . 'T00:00:00';
         }
         if (trim((string) Env::get('GLS_CUSTOMER_NO', '')) !== '') {
-            $payload['CustomerNo'] = Env::get('GLS_CUSTOMER_NO');
+            $payload['customerNo'] = Env::get('GLS_CUSTOMER_NO');
         }
 
         return $payload;
@@ -127,10 +127,10 @@ final class GlsService
         $mode = strtolower((string) Env::get('GLS_MODE', 'mock'));
         if ($mode === 'mock') {
             $units = array_map(static fn (array $unit): array => [
-                'unitId' => $unit['UnitID'],
+                'unitId' => $unit['unitId'],
                 'unitNo' => 'MOCK-' . strtoupper(bin2hex(random_bytes(6))),
                 'unitTrackingLink' => 'https://example.invalid/tracking',
-            ], $payload['Units']);
+            ], $payload['units']);
             return [
                 'response' => ['mock' => true, 'units' => $units],
                 'tracking_numbers' => array_column($units, 'unitNo'),
@@ -138,31 +138,7 @@ final class GlsService
             ];
         }
 
-        $url = Env::require('GLS_CREATE_LABEL_URL');
-        $apiKey = Env::require('GLS_API_KEY');
-        $handle = curl_init($url);
-        curl_setopt_array($handle, [
-            CURLOPT_POST => true,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_CONNECTTIMEOUT => 10,
-            CURLOPT_TIMEOUT => 30,
-            CURLOPT_HTTPHEADER => [
-                'Content-Type: application/json',
-                Env::get('GLS_API_KEY_HEADER', 'Ocp-Apim-Subscription-Key') . ': ' . $apiKey,
-            ],
-            CURLOPT_POSTFIELDS => json_encode($payload, JSON_THROW_ON_ERROR),
-        ]);
-        $body = curl_exec($handle);
-        $status = (int) curl_getinfo($handle, CURLINFO_RESPONSE_CODE);
-        $error = curl_error($handle);
-        curl_close($handle);
-        if ($body === false || $status < 200 || $status >= 300) {
-            throw new \RuntimeException(
-                "GLS CreateLabel gaf HTTP {$status}. Herhaal niet blind; controleer eerst in MyGLS. {$error}"
-            );
-        }
-
-        $response = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
+        $response = $this->request(Env::require('GLS_CREATE_LABEL_URL'), $payload, 'CreateLabel');
         if (($response['error'] ?? false) === true || empty($response['units'])) {
             throw new \RuntimeException((string) ($response['message'] ?? 'GLS gaf geen units terug.'));
         }
@@ -183,12 +159,73 @@ final class GlsService
         return ['response' => $response, 'tracking_numbers' => $numbers, 'label_path' => $labelPath];
     }
 
+    /** @return array<string, mixed> */
+    public function validateLogin(): array
+    {
+        $response = $this->request(Env::require('GLS_VALIDATE_LOGIN_URL'), [
+            'username' => Env::require('GLS_USERNAME'),
+            'password' => Env::require('GLS_PASSWORD'),
+        ], 'ValidateLogin');
+        if (($response['error'] ?? false) === true) {
+            throw new \RuntimeException((string) ($response['message'] ?? 'GLS heeft de login afgekeurd.'));
+        }
+        return $response;
+    }
+
+    /** @param array<string, mixed> $payload @return array<string, mixed> */
+    private function request(string $url, array $payload, string $operation): array
+    {
+        if (!str_starts_with($url, 'https://')) {
+            throw new \RuntimeException("GLS {$operation} vereist een HTTPS-endpoint.");
+        }
+        $apiKey = Env::require('GLS_API_KEY');
+        $handle = curl_init($url);
+        curl_setopt_array($handle, [
+            CURLOPT_POST => true,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CONNECTTIMEOUT => 10,
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+                Env::get('GLS_API_KEY_HEADER', 'Ocp-Apim-Subscription-Key') . ': ' . $apiKey,
+            ],
+            CURLOPT_POSTFIELDS => json_encode($payload, JSON_THROW_ON_ERROR),
+        ]);
+        $body = curl_exec($handle);
+        $status = (int) curl_getinfo($handle, CURLINFO_RESPONSE_CODE);
+        $error = curl_error($handle);
+        curl_close($handle);
+        if ($body === false || $status < 200 || $status >= 300) {
+            $message = '';
+            if (is_string($body) && $body !== '') {
+                $decoded = json_decode($body, true);
+                if (is_array($decoded) && is_string($decoded['message'] ?? null)) {
+                    $message = ' ' . trim($decoded['message']);
+                }
+            }
+            throw new \RuntimeException(
+                "GLS {$operation} gaf HTTP {$status}.{$message} {$error}"
+            );
+        }
+
+        $response = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
+        if (!is_array($response)) {
+            throw new \RuntimeException("GLS {$operation} gaf geen geldig JSON-object terug.");
+        }
+        return $response;
+    }
+
     /** @param array<string, mixed> $payload @return array<string, mixed> */
     public function redact(array $payload): array
     {
-        $payload['Username'] = '***';
-        $payload['Password'] = '***';
+        $payload['username'] = '***';
+        $payload['password'] = '***';
         return $payload;
+    }
+
+    private function sendShippingDate(): bool
+    {
+        return filter_var(Env::get('GLS_SEND_SHIPPING_DATE', 'false'), FILTER_VALIDATE_BOOL);
     }
 
     private function storeLabel(string $deliveryId, string $base64): string

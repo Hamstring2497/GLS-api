@@ -243,7 +243,7 @@ try {
                 abort(422, 'Notitie 1 en Notitie 2 mogen maximaal 50 tekens bevatten.');
             }
         }
-        $address['addressee_type'] = (string) ($delivery['address']['addressee_type'] ?? 'P');
+        $address['addressee_type'] = (string) ($delivery['address']['addressee_type'] ?? 'B');
         $repository->updateAddress($id, $address);
         flash('success', 'Afleveradres opgeslagen.');
         redirect('/?delivery=' . rawurlencode($id));

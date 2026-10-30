@@ -228,6 +228,18 @@ gecontroleerd worden toegepast.
 
 ### Laatste applicatieversie
 
+- 30 oktober 2026, lokale GLS-voorbereiding (nog niet gepubliceerd): de PHP-payload is gecorrigeerd
+  naar het actuele GLS Label API v1-schema. Requestvelden gebruiken nu exact lower camelCase,
+  waaronder `username`, `shiptype`, `units`, `weight`, `addresses` en `deliveryAddress`.
+  Interne Parcel/Freight-codes worden bij verzending omgezet naar de kleine GLS-codes `p`/`f` en
+  unittypes zoals `co`. Huisnummer en toevoeging gaan apart als `houseNo` en `houseNoExt`; zakelijke
+  Exact-adressen gebruiken `addresseeType=b`. De officiële testendpoints voor `ValidateLogin`,
+  `CreateLabel` en `ConfirmLabel` staan zonder geheimen in `.env.example`. Het nieuwe CLI-script
+  `cloud86/bin/test-gls-connection.php` valideert de GLS-testlogin zonder een zending aan te maken.
+  `GLS_SEND_SHIPPING_DATE=false` is toegevoegd als veilige standaard, zodat pas na een expliciete
+  keuze zendingen direct met een verzenddatum aan GLS worden vrijgegeven. De negen
+  Python-referentietests en `git diff --check` zijn geslaagd; lokaal ontbreekt nog steeds een
+  PHP-runtime. `GLS_MODE` is op productie niet gewijzigd en blijft `mock`.
 - 30 oktober 2026, applicatiecommit `c22b0c6` lokaal, op GitHub en via Plesk op Cloud86
   gepubliceerd: de teksten in het menu **Onderhoud** zijn compacter.
   Bij een levering zonder opgeslagen dozen blijft altijd een lege rij **Doos 1** zichtbaar. Het
@@ -393,10 +405,12 @@ Werk deze lijst in deze volgorde af:
 7. Bevestig de GLS-veldmapping voor
    DirectDeliveryPlus en de overige gewenste leveringsopties.
 8. Pas de mapping defensief aan als de Exact-response andere velden gebruikt.
-9. Vraag/controleer GLS-testgegevens: test-`CreateLabel`-URL, API-subscriptionkey, MyGLS-testlogin,
-   eventueel klantnummer en de toegestane producten/services. Spreek ook het labeltype af: A6-PDF
-   voor afdrukken via de browser of ZPL voor een geschikte thermische printer.
-10. Leg vast of `ShippingDate` bij labelaanmaak wordt meegestuurd of dat iedere werkelijk verzonden
+9. Vraag/controleer nu de ontbrekende GLS-testgegevens: API-subscriptionkey, MyGLS-testlogin,
+   eventueel klantnummer en de toegestane producten/services. De test-URL's staan inmiddels in de
+   configuratie. Spreek ook het labeltype af: A6-PDF (`pdfa6s`) voor afdrukken via de browser of ZPL
+   voor een geschikte thermische printer. Vul de geheimen uitsluitend in de Cloud86-`.env` in en
+   voer eerst `php bin/test-gls-connection.php` uit met `GLS_MODE=test`.
+10. Leg vast of `ShippingDate` bij labelaanmaak wordt meegestuurd (`GLS_SEND_SHIPPING_DATE=true`) of dat iedere werkelijk verzonden
     unit later via `ConfirmLabel` wordt bevestigd. Maak daarna van de magazijnactie één duidelijke,
     idempotente stap **Zending opslaan en labels maken**; open het opgeslagen label voor afdrukken.
 11. Voer een GLS-acceptatietest uit met een expliciete testlevering en controleer PDF/labelprinter.
