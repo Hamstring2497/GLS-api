@@ -228,7 +228,8 @@ gecontroleerd worden toegepast.
 
 ### Laatste applicatieversie
 
-- 30 oktober 2026, commit `c22b0c6` lokaal en op GitHub: de teksten in het menu **Onderhoud** zijn compacter.
+- 30 oktober 2026, applicatiecommit `c22b0c6` lokaal, op GitHub en via Plesk op Cloud86
+  gepubliceerd: de teksten in het menu **Onderhoud** zijn compacter.
   Bij een levering zonder opgeslagen dozen blijft altijd een lege rij **Doos 1** zichtbaar. Het
   gewicht is niet HTML-verplicht; een lege rij wordt door de bestaande serverfilter niet als doos
   opgeslagen en laat de status op `new`. De Exact-contactnaam wordt bij voorkeur opgebouwd als
@@ -236,8 +237,11 @@ gecontroleerd worden toegepast.
   `Voornaam + Tussenvoegsel + Achternaam`; alleen als die onderdelen ontbreken wordt `FullName`
   gebruikt. Er is geen databasemigratie nodig. `git diff --check` en de negen
   Python-referentietests zijn geslaagd. De PHP-smoketest bevat nieuwe controles voor de lege doos
-  en beide naamvarianten, maar kan lokaal niet worden uitgevoerd omdat PHP ontbreekt. Deze wijziging
-  wacht nog op publicatie en controle via Cloud86/Plesk.
+  en beide naamvarianten, maar kan lokaal niet worden uitgevoerd omdat PHP ontbreekt. Plesk
+  bevestigde pull en publicatie als voltooid. Live zijn de compactere onderhoudsteksten en de lege,
+  niet-verplichte rij **Doos 1** gecontroleerd. `/health` gaf `status: ok` en `gls_mode: mock`.
+  De nieuwe naamopbouw geldt bij een volgende Exact-import; bestaande lokale leveringen worden
+  bewust niet overschreven.
 - 30 oktober 2026: applicatiecommit `e4a1dc2` staat lokaal, op GitHub en is via Plesk op Cloud86
   gepubliceerd. Synchronisatiemeldingen hebben een knop **Gezien**; geen nieuwe leveringen wordt
   blauw/informatief weergegeven, gedeeltelijke importproblemen amber en alleen een volledige fout
@@ -374,8 +378,7 @@ gecontroleerd worden toegepast.
 
 Werk deze lijst in deze volgorde af:
 
-1. Publiceer na akkoord de compacte onderhoudstekst, permanente lege rij **Doos 1** en de nieuwe
-   Exact-contactnaamopbouw. Controleer daarna met een nieuw opgehaalde levering of Exact `Title`,
+1. Controleer met een nieuw opgehaalde levering of Exact `Title`,
    `FirstName`, `MiddleName` en `LastName` levert zoals verwacht.
 2. Voer zodra shelltoegang beschikbaar is op Cloud86 de PHP-syntaxiscontrole en
    `cloud86/tests/smoke.php` uit.
