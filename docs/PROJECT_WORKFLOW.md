@@ -228,7 +228,7 @@ gecontroleerd worden toegepast.
 
 ### Laatste applicatieversie
 
-- 30 oktober 2026, lokaal in voorbereiding: de teksten in het menu **Onderhoud** zijn compacter.
+- 30 oktober 2026, commit `c22b0c6` lokaal en op GitHub: de teksten in het menu **Onderhoud** zijn compacter.
   Bij een levering zonder opgeslagen dozen blijft altijd een lege rij **Doos 1** zichtbaar. Het
   gewicht is niet HTML-verplicht; een lege rij wordt door de bestaande serverfilter niet als doos
   opgeslagen en laat de status op `new`. De Exact-contactnaam wordt bij voorkeur opgebouwd als
@@ -237,7 +237,7 @@ gecontroleerd worden toegepast.
   gebruikt. Er is geen databasemigratie nodig. `git diff --check` en de negen
   Python-referentietests zijn geslaagd. De PHP-smoketest bevat nieuwe controles voor de lege doos
   en beide naamvarianten, maar kan lokaal niet worden uitgevoerd omdat PHP ontbreekt. Deze wijziging
-  is nog niet op GitHub of Cloud86 gepubliceerd.
+  wacht nog op publicatie en controle via Cloud86/Plesk.
 - 30 oktober 2026: applicatiecommit `e4a1dc2` staat lokaal, op GitHub en is via Plesk op Cloud86
   gepubliceerd. Synchronisatiemeldingen hebben een knop **Gezien**; geen nieuwe leveringen wordt
   blauw/informatief weergegeven, gedeeltelijke importproblemen amber en alleen een volledige fout
