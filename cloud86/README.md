@@ -19,6 +19,10 @@ Deze map is bedoeld voor het Cloud86 WooCommerce Power-pakket en heeft geen Comp
 - handmatig ophalen van recente, nog niet verzonden goederenleveringen uit Exact.
 - spreadsheetachtig leveringsoverzicht, bewerkbaar afleveradres, Parcel/Freight-keuze en
   bewerkbare GLS-referentie (standaard de laatste vier cijfers van het ordernummer).
+- concrete melding en markering van ontbrekende verplichte verzendgegevens;
+- meerdere nog niet verzonden Exact-leveringen op exact hetzelfde afleveradres samenvoegen tot
+  één GLS-zending. De hoofdlevering bevat alle gezamenlijke dozen; de GLS-referentie wordt
+  aangevuld met de ordernummers van de gekoppelde leveringen.
 
 ## Nog te activeren
 
@@ -52,8 +56,9 @@ cloud86/
 4. Selecteer PHP 8.2 of nieuwer en activeer HTTPS.
 5. Maak in Plesk een aparte MySQL-database en databasegebruiker aan.
 6. Importeer `database/schema.sql` via phpMyAdmin.
-   Voor een bestaande installatie: voer in plaats daarvan eenmalig
-   `database/migrations/20261029_shipping_details.sql` uit voordat de nieuwe code online gaat.
+   Voor een bestaande installatie: voer de nog niet toegepaste bestanden in `database/migrations/`
+   in datumvolgorde eenmalig uit. Voor de samenvoegfunctie is vóór publicatie specifiek
+   `database/migrations/20261030_delivery_merges.sql` nodig.
 7. Kopieer `.env.example` naar `.env` en vul de databasevelden in.
 8. Maak via Plesk Terminal het algemene gebruikersaccount aan. Het script genereert een willekeurig
    wachtwoord van precies 10 tekens en toont dit precies één keer:

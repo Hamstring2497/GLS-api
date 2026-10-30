@@ -14,7 +14,7 @@ $db = new PDO('sqlite::memory:');
 $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 $db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 $db->exec('CREATE TABLE deliveries (
-    exact_entry_id TEXT PRIMARY KEY, delivery_number TEXT, order_number TEXT,
+    exact_entry_id TEXT PRIMARY KEY, merged_into_exact_entry_id TEXT, delivery_number TEXT, order_number TEXT,
     ship_type TEXT, freight_unit_type TEXT, shipment_reference TEXT, address_json TEXT, shipping_date TEXT,
     status TEXT, tracking_numbers_json TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP, updated_at TEXT
 )');
@@ -156,6 +156,33 @@ assert($repository->discard('second'));
 assert(count($repository->all()) === 1);
 assert($repository->find('second')['status'] === 'discarded');
 
+$repository->save([
+    'exact_entry_id' => 'merge-primary', 'delivery_number' => 'DEL-20',
+    'order_number' => 'ORD-2000', 'shipping_date' => null,
+    'name' => 'Samen BV', 'street' => 'Samenstraat', 'house_no' => '8',
+    'zip_code' => '1111 AA', 'city' => 'Utrecht', 'country_code' => 'NL',
+    'email' => 'samen@example.com',
+]);
+$repository->save([
+    'exact_entry_id' => 'merge-child', 'delivery_number' => 'DEL-21',
+    'order_number' => 'ORD-2001', 'shipping_date' => null,
+    'name' => 'Samen BV', 'street' => 'Samenstraat', 'house_no' => '8',
+    'zip_code' => '1111 AA', 'city' => 'Utrecht', 'country_code' => 'NL',
+    'email' => '',
+]);
+$repository->replaceParcels('merge-primary', [8.0]);
+assert(count($repository->mergeCandidates('merge-primary')) === 1);
+$repository->setMergedDeliveries('merge-primary', ['merge-child']);
+$merged = $repository->find('merge-primary');
+assert(count($merged['merged_deliveries']) === 1);
+assert($merged['effective_reference'] === '2000 / ORD-2001');
+assert($repository->find('merge-child')['merged_into_exact_entry_id'] === 'merge-primary');
+assert($gls->buildPayload($merged)['reference'] === '2000 / ORD-2001');
+assert(delivery_missing_data($merged) === []);
+$missingMergeEmail = $merged;
+$missingMergeEmail['address']['email'] = '';
+assert(delivery_missing_data($missingMergeEmail)['email'] === 'geldig e-mailadres');
+
 $missingEmail = $repository->find('test-delivery');
 $missingEmail['address']['email'] = '';
 try {
@@ -165,7 +192,7 @@ try {
     assert(str_contains($error->getMessage(), 'e-mailadres'));
 }
 
-assert($repository->clearAll() === 2);
+assert($repository->clearAll() === 4);
 assert($repository->all() === []);
 assert($db->query('SELECT COUNT(*) FROM parcels')->fetchColumn() == 0);
 

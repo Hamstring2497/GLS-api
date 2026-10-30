@@ -1,5 +1,6 @@
 CREATE TABLE IF NOT EXISTS deliveries (
     exact_entry_id VARCHAR(64) PRIMARY KEY,
+    merged_into_exact_entry_id VARCHAR(64) NULL,
     delivery_number VARCHAR(64) NOT NULL,
     order_number VARCHAR(64) NOT NULL,
     ship_type CHAR(1) NOT NULL DEFAULT 'P',
@@ -17,6 +18,8 @@ CREATE TABLE IF NOT EXISTS deliveries (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX deliveries_merged_into_idx ON deliveries (merged_into_exact_entry_id);
 
 CREATE TABLE IF NOT EXISTS parcels (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

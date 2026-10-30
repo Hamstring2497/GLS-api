@@ -35,6 +35,96 @@ final class DeliveryRepository
         return $this->hydrate($row);
     }
 
+    /** @return list<array<string, mixed>> */
+    public function mergeCandidates(string $primaryId): array
+    {
+        $primary = $this->find($primaryId);
+        if ($primary === null || !empty($primary['merged_into_exact_entry_id'])) {
+            return [];
+        }
+
+        return array_values(array_filter(
+            $this->all(),
+            fn (array $candidate): bool =>
+                $candidate['exact_entry_id'] !== $primaryId
+                && in_array($candidate['status'], ['new', 'ready'], true)
+                && (empty($candidate['merged_into_exact_entry_id']) || $candidate['merged_into_exact_entry_id'] === $primaryId)
+                && ($candidate['merged_deliveries'] ?? []) === []
+                && $this->sameDestination($primary, $candidate)
+        ));
+    }
+
+    /** @param list<string> $includedIds */
+    public function setMergedDeliveries(string $primaryId, array $includedIds): void
+    {
+        $includedIds = array_values(array_unique(array_filter(
+            array_map('trim', $includedIds),
+            static fn (string $id): bool => $id !== '' && $id !== $primaryId
+        )));
+        $primary = $this->find($primaryId);
+        if ($primary === null || !in_array($primary['status'], ['new', 'ready'], true)) {
+            throw new \InvalidArgumentException('De hoofdlevering kan niet meer worden samengevoegd.');
+        }
+        if (!empty($primary['merged_into_exact_entry_id'])) {
+            throw new \InvalidArgumentException('Een gekoppelde levering kan niet zelf als hoofdlevering worden gebruikt.');
+        }
+
+        $members = [];
+        foreach ($includedIds as $includedId) {
+            $candidate = $this->find($includedId);
+            if ($candidate === null || !in_array($candidate['status'], ['new', 'ready'], true)) {
+                throw new \InvalidArgumentException('Een gekozen levering is niet meer beschikbaar om samen te voegen.');
+            }
+            if (!empty($candidate['merged_into_exact_entry_id']) && $candidate['merged_into_exact_entry_id'] !== $primaryId) {
+                throw new \InvalidArgumentException('Een gekozen levering hoort al bij een andere zending.');
+            }
+            if (($candidate['merged_deliveries'] ?? []) !== []) {
+                throw new \InvalidArgumentException('Een hoofdlevering met gekoppelde leveringen kan niet worden toegevoegd.');
+            }
+            if (!$this->sameDestination($primary, $candidate)) {
+                throw new \InvalidArgumentException('Leveringen kunnen alleen worden samengevoegd bij exact hetzelfde afleveradres.');
+            }
+            if ($candidate['ship_type'] !== $primary['ship_type']) {
+                throw new \InvalidArgumentException('Samengevoegde leveringen moeten hetzelfde verzendtype hebben.');
+            }
+            if ($candidate['parcels'] !== []) {
+                throw new \InvalidArgumentException(
+                    'Verwijder eerst de dozen bij levering ' . $candidate['delivery_number']
+                    . '; voer daarna alle gezamenlijke dozen bij de hoofdlevering in.'
+                );
+            }
+            $members[] = $candidate;
+        }
+
+        $referenceParts = [trim((string) $primary['shipment_reference'])];
+        foreach ($members as $member) {
+            $referenceParts[] = trim((string) $member['order_number']);
+        }
+        if (strlen(implode(' / ', array_values(array_unique(array_filter($referenceParts))))) > 64) {
+            throw new \InvalidArgumentException('De gezamenlijke GLS-referentie is langer dan 64 tekens.');
+        }
+
+        $this->db->beginTransaction();
+        try {
+            $detach = $this->db->prepare(
+                'UPDATE deliveries SET merged_into_exact_entry_id = NULL, updated_at = CURRENT_TIMESTAMP '
+                . 'WHERE merged_into_exact_entry_id = ?'
+            );
+            $detach->execute([$primaryId]);
+            $attach = $this->db->prepare(
+                'UPDATE deliveries SET merged_into_exact_entry_id = ?, updated_at = CURRENT_TIMESTAMP '
+                . "WHERE exact_entry_id = ? AND status IN ('new', 'ready')"
+            );
+            foreach ($includedIds as $includedId) {
+                $attach->execute([$primaryId, $includedId]);
+            }
+            $this->db->commit();
+        } catch (\Throwable $error) {
+            $this->db->rollBack();
+            throw $error;
+        }
+    }
+
     /** @param array<string, string|null> $data */
     public function save(array $data): void
     {
@@ -84,11 +174,23 @@ final class DeliveryRepository
 
     public function updateShippingDetails(string $id, string $shipType, string $reference, string $freightUnitType = 'CO'): void
     {
-        $statement = $this->db->prepare(
-            "UPDATE deliveries SET ship_type = ?, freight_unit_type = ?, shipment_reference = ?, updated_at = CURRENT_TIMESTAMP "
-            . "WHERE exact_entry_id = ? AND status IN ('new', 'ready')"
-        );
-        $statement->execute([$shipType, $freightUnitType, $reference, $id]);
+        $this->db->beginTransaction();
+        try {
+            $statement = $this->db->prepare(
+                "UPDATE deliveries SET ship_type = ?, freight_unit_type = ?, updated_at = CURRENT_TIMESTAMP "
+                . "WHERE (exact_entry_id = ? OR merged_into_exact_entry_id = ?) AND status IN ('new', 'ready')"
+            );
+            $statement->execute([$shipType, $freightUnitType, $id, $id]);
+            $referenceStatement = $this->db->prepare(
+                "UPDATE deliveries SET shipment_reference = ?, updated_at = CURRENT_TIMESTAMP "
+                . "WHERE exact_entry_id = ? AND status IN ('new', 'ready')"
+            );
+            $referenceStatement->execute([$reference, $id]);
+            $this->db->commit();
+        } catch (\Throwable $error) {
+            $this->db->rollBack();
+            throw $error;
+        }
     }
 
     /** @param list<float> $weights */
@@ -121,16 +223,22 @@ final class DeliveryRepository
     {
         $statement = $this->db->prepare(
             "UPDATE deliveries SET address_json = ?, updated_at = CURRENT_TIMESTAMP "
-            . "WHERE exact_entry_id = ? AND status IN ('new', 'ready')"
+            . "WHERE (exact_entry_id = ? OR merged_into_exact_entry_id = ?) AND status IN ('new', 'ready')"
         );
         $statement->execute([
             json_encode($address, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
+            $id,
             $id,
         ]);
     }
 
     public function discard(string $id): bool
     {
+        $children = $this->db->prepare('SELECT COUNT(*) FROM deliveries WHERE merged_into_exact_entry_id = ?');
+        $children->execute([$id]);
+        if ((int) $children->fetchColumn() > 0) {
+            return false;
+        }
         $statement = $this->db->prepare(
             "UPDATE deliveries SET status = 'discarded', updated_at = CURRENT_TIMESTAMP "
             . "WHERE exact_entry_id = ? AND status IN ('new', 'ready')"
@@ -171,13 +279,14 @@ final class DeliveryRepository
         $statement = $this->db->prepare(
             "UPDATE deliveries SET status = 'labels_created', tracking_numbers_json = ?, "
             . 'gls_request_json = ?, gls_response_json = ?, label_path = ?, '
-            . 'updated_at = CURRENT_TIMESTAMP WHERE exact_entry_id = ?'
+            . 'updated_at = CURRENT_TIMESTAMP WHERE exact_entry_id = ? OR merged_into_exact_entry_id = ?'
         );
         $statement->execute([
             json_encode($numbers, JSON_THROW_ON_ERROR),
             json_encode($request, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
             json_encode($response, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
             $labelPath,
+            $id,
             $id,
         ]);
     }
@@ -215,7 +324,7 @@ final class DeliveryRepository
     }
 
     /** @param array<string, mixed> $row @return array<string, mixed> */
-    private function hydrate(array $row): array
+    private function hydrate(array $row, bool $includeMerged = true): array
     {
         $address = json_decode((string) $row['address_json'], true, 512, JSON_THROW_ON_ERROR);
         $numbers = json_decode((string) $row['tracking_numbers_json'], true, 512, JSON_THROW_ON_ERROR);
@@ -223,6 +332,26 @@ final class DeliveryRepository
             'SELECT position, weight_kg FROM parcels WHERE exact_entry_id = ? ORDER BY position'
         );
         $statement->execute([$row['exact_entry_id']]);
+
+        $mergedDeliveries = [];
+        if ($includeMerged && empty($row['merged_into_exact_entry_id'])) {
+            $mergedStatement = $this->db->prepare(
+                'SELECT * FROM deliveries WHERE merged_into_exact_entry_id = ? ORDER BY created_at, delivery_number'
+            );
+            $mergedStatement->execute([$row['exact_entry_id']]);
+            $mergedDeliveries = array_map(
+                fn (array $mergedRow): array => $this->hydrate($mergedRow, false),
+                $mergedStatement->fetchAll()
+            );
+        }
+        $referenceParts = [
+            ($row['shipment_reference'] ?? '') !== ''
+                ? (string) $row['shipment_reference']
+                : substr((string) preg_replace('/\D/', '', (string) $row['order_number']), -4),
+        ];
+        foreach ($mergedDeliveries as $mergedDelivery) {
+            $referenceParts[] = (string) $mergedDelivery['order_number'];
+        }
 
         return array_merge($row, [
             'ship_type' => $row['ship_type'] ?? 'P',
@@ -233,7 +362,28 @@ final class DeliveryRepository
             'address' => $address,
             'tracking_numbers' => $numbers,
             'parcels' => $statement->fetchAll(),
+            'merged_deliveries' => $mergedDeliveries,
+            'effective_reference' => implode(
+                ' / ',
+                array_values(array_unique(array_filter(array_map('trim', $referenceParts))))
+            ),
         ]);
+    }
+
+    /** @param array<string, mixed> $left @param array<string, mixed> $right */
+    private function sameDestination(array $left, array $right): bool
+    {
+        $normalize = static fn (mixed $value): string => preg_replace(
+            '/[^\p{L}\p{N}]+/u',
+            '',
+            mb_strtolower(trim((string) $value))
+        ) ?? '';
+        foreach (['street', 'house_no', 'house_no_addition', 'zip_code', 'city', 'country_code'] as $field) {
+            if ($normalize($left['address'][$field] ?? '') !== $normalize($right['address'][$field] ?? '')) {
+                return false;
+            }
+        }
+        return true;
     }
 }
 

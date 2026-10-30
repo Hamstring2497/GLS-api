@@ -40,3 +40,43 @@ function flash(string $type, string $message): void
     $_SESSION['flash'] = ['type' => $type, 'message' => $message];
 }
 
+/**
+ * Geeft de concrete, voor de magazijnmedewerker herkenbare ontbrekende gegevens terug.
+ * De sleutels corresponderen met formulieronderdelen en worden ook gebruikt om velden te markeren.
+ *
+ * @param array<string, mixed> $delivery
+ * @return array<string, string>
+ */
+function delivery_missing_data(array $delivery): array
+{
+    $address = is_array($delivery['address'] ?? null) ? $delivery['address'] : [];
+    $missing = [];
+    foreach ([
+        'name' => 'naam',
+        'street' => 'straat',
+        'house_no' => 'huisnummer',
+        'zip_code' => 'postcode',
+        'city' => 'plaats',
+        'country_code' => 'landcode',
+    ] as $field => $label) {
+        if (trim((string) ($address[$field] ?? '')) === '') {
+            $missing[$field] = $label;
+        }
+    }
+    $countryCode = trim((string) ($address['country_code'] ?? ''));
+    if ($countryCode !== '' && preg_match('/^[A-Za-z]{2}$/', $countryCode) !== 1) {
+        $missing['country_code'] = 'geldige landcode';
+    }
+    if (filter_var(trim((string) ($address['email'] ?? '')), FILTER_VALIDATE_EMAIL) === false) {
+        $missing['email'] = 'geldig e-mailadres';
+    }
+    if (trim((string) ($delivery['effective_reference'] ?? $delivery['shipment_reference'] ?? '')) === '') {
+        $missing['shipment_reference'] = 'referentie';
+    }
+    if (($delivery['parcels'] ?? []) === []) {
+        $missing['parcels'] = 'minimaal één doos met gewicht';
+    }
+
+    return $missing;
+}
+

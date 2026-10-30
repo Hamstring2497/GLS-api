@@ -27,6 +27,12 @@
         <a class="button" href="/deliveries/new">Testlevering toevoegen</a>
     </section>
 <?php else: ?>
+    <?php
+    $deliveryNumbersById = [];
+    foreach ($deliveries as $listedDelivery) {
+        $deliveryNumbersById[(string) $listedDelivery['exact_entry_id']] = (string) $listedDelivery['delivery_number'];
+    }
+    ?>
     <div class="delivery-split">
     <section class="delivery-list-pane" aria-label="Leveringen">
       <div class="table-wrap delivery-sheet">
@@ -34,7 +40,25 @@
             <thead><tr><th>Levering</th><th>Order</th><th>Datum</th><th>Toegevoegd</th><th>Ontvanger</th><th>Straat</th><th>Huisnr.</th><th>Postcode</th><th>Plaats</th><th>Land</th><th>Type</th><th>Vrachttype</th><th>Referentie</th><th>Dozen</th><th>Gewicht</th><th>Tracking</th><th>Status</th></tr></thead>
             <tbody>
             <?php foreach ($deliveries as $delivery): ?>
-                <?php $deliveryUrl = '/?delivery=' . rawurlencode((string) $delivery['exact_entry_id']); ?>
+                <?php
+                $mergedIntoId = (string) ($delivery['merged_into_exact_entry_id'] ?? '');
+                $targetId = $mergedIntoId !== '' ? $mergedIntoId : (string) $delivery['exact_entry_id'];
+                $deliveryUrl = '/?delivery=' . rawurlencode($targetId);
+                $missingData = delivery_missing_data($delivery);
+                if ($mergedIntoId !== '') {
+                    $tableStatus = 'Bij levering ' . ($deliveryNumbersById[$mergedIntoId] ?? $mergedIntoId);
+                    $tableStatusClass = 'merged';
+                } elseif ($delivery['status'] === 'labels_created') {
+                    $tableStatus = 'Labels gemaakt';
+                    $tableStatusClass = 'labels_created';
+                } elseif ($missingData !== []) {
+                    $tableStatus = 'Ontbreekt: ' . implode(', ', $missingData);
+                    $tableStatusClass = 'missing';
+                } else {
+                    $tableStatus = 'Klaar voor labels';
+                    $tableStatusClass = 'ready';
+                }
+                ?>
                 <tr class="delivery-row <?= $selectedDelivery && $selectedDelivery['exact_entry_id'] === $delivery['exact_entry_id'] ? 'selected-row' : '' ?> <?= in_array($delivery['status'], ['ready', 'labels_created'], true) ? 'completed-row' : '' ?>" data-delivery-url="<?= e($deliveryUrl) ?>" tabindex="0" aria-label="Selecteer levering <?= e($delivery['delivery_number']) ?>" aria-selected="<?= $selectedDelivery && $selectedDelivery['exact_entry_id'] === $delivery['exact_entry_id'] ? 'true' : 'false' ?>">
                     <td><strong><?= e($delivery['delivery_number']) ?></strong></td>
                     <td><?= e($delivery['order_number']) ?></td>
@@ -48,11 +72,11 @@
                     <td><?= e($delivery['address']['country_code']) ?></td>
                     <td><?= $delivery['ship_type'] === 'F' ? 'Freight' : 'Parcel' ?></td>
                     <td><?= $delivery['ship_type'] === 'F' ? e($delivery['freight_unit_type']) : '—' ?></td>
-                    <td><?= e($delivery['shipment_reference'] ?: '—') ?></td>
+                    <td><?= e($delivery['effective_reference'] ?: '—') ?></td>
                     <td><?= count($delivery['parcels']) ?></td>
                     <td><?= e(number_format(array_sum(array_map(static fn ($parcel): float => (float) $parcel['weight_kg'], $delivery['parcels'])), 1, ',', '.')) ?> kg</td>
                     <td><?= e(implode(', ', $delivery['tracking_numbers']) ?: '—') ?></td>
-                    <td><span class="badge badge-<?= e($delivery['status']) ?>"><?= e(['new' => 'Nieuw', 'ready' => 'Klaar voor labels', 'labels_created' => 'Labels gemaakt'][$delivery['status']] ?? $delivery['status']) ?></span></td>
+                    <td><span class="badge badge-<?= e($tableStatusClass) ?>"><?= e($tableStatus) ?></span></td>
                 </tr>
             <?php endforeach; ?>
             </tbody>

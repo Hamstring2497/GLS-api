@@ -81,10 +81,14 @@ try {
         if ($selectedId !== '' && ($selected === null || $selected['status'] === 'discarded')) {
             abort(404, 'Levering niet gevonden.');
         }
+        if ($selected !== null && !empty($selected['merged_into_exact_entry_id'])) {
+            redirect('/?delivery=' . rawurlencode((string) $selected['merged_into_exact_entry_id']));
+        }
         view('deliveries/index', [
             'deliveries' => $deliveries,
             'selectedDelivery' => $selected,
             'exactStatus' => $exactStatus,
+            'mergeCandidates' => $selected !== null ? $repository->mergeCandidates((string) $selected['exact_entry_id']) : [],
         ]);
     }
 
@@ -217,6 +221,9 @@ try {
         if ($delivery === null) {
             abort(404, 'Levering niet gevonden.');
         }
+        if (!empty($delivery['merged_into_exact_entry_id'])) {
+            abort(409, 'Bewerk het adres via de hoofdlevering van deze samengevoegde zending.');
+        }
         if (!in_array($delivery['status'], ['new', 'ready'], true)) {
             abort(409, 'Het adres kan na het aanmaken van labels niet meer worden gewijzigd.');
         }
@@ -256,6 +263,9 @@ try {
         if ($delivery === null) {
             abort(404, 'Levering niet gevonden.');
         }
+        if (!empty($delivery['merged_into_exact_entry_id'])) {
+            abort(409, 'Bewerk de verzendgegevens via de hoofdlevering van deze samengevoegde zending.');
+        }
         if (!in_array($delivery['status'], ['new', 'ready'], true)) {
             abort(409, 'De verzendgegevens kunnen na labelaanmaak niet meer worden gewijzigd.');
         }
@@ -283,6 +293,9 @@ try {
         if ($delivery === null) {
             abort(404, 'Levering niet gevonden.');
         }
+        if (!empty($delivery['merged_into_exact_entry_id'])) {
+            abort(409, 'Bewerk de dozen via de hoofdlevering van deze samengevoegde zending.');
+        }
         if (!in_array($delivery['status'], ['new', 'ready'], true)) {
             abort(409, 'De dozen kunnen na het aanmaken van labels niet meer worden gewijzigd.');
         }
@@ -306,13 +319,34 @@ try {
         redirect('/deliveries/' . rawurlencode($id));
     }
 
+    if ($method === 'POST' && preg_match('#^/deliveries/([^/]+)/merge$#', $path, $matches)) {
+        Security::verifyCsrf();
+        $id = rawurldecode($matches[1]);
+        $includedIds = array_values(array_filter(array_map(
+            static fn ($value): string => trim((string) $value),
+            is_array($_POST['merged_delivery_ids'] ?? null) ? $_POST['merged_delivery_ids'] : []
+        )));
+        try {
+            $repository->setMergedDeliveries($id, $includedIds);
+        } catch (InvalidArgumentException $error) {
+            abort(422, $error->getMessage());
+        }
+        flash(
+            $includedIds === [] ? 'info' : 'success',
+            $includedIds === []
+                ? 'Er zijn geen extra leveringen aan deze zending gekoppeld.'
+                : count($includedIds) . ' extra levering(en) aan deze GLS-zending gekoppeld.'
+        );
+        redirect('/?delivery=' . rawurlencode($id));
+    }
+
     if ($method === 'POST' && preg_match('#^/deliveries/([^/]+)/delete$#', $path, $matches)) {
         Security::verifyCsrf();
         if (($_POST['confirm_delete'] ?? '') !== 'yes' || ($_POST['supervisor_confirmation'] ?? '') !== 'yes') {
             abort(422, 'Bevestig eerst samen met uw supervisor het verwijderen van de zending.');
         }
         if (!$repository->discard(rawurldecode($matches[1]))) {
-            abort(409, 'Deze zending kan niet worden gewist. GLS-labels zijn mogelijk al aangemaakt.');
+            abort(409, 'Deze zending kan niet worden gewist. Maak eerst de samenvoeging ongedaan of controleer of GLS-labels al zijn aangemaakt.');
         }
         flash('success', 'Zending uit de werkvoorraad verwijderd. Exact importeert deze niet opnieuw.');
         redirect('/');
@@ -325,11 +359,12 @@ try {
         if ($delivery === null) {
             abort(404, 'Levering niet gevonden.');
         }
-        if ($delivery['status'] !== 'ready') {
+        if (!in_array($delivery['status'], ['new', 'ready'], true)) {
             abort(409, 'Deze levering is niet gereed voor labels.');
         }
-        if (filter_var((string) ($delivery['address']['email'] ?? ''), FILTER_VALIDATE_EMAIL) === false) {
-            abort(422, 'Vul eerst een geldig e-mailadres in bij het afleveradres.');
+        $missing = delivery_missing_data($delivery);
+        if ($missing !== []) {
+            abort(422, 'Vul eerst de ontbrekende gegevens in: ' . implode(', ', $missing) . '.');
         }
         $payload = $gls->buildPayload($delivery);
         $result = $gls->createLabels($payload, $id);

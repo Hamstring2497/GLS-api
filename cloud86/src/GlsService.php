@@ -38,7 +38,7 @@ final class GlsService
             throw new \InvalidArgumentException('Voeg minimaal één doos toe.');
         }
         $shipType = (string) ($delivery['ship_type'] ?? 'P');
-        $reference = trim((string) ($delivery['shipment_reference'] ?? ''));
+        $reference = trim((string) ($delivery['effective_reference'] ?? $delivery['shipment_reference'] ?? ''));
         if (!in_array($shipType, ['P', 'F'], true) || $reference === '') {
             throw new \InvalidArgumentException('Controleer het verzendtype en de referentie.');
         }

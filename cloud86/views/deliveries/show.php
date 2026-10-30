@@ -2,7 +2,11 @@
 $locked = $delivery['status'] === 'labels_created';
 $freightUnits = ['CO' => 'Collo (max. 32 kg)', 'LG' => 'Lang collo (25 kg)', 'MP' => 'Minipallet (300 kg)', 'PL' => 'Pallet (675 kg)', 'BP' => 'Blokpallet (850 kg)', 'RL' => 'Rolcontainer (350 kg)', 'XL' => 'XL-pallet (1000 kg)'];
 $maxWeight = $delivery['ship_type'] === 'F' ? (\App\GlsService::FREIGHT_UNITS[$delivery['freight_unit_type']] ?? 32) : 32;
-$statusLabel = ['new' => 'Nieuw', 'ready' => 'Klaar voor labels', 'labels_created' => 'Labels gemaakt'][$delivery['status']] ?? $delivery['status'];
+$missingData = delivery_missing_data($delivery);
+$missingKeys = array_keys($missingData);
+$statusLabel = $locked ? 'Labels gemaakt' : ($missingData === [] ? 'Klaar voor labels' : 'Gegevens ontbreken');
+$statusClass = $locked ? 'labels_created' : ($missingData === [] ? 'ready' : 'missing');
+$mergeCandidates = $mergeCandidates ?? [];
 $addressFields = [
     ['name', 'Naam', 'field-name', true, null],
     ['name_2', 'Naam 2', 'field-name-2', false, null],
@@ -31,7 +35,7 @@ $addressFields = [
             </div>
         </div>
         <div class="heading-actions">
-            <span class="badge badge-<?= e($delivery['status']) ?>"><?= e($statusLabel) ?></span>
+            <span class="badge badge-<?= e($statusClass) ?>"><?= e($statusLabel) ?></span>
         </div>
     </div>
     <form id="shipping-details-form" method="post" action="/deliveries/<?= rawurlencode((string) $delivery['exact_entry_id']) ?>/shipping" class="shipping-form">
@@ -50,9 +54,40 @@ $addressFields = [
             </select>
         </label>
         <label>Referentie
-            <input type="text" name="shipment_reference" value="<?= e($delivery['shipment_reference']) ?>" maxlength="64" required <?= $locked ? 'disabled' : '' ?>>
+            <input class="<?= in_array('shipment_reference', $missingKeys, true) ? 'is-missing' : '' ?>" type="text" name="shipment_reference" value="<?= e($delivery['shipment_reference']) ?>" maxlength="64" required <?= $locked ? 'disabled' : '' ?>>
         </label>
     </form>
+    <?php if (($delivery['merged_deliveries'] ?? []) !== []): ?>
+        <div class="effective-reference">
+            <strong>Gezamenlijke GLS-referentie:</strong> <?= e($delivery['effective_reference']) ?>
+        </div>
+    <?php endif; ?>
+    <?php if (!$locked && $mergeCandidates !== []): ?>
+        <form method="post" action="/deliveries/<?= rawurlencode((string) $delivery['exact_entry_id']) ?>/merge" class="merge-form">
+            <input type="hidden" name="_token" value="<?= e(\App\Security::csrfToken()) ?>">
+            <div class="merge-heading">
+                <strong>Leveringen op hetzelfde adres samenvoegen</strong>
+                <span>De gezamenlijke dozen voert u alleen bij deze hoofdlevering in.</span>
+            </div>
+            <div class="merge-options">
+                <?php foreach ($mergeCandidates as $candidate): ?>
+                    <?php
+                    $isIncluded = ($candidate['merged_into_exact_entry_id'] ?? null) === $delivery['exact_entry_id'];
+                    $hasParcels = $candidate['parcels'] !== [];
+                    ?>
+                    <label class="merge-option <?= $hasParcels && !$isIncluded ? 'merge-option-disabled' : '' ?>">
+                        <input type="checkbox" name="merged_delivery_ids[]" value="<?= e($candidate['exact_entry_id']) ?>" <?= $isIncluded ? 'checked' : '' ?> <?= $hasParcels && !$isIncluded ? 'disabled' : '' ?>>
+                        <span>
+                            <strong>Levering <?= e($candidate['delivery_number']) ?></strong>
+                            · order <?= e($candidate['order_number']) ?>
+                            <?php if ($hasParcels && !$isIncluded): ?>· wis eerst de eigen dozen<?php endif; ?>
+                        </span>
+                    </label>
+                <?php endforeach; ?>
+            </div>
+            <button class="button button-small" type="submit">Samenvoeging opslaan</button>
+        </form>
+    <?php endif; ?>
 </section>
 
 <div class="detail-stack">
@@ -64,8 +99,9 @@ $addressFields = [
         <form id="address-details-form" method="post" action="/deliveries/<?= rawurlencode((string) $delivery['exact_entry_id']) ?>/address" class="address-form">
             <input type="hidden" name="_token" value="<?= e(\App\Security::csrfToken()) ?>">
             <?php foreach ($addressFields as [$field, $label, $className, $required, $maxLength]): ?>
-                <label class="<?= e($className) ?>"><?= e($label) ?><?= $required ? ' *' : '' ?>
-                    <input name="<?= e($field) ?>" value="<?= e($delivery['address'][$field] ?? '') ?>" <?= $locked ? 'disabled' : '' ?> <?= $required ? 'required' : '' ?> type="<?= $field === 'email' ? 'email' : 'text' ?>" <?= $maxLength !== null ? 'maxlength="' . e($maxLength) . '"' : '' ?>>
+                <?php $fieldMissing = in_array($field, $missingKeys, true); ?>
+                <label class="<?= e($className) ?> <?= $fieldMissing ? 'field-missing' : '' ?>"><?= e($label) ?><?= $required ? ' *' : '' ?><?= $fieldMissing ? ' — ontbreekt' : '' ?>
+                    <input class="<?= $fieldMissing ? 'is-missing' : '' ?>" name="<?= e($field) ?>" value="<?= e($delivery['address'][$field] ?? '') ?>" <?= $locked ? 'disabled' : '' ?> <?= $required ? 'required' : '' ?> type="<?= $field === 'email' ? 'email' : 'text' ?>" <?= $maxLength !== null ? 'maxlength="' . e($maxLength) . '"' : '' ?>>
                 </label>
             <?php endforeach; ?>
         </form>
@@ -78,16 +114,14 @@ $addressFields = [
                 <?php if ($locked): ?>
                     <span><strong>GLS gereed</strong> · <?= count($delivery['tracking_numbers']) ?> track-en-tracecode(s)</span>
                     <?php if (!empty($delivery['label_path'])): ?><a class="button button-small" target="_blank" href="/deliveries/<?= rawurlencode((string) $delivery['exact_entry_id']) ?>/label">Label openen</a><?php endif; ?>
-                <?php elseif ($delivery['status'] === 'ready' && filter_var((string) ($delivery['address']['email'] ?? ''), FILTER_VALIDATE_EMAIL) === false): ?>
-                    <span><strong>Nog niet gereed</strong> · e-mailadres ontbreekt</span>
-                <?php elseif ($delivery['status'] === 'ready'): ?>
+                <?php elseif ($missingData === []): ?>
                     <span><strong>Klaar om labels te maken</strong></span>
                     <form method="post" action="/deliveries/<?= rawurlencode((string) $delivery['exact_entry_id']) ?>/labels" onsubmit="this.querySelector('button').disabled=true">
                         <input type="hidden" name="_token" value="<?= e(\App\Security::csrfToken()) ?>">
                         <button class="button button-small" type="submit">Maak <?= count($delivery['parcels']) ?> GLS-label(s)</button>
                     </form>
                 <?php else: ?>
-                    <span><strong>Nog niet gereed</strong> · voeg eerst de dozen toe</span>
+                    <span class="missing-summary"><strong>Ontbreekt</strong> · <?= e(implode(', ', $missingData)) ?></span>
                 <?php endif; ?>
             </div>
         </div>
