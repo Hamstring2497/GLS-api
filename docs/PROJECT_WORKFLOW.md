@@ -224,6 +224,17 @@ gecontroleerd worden toegepast.
 
 ### Laatste applicatieversie
 
+- 30 oktober 2026: lokaal staat een nog te publiceren herindeling van de magazijnwerkplek. De
+  huisstijl gebruikt nu blauwe BETEC-accenten. Het scherm is horizontaal verdeeld in een compacte,
+  zelfstandig scrollende leveringstabel boven en een brede, zelfstandig scrollende detailzone
+  onder. De tabel toont ook de bestaande `created_at`-datum als **Toegevoegd**. Een volledige rij
+  selecteert de levering zonder het venster naar een anker te verplaatsen. Als een adres-,
+  zending- of doosveld is gewijzigd, waarschuwt de app vóór het wisselen van rij of verlaten van
+  de pagina. Het afleveradres gebruikt op brede schermen twee compacte invoerrijen met groter
+  invoerlettertype; **Dozen en gewicht** staat als onderste detailsectie en alle zichtbare
+  benamingen **Eenheid** zijn vervangen door **Doos**. Hiervoor is geen databasemigratie nodig.
+  `git diff --check` en de negen Python-referentietests zijn geslaagd; de PHP-smoketest moet na
+  publicatie op Cloud86 worden uitgevoerd.
 - 30 oktober 2026: de nieuwe vormgeving staat in commit `b28c827` op GitHub en Cloud86. De
   werkruimte gebruikt op brede schermen maximaal 1840 px, de
   leveringstabel is compacter en lange ontvanger-, straat- en trackingwaarden mogen afbreken. De
@@ -287,21 +298,24 @@ gecontroleerd worden toegepast.
 
 Werk deze lijst in deze volgorde af:
 
-1. Beoordeel de nieuwe live vormgeving nog op een kleiner scherm; de brede desktopweergave en het
-   automatisch verversen van de CSS zijn al gecontroleerd.
-2. Test de volledige magazijnflow in `mock`-modus met een bestaande levering, inclusief het
+1. Publiceer de blauwe gesplitste magazijnwerkplek naar GitHub en Cloud86 en voer daar de PHP-
+   smoketest en visuele desktopcontrole uit.
+2. Controleer de rijselectie eerst zonder wijzigingen en daarna met een gewijzigd, niet-opgeslagen
+   adres- of doosveld. Bevestig dat annuleren de huidige levering behoudt.
+3. Beoordeel de nieuwe vormgeving ook op een kleiner scherm.
+4. Test de volledige magazijnflow in `mock`-modus met een bestaande levering, inclusief het
    aanvullen van een ontbrekend e-mailadres en het opnieuw opslaan van eenheden.
-3. Controleer de Exact-mapping met een echte levering: leveringsnummer, ordernummer, datum,
+5. Controleer de Exact-mapping met een echte levering: leveringsnummer, ordernummer, datum,
    ontvanger en afleveradres.
-4. Bevestig de GLS-veldmapping voor
+6. Bevestig de GLS-veldmapping voor
    DirectDeliveryPlus en de overige gewenste leveringsopties.
-5. Pas de mapping defensief aan als de Exact-response andere velden gebruikt.
-6. Vraag/controleer GLS-testgegevens en de definitieve testendpoints.
-7. Voer een GLS-acceptatietest uit met een expliciete testlevering en controleer PDF/labelprinter.
-8. Spreek af naar welk Exact-veld de track-en-tracecode wordt teruggeschreven en implementeer dit.
-9. Implementeer en test `ConfirmLabel` op het overeengekomen moment.
-10. Activeer en test de GLS-webhook met een nieuw sterk Bearer-token.
-11. Voeg pas daarna geplande automatische Exact-import toe.
+7. Pas de mapping defensief aan als de Exact-response andere velden gebruikt.
+8. Vraag/controleer GLS-testgegevens en de definitieve testendpoints.
+9. Voer een GLS-acceptatietest uit met een expliciete testlevering en controleer PDF/labelprinter.
+10. Spreek af naar welk Exact-veld de track-en-tracecode wordt teruggeschreven en implementeer dit.
+11. Implementeer en test `ConfirmLabel` op het overeengekomen moment.
+12. Activeer en test de GLS-webhook met een nieuw sterk Bearer-token.
+13. Voeg pas daarna geplande automatische Exact-import toe.
 
 ## 12. Overdrachtssjabloon voor een nieuwe Codex-sessie
 

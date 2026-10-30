@@ -244,7 +244,7 @@ try {
             : 32;
         foreach ($weights as $index => $weight) {
             if ($weight > $maxWeight) {
-                abort(422, sprintf('Eenheid %d is zwaarder dan %d kg.', $index + 1, $maxWeight));
+                abort(422, sprintf('Doos %d is zwaarder dan %d kg.', $index + 1, $maxWeight));
             }
         }
         $repository->replaceParcels($id, $weights);

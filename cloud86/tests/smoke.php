@@ -14,7 +14,7 @@ $db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 $db->exec('CREATE TABLE deliveries (
     exact_entry_id TEXT PRIMARY KEY, delivery_number TEXT, order_number TEXT,
     ship_type TEXT, freight_unit_type TEXT, shipment_reference TEXT, address_json TEXT, shipping_date TEXT,
-    status TEXT, tracking_numbers_json TEXT, created_at TEXT, updated_at TEXT
+    status TEXT, tracking_numbers_json TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP, updated_at TEXT
 )');
 $db->exec('CREATE TABLE parcels (exact_entry_id TEXT, position INTEGER, weight_kg REAL)');
 
@@ -71,6 +71,9 @@ assert(str_contains($html, 'value="ANDERS"'));
 assert(str_contains($html, 'Nieuwe straat'));
 assert(str_contains($html, 'selected-row'));
 assert(str_contains($html, 'E-mailadres *'));
+assert(str_contains($html, 'Toegevoegd'));
+assert(str_contains($html, 'Dozen opslaan'));
+assert(str_contains($html, 'niet-opgeslagen wijzigingen'));
 
 $db->exec("UPDATE deliveries SET status = 'labels_created' WHERE exact_entry_id = 'test-delivery'");
 $repository->updateShippingDetails('test-delivery', 'P', 'GEWIJZIGD');

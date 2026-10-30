@@ -46,7 +46,7 @@ $maxWeight = $delivery['ship_type'] === 'F' ? (\App\GlsService::FREIGHT_UNITS[$d
     <?php if (!$locked): ?><p class="muted">De referentie is vooraf ingevuld met de laatste vier cijfers van het ordernummer.</p><?php endif; ?>
 </section>
 
-<div class="detail-grid">
+<div class="detail-stack">
     <section class="panel address-panel">
         <h2>Afleveradres</h2>
         <p class="muted">Overgenomen uit Exact. Controleer en pas zo nodig aan vóór de labels worden gemaakt.</p>
@@ -69,30 +69,32 @@ $maxWeight = $delivery['ship_type'] === 'F' ? (\App\GlsService::FREIGHT_UNITS[$d
         <h2><?= $delivery['ship_type'] === 'F' ? 'Vrachteenheden en gewicht' : 'Dozen en gewicht' ?></h2>
         <?php if ($locked): ?>
             <ol class="parcel-list">
-                <?php foreach ($delivery['parcels'] as $parcel): ?><li>Eenheid <?= e($parcel['position']) ?><strong><?= e($parcel['weight_kg']) ?> kg</strong></li><?php endforeach; ?>
+                <?php foreach ($delivery['parcels'] as $parcel): ?><li>Doos <?= e($parcel['position']) ?><strong><?= e($parcel['weight_kg']) ?> kg</strong></li><?php endforeach; ?>
             </ol>
         <?php else: ?>
             <form method="post" action="/deliveries/<?= rawurlencode((string) $delivery['exact_entry_id']) ?>/parcels" class="stack">
                 <input type="hidden" name="_token" value="<?= e(\App\Security::csrfToken()) ?>">
                 <div id="weights">
                     <?php foreach ($delivery['parcels'] as $index => $parcel): ?>
-                        <div class="weight-row"><label>Eenheid <?= $index + 1 ?><input type="number" name="weights[]" value="<?= e($parcel['weight_kg']) ?>" min="0.001" max="<?= $maxWeight ?>" step="0.001" required></label><button class="button button-secondary" type="button" onclick="removeParcel(this)">Wissen</button></div>
+                        <div class="weight-row"><label>Doos <?= $index + 1 ?><input type="number" name="weights[]" value="<?= e($parcel['weight_kg']) ?>" min="0.001" max="<?= $maxWeight ?>" step="0.001" required></label><button class="button button-secondary" type="button" onclick="removeParcel(this)">Wissen</button></div>
                     <?php endforeach; ?>
                 </div>
-                <button class="button button-secondary" type="button" onclick="addParcel()">+ Eenheid toevoegen</button>
-                <button class="button" type="submit">Eenheden opslaan</button>
+                <div class="units-actions">
+                    <button class="button button-secondary" type="button" onclick="addParcel()">+ Doos toevoegen</button>
+                    <button class="button" type="submit">Dozen opslaan</button>
+                </div>
             </form>
             <script>
             function addParcel() {
                 const list = document.getElementById('weights');
                 const row = document.createElement('div');
                 row.className = 'weight-row';
-                row.innerHTML = '<label>Eenheid <input type="number" name="weights[]" min="0.001" max="<?= $maxWeight ?>" step="0.001" required></label><button class="button button-secondary" type="button" onclick="removeParcel(this)">Wissen</button>';
+                row.innerHTML = '<label>Doos <input type="number" name="weights[]" min="0.001" max="<?= $maxWeight ?>" step="0.001" required></label><button class="button button-secondary" type="button" onclick="removeParcel(this)">Wissen</button>';
                 list.appendChild(row);
                 renumberParcels();
             }
             function removeParcel(button) { button.closest('.weight-row').remove(); renumberParcels(); }
-            function renumberParcels() { document.querySelectorAll('#weights .weight-row label').forEach((label, index) => { label.firstChild.textContent = `Eenheid ${index + 1} `; }); }
+            function renumberParcels() { document.querySelectorAll('#weights .weight-row label').forEach((label, index) => { label.firstChild.textContent = `Doos ${index + 1} `; }); }
             document.getElementById('ship-type').addEventListener('change', function () {
                 document.getElementById('freight-unit-type').disabled = this.value !== 'F';
             });
