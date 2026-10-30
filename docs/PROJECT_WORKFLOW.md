@@ -95,6 +95,10 @@ geteste referentie voor de GLS-contracten. Nieuwe productiewerkzaamheden horen i
 - Leveringen die in Exact al een `TrackingNumber` hebben worden overgeslagen.
 - Het afleveradres wordt uit Exact opgehaald; bij ontbreken wordt het hoofdadres van de relatie
   geprobeerd.
+- Via de eerste `GoodsDeliveryLine` wordt het echte Exact-verkoopordernummer opgehaald. De
+  gekoppelde verkooporder levert waar beschikbaar de contactpersoon van **Besteld door**; de
+  contactkaart levert e-mail en telefoon. Adresregel 2 en 3 worden uit het afleveradres gelezen en
+  zo nodig aangevuld vanuit het hoofdadres van **Besteld door**.
 - Alleen voldoende complete verzendgegevens worden lokaal als nieuwe levering opgeslagen.
 - Deze stap maakt nadrukkelijk nog geen GLS-zending aan.
 
@@ -108,9 +112,9 @@ geteste referentie voor de GLS-contracten. Nieuwe productiewerkzaamheden horen i
   De referentie is standaard de laatste vier cijfers uit het ordernummer en kan vóór
   de labelaanvraag worden aangepast. Als het ordernummer geen cijfers bevat, moet een referentie
   handmatig worden ingevuld.
-- De huidige Exact-query selecteert nog geen ordernummer. Als Exact geen ordernummer levert, zet
-  de import tijdelijk het leveringsnummer in `order_number`. Controleer de veldmapping vóór de
-  referentie automatisch als definitief mag worden beschouwd.
+- Als een oudere of afwijkende Exact-administratie geen gekoppelde verkooporder teruggeeft, zet de
+  import als veilige terugval het leveringsnummer in `order_number`. Controleer de veldmapping met
+  een herkenbare echte levering voordat de referentie als definitief wordt beschouwd.
 - Elk gewicht moet groter dan 0 en maximaal 32 kg zijn.
 - De app bouwt één GLS `CreateLabel`-request met het juiste aantal parcels.
 - In `mock` ontstaan alleen testcodes; er wordt geen echte GLS-zending gemaakt.
@@ -224,6 +228,15 @@ gecontroleerd worden toegepast.
 
 ### Laatste applicatieversie
 
+- 30 oktober 2026: de volgende applicatieversie staat lokaal gereed voor publicatie. Onder
+  **Dozen en gewicht** staan **Zending opslaan** en **Adres opslaan** naast elkaar. De bestaande,
+  dubbel bevestigde verwijderactie staat voortaan in het bovenmenu **Onderhoud**. Vrachttype `CO`
+  heet in de werkplek **Collo (max. 32 kg)** en actieve invoervelden hebben een dikkere, contrastrijke
+  blauwe focusrand. Exact-import volgt nu de goederenleveringsregel naar de verkooporder voor het
+  echte ordernummer en haalt waar beschikbaar adresregel 2/3, contactpersoon, e-mailadres en
+  telefoon van **Besteld door** op. Aflevergegevens blijven leidend; bestelgegevens vullen alleen
+  ontbrekende aanvullende gegevens aan. Er is geen databasemigratie nodig. De negen
+  Python-referentietests en `git diff --check` zijn geslaagd; lokaal is geen PHP-runtime aanwezig.
 - 30 oktober 2026: applicatiecommit `5f40412` staat lokaal, op GitHub en op Cloud86. De aparte
   kolom **Openen** is verwijderd; de volledige leveringrij blijft met muis en toetsenbord
   selecteerbaar. **Zending opslaan** en **Zending wissen** staan nu onder **Dozen en gewicht**.
@@ -339,8 +352,9 @@ Werk deze lijst in deze volgorde af:
 3. Beoordeel de nieuwe vormgeving ook op een kleiner scherm.
 4. Test de volledige magazijnflow in `mock`-modus met een bestaande levering, inclusief het
    aanvullen van een ontbrekend e-mailadres en het opnieuw opslaan van dozen.
-5. Controleer de Exact-mapping met een echte levering: leveringsnummer, ordernummer, datum,
-   ontvanger en afleveradres.
+5. Controleer de uitgebreide Exact-mapping met een echte nieuwe levering: leveringsnummer,
+   ordernummer, datum, ontvanger, adresregel 2/3, contactpersoon en e-mailadres. Bestaande lokaal
+   opgeslagen leveringen worden bij synchronisatie bewust niet overschreven.
 6. Bevestig de GLS-veldmapping voor
    DirectDeliveryPlus en de overige gewenste leveringsopties.
 7. Pas de mapping defensief aan als de Exact-response andere velden gebruikt.

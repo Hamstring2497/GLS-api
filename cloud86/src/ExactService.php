@@ -71,6 +71,7 @@ final class ExactService
             'DeliveryAccount',
             'DeliveryAccountName',
             'DeliveryAddress',
+            'DeliveryContact',
             'DeliveryContactPersonFullName',
             'TrackingNumber',
         ]);
@@ -121,6 +122,15 @@ final class ExactService
 
             try {
                 $address = $this->deliveryAddress($row, (int) $status['division']);
+                $orderContext = $this->salesOrderContext($entryId, (int) $status['division']);
+                $orderedByAddress = $orderContext['address'];
+                $deliveryContact = [];
+                if ($orderContext['contact'] === []) {
+                    $deliveryContact = $this->contactDetails(
+                        (string) ($row['DeliveryContact'] ?? ''),
+                        (int) $status['division']
+                    );
+                }
                 [$street, $houseNo, $houseNoAddition] = $this->splitStreetAndHouseNumber(
                     (string) ($address['Street'] ?? $address['AddressLine1'] ?? ''),
                     (string) ($address['HouseNumber'] ?? ''),
@@ -130,7 +140,11 @@ final class ExactService
                 if ($deliveryNumber === '') {
                     $deliveryNumber = substr($entryId, 0, 12);
                 }
-                $orderNumber = trim((string) ($row['OrderNumber'] ?? $row['YourRef'] ?? ''));
+                $orderNumber = $this->firstNonEmpty([
+                    $orderContext['order_number'],
+                    $row['OrderNumber'] ?? null,
+                    $row['YourRef'] ?? null,
+                ]);
                 if ($orderNumber === '') {
                     $orderNumber = $deliveryNumber;
                 }
@@ -142,6 +156,15 @@ final class ExactService
                     ?? $address['AccountName']
                     ?? ''
                 ));
+                $email = $this->firstValidEmail([
+                    $orderContext['contact']['Email'] ?? null,
+                    $deliveryContact['Email'] ?? null,
+                    $address['Email'] ?? null,
+                    $address['EmailAddress'] ?? null,
+                ]);
+                if ($email === '') {
+                    $email = $this->deliveryEmail($address, $row, (int) $status['division']);
+                }
 
                 $data = [
                     'exact_entry_id' => $entryId,
@@ -149,22 +172,41 @@ final class ExactService
                     'order_number' => $orderNumber,
                     'shipping_date' => $date,
                     'name' => $name,
-                    'name_2' => trim((string) ($address['Name2'] ?? '')),
-                    'name_3' => trim((string) ($address['Name3'] ?? '')),
+                    'name_2' => $this->firstNonEmpty([
+                        $address['AddressLine2'] ?? null,
+                        $address['Name2'] ?? null,
+                        $orderedByAddress['AddressLine2'] ?? null,
+                        $orderedByAddress['Name2'] ?? null,
+                    ]),
+                    'name_3' => $this->firstNonEmpty([
+                        $address['AddressLine3'] ?? null,
+                        $address['Name3'] ?? null,
+                        $orderedByAddress['AddressLine3'] ?? null,
+                        $orderedByAddress['Name3'] ?? null,
+                    ]),
                     'street' => $street,
                     'house_no' => $houseNo,
                     'house_no_addition' => $houseNoAddition,
                     'zip_code' => trim((string) ($address['Postcode'] ?? $address['ZipCode'] ?? '')),
                     'city' => trim((string) ($address['City'] ?? '')),
                     'country_code' => strtoupper(trim((string) ($address['Country'] ?? $address['CountryCode'] ?? 'NL'))),
-                    'contact' => trim((string) (
-                        $row['DeliveryContactPersonFullName']
-                        ?? $row['DeliverToContactPersonFullName']
-                        ?? $address['ContactName']
-                        ?? ''
-                    )),
-                    'phone' => trim((string) ($address['Phone'] ?? $address['PhoneNumber'] ?? '')),
-                    'email' => $this->deliveryEmail($address, $row, (int) $status['division']),
+                    'contact' => $this->firstNonEmpty([
+                        $orderContext['contact']['FullName'] ?? null,
+                        $orderContext['contact_name'],
+                        $row['DeliveryContactPersonFullName'] ?? null,
+                        $deliveryContact['FullName'] ?? null,
+                        $row['DeliverToContactPersonFullName'] ?? null,
+                        $address['ContactName'] ?? null,
+                    ]),
+                    'phone' => $this->firstNonEmpty([
+                        $orderContext['contact']['Phone'] ?? null,
+                        $orderContext['contact']['PhoneMobile'] ?? null,
+                        $deliveryContact['Phone'] ?? null,
+                        $deliveryContact['PhoneMobile'] ?? null,
+                        $address['Phone'] ?? null,
+                        $address['PhoneNumber'] ?? null,
+                    ]),
+                    'email' => $email,
                     'note_1' => '',
                     'note_2' => '',
                 ];
@@ -274,16 +316,108 @@ final class ExactService
 
         $accountId = trim((string) ($delivery['DeliveryAccount'] ?? $delivery['DeliverTo'] ?? ''));
         if ($accountId !== '') {
-            $payload = $this->apiGet(
-                sprintf('/api/v1/%d/crm/Addresses', $division),
-                ['$top' => '1', '$filter' => "Account eq guid'{$accountId}' and Main eq true"]
-            );
-            $results = $this->results($payload);
-            if ($results !== []) {
-                return $results[0];
+            $address = $this->accountMainAddress($accountId, $division);
+            if ($address !== []) {
+                return $address;
             }
         }
         throw new \RuntimeException('geen afleveradres gevonden in Exact');
+    }
+
+    /**
+     * Zoek via de eerste goederenleveringsregel de gekoppelde verkooporder.
+     * GoodsDeliveries bevat zelf geen verkoopordernummer; GoodsDeliveryLines wel.
+     *
+     * @return array{order_number: string, contact_name: string, address: array<string, mixed>, contact: array<string, mixed>}
+     */
+    private function salesOrderContext(string $entryId, int $division): array
+    {
+        $context = ['order_number' => '', 'contact_name' => '', 'address' => [], 'contact' => []];
+        if (preg_match('/^[a-f0-9-]{36}$/i', $entryId) !== 1) {
+            return $context;
+        }
+
+        try {
+            $linePayload = $this->apiGet(
+                sprintf('/api/v1/%d/salesorder/GoodsDeliveryLines', $division),
+                [
+                    '$select' => 'SalesOrderNumber',
+                    '$filter' => "EntryID eq guid'{$entryId}'",
+                    '$top' => '1',
+                ]
+            );
+            $lines = $this->results($linePayload);
+            $orderNumber = trim((string) ($lines[0]['SalesOrderNumber'] ?? ''));
+            if ($orderNumber === '' || preg_match('/^\d+$/', $orderNumber) !== 1) {
+                return $context;
+            }
+            $context['order_number'] = $orderNumber;
+
+            $orderPayload = $this->apiGet(
+                sprintf('/api/v1/%d/salesorder/SalesOrders', $division),
+                [
+                    '$select' => implode(',', [
+                        'OrderNumber',
+                        'OrderedBy',
+                        'OrderedByContactPerson',
+                        'OrderedByContactPersonFullName',
+                    ]),
+                    '$filter' => 'OrderNumber eq ' . $orderNumber,
+                    '$top' => '1',
+                ]
+            );
+            $orders = $this->results($orderPayload);
+            if ($orders === []) {
+                return $context;
+            }
+            $order = $orders[0];
+            $context['order_number'] = trim((string) ($order['OrderNumber'] ?? $orderNumber));
+            $context['contact_name'] = trim((string) ($order['OrderedByContactPersonFullName'] ?? ''));
+            $context['contact'] = $this->contactDetails(
+                (string) ($order['OrderedByContactPerson'] ?? ''),
+                $division
+            );
+            $context['address'] = $this->accountMainAddress((string) ($order['OrderedBy'] ?? ''), $division);
+        } catch (ExactException $error) {
+            error_log('Exact verkoopordercontext niet beschikbaar: HTTP ' . ($error->httpStatus ?? 'onbekend'));
+        }
+        return $context;
+    }
+
+    /** @return array<string, mixed> */
+    private function accountMainAddress(string $accountId, int $division): array
+    {
+        $accountId = trim($accountId);
+        if (preg_match('/^[a-f0-9-]{36}$/i', $accountId) !== 1) {
+            return [];
+        }
+        $payload = $this->apiGet(
+            sprintf('/api/v1/%d/crm/Addresses', $division),
+            ['$top' => '1', '$filter' => "Account eq guid'{$accountId}' and Main eq true"]
+        );
+        $results = $this->results($payload);
+        return $results[0] ?? [];
+    }
+
+    /** @return array<string, mixed> */
+    private function contactDetails(string $contactId, int $division): array
+    {
+        $contactId = trim($contactId);
+        if (preg_match('/^[a-f0-9-]{36}$/i', $contactId) !== 1) {
+            return [];
+        }
+        try {
+            $payload = $this->apiGet(sprintf(
+                "/api/v1/%d/crm/Contacts(guid'%s')",
+                $division,
+                rawurlencode($contactId)
+            ));
+            $contact = $payload['d'] ?? $payload;
+            return is_array($contact) ? $contact : [];
+        } catch (ExactException $error) {
+            error_log('Exact contactpersoon niet beschikbaar: HTTP ' . ($error->httpStatus ?? 'onbekend'));
+            return [];
+        }
     }
 
     /** @param array<string, mixed> $address @param array<string, mixed> $delivery */
@@ -312,6 +446,30 @@ final class ExactService
             error_log('Exact account-e-mail niet beschikbaar: HTTP ' . ($error->httpStatus ?? 'onbekend'));
             return '';
         }
+    }
+
+    /** @param list<mixed> $values */
+    private function firstNonEmpty(array $values): string
+    {
+        foreach ($values as $value) {
+            $text = trim((string) ($value ?? ''));
+            if ($text !== '') {
+                return $text;
+            }
+        }
+        return '';
+    }
+
+    /** @param list<mixed> $values */
+    private function firstValidEmail(array $values): string
+    {
+        foreach ($values as $value) {
+            $email = trim((string) ($value ?? ''));
+            if (filter_var($email, FILTER_VALIDATE_EMAIL) !== false) {
+                return $email;
+            }
+        }
+        return '';
     }
 
     /** @param array<string, mixed> $payload @return list<array<string, mixed>> */

@@ -1,6 +1,6 @@
 <?php
 $locked = $delivery['status'] === 'labels_created';
-$freightUnits = ['CO' => 'Collo (32 kg)', 'LG' => 'Lang collo (25 kg)', 'MP' => 'Minipallet (300 kg)', 'PL' => 'Pallet (675 kg)', 'BP' => 'Blokpallet (850 kg)', 'RL' => 'Rolcontainer (350 kg)', 'XL' => 'XL-pallet (1000 kg)'];
+$freightUnits = ['CO' => 'Collo (max. 32 kg)', 'LG' => 'Lang collo (25 kg)', 'MP' => 'Minipallet (300 kg)', 'PL' => 'Pallet (675 kg)', 'BP' => 'Blokpallet (850 kg)', 'RL' => 'Rolcontainer (350 kg)', 'XL' => 'XL-pallet (1000 kg)'];
 $maxWeight = $delivery['ship_type'] === 'F' ? (\App\GlsService::FREIGHT_UNITS[$delivery['freight_unit_type']] ?? 32) : 32;
 $statusLabel = ['new' => 'Nieuw', 'ready' => 'Klaar voor labels', 'labels_created' => 'Labels gemaakt'][$delivery['status']] ?? $delivery['status'];
 $addressFields = [
@@ -61,14 +61,13 @@ $addressFields = [
             <h2>Afleveradres</h2>
             <span>Overgenomen uit Exact · controleer vóór het maken van labels</span>
         </div>
-        <form method="post" action="/deliveries/<?= rawurlencode((string) $delivery['exact_entry_id']) ?>/address" class="address-form">
+        <form id="address-details-form" method="post" action="/deliveries/<?= rawurlencode((string) $delivery['exact_entry_id']) ?>/address" class="address-form">
             <input type="hidden" name="_token" value="<?= e(\App\Security::csrfToken()) ?>">
             <?php foreach ($addressFields as [$field, $label, $className, $required, $maxLength]): ?>
                 <label class="<?= e($className) ?>"><?= e($label) ?><?= $required ? ' *' : '' ?>
                     <input name="<?= e($field) ?>" value="<?= e($delivery['address'][$field] ?? '') ?>" <?= $locked ? 'disabled' : '' ?> <?= $required ? 'required' : '' ?> type="<?= $field === 'email' ? 'email' : 'text' ?>" <?= $maxLength !== null ? 'maxlength="' . e($maxLength) . '"' : '' ?>>
                 </label>
             <?php endforeach; ?>
-            <?php if (!$locked): ?><button class="button address-save" type="submit">Adres opslaan</button><?php endif; ?>
         </form>
     </section>
 
@@ -131,23 +130,8 @@ $addressFields = [
         <?php if (!$locked): ?>
             <div class="shipment-footer-actions">
                 <button class="button" type="submit" form="shipping-details-form">Zending opslaan</button>
-                <form method="post" action="/deliveries/<?= rawurlencode((string) $delivery['exact_entry_id']) ?>/delete" data-delivery-number="<?= e($delivery['delivery_number']) ?>" onsubmit="return confirmShipmentDelete(this)">
-                    <input type="hidden" name="_token" value="<?= e(\App\Security::csrfToken()) ?>">
-                    <input type="hidden" name="confirm_delete" value="no">
-                    <input type="hidden" name="supervisor_confirmation" value="no">
-                    <button class="button button-danger" type="submit">Zending wissen</button>
-                </form>
+                <button class="button" type="submit" form="address-details-form">Adres opslaan</button>
             </div>
-            <script>
-            function confirmShipmentDelete(form) {
-                const number = form.dataset.deliveryNumber || '';
-                if (!confirm(`Weet u zeker dat u zending ${number} wilt wissen? Dit kan niet ongedaan worden gemaakt.`)) return false;
-                if (!confirm(`Haal uw supervisor.\n\nLaat uw supervisor bevestigen dat zending ${number} definitief mag worden gewist.`)) return false;
-                form.elements.confirm_delete.value = 'yes';
-                form.elements.supervisor_confirmation.value = 'yes';
-                return true;
-            }
-            </script>
         <?php endif; ?>
     </section>
 </div>
