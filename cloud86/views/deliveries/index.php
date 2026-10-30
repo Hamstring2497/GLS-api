@@ -5,29 +5,20 @@
         <h1>Leveringen</h1>
         <p class="muted">Selecteer een regel, controleer het adres en voer de dozen in.</p>
     </div>
-    <a class="button" href="/deliveries/new">Nieuwe levering</a>
-</div>
-
-<?php if ((\App\Security::user()['role'] ?? '') === 'admin'): ?>
-    <section class="connection-bar <?= $exactStatus['connected'] ? 'connection-ok' : '' ?>">
-        <div>
-            <strong>Exact Online</strong>
-            <?php if ($exactStatus['connected']): ?>
-                <span>Gekoppeld aan administratie <?= e($exactStatus['division']) ?></span>
+    <div class="overview-actions">
+        <a class="button" href="/deliveries/new">Nieuwe levering</a>
+        <?php if ((\App\Security::user()['role'] ?? '') === 'admin'): ?>
+            <?php if (!$exactStatus['connected']): ?>
+                <a class="button button-secondary" href="/oauth/exact/start">Exact koppelen</a>
             <?php else: ?>
-                <span>Nog niet gekoppeld</span>
+                <form method="post" action="/exact/sync">
+                    <input type="hidden" name="_token" value="<?= e(\App\Security::csrfToken()) ?>">
+                    <button class="button" type="submit">Leveringen ophalen</button>
+                </form>
             <?php endif; ?>
-        </div>
-        <?php if (!$exactStatus['connected']): ?>
-            <a class="button button-small" href="/oauth/exact/start">Exact koppelen</a>
-        <?php else: ?>
-            <form method="post" action="/exact/sync">
-                <input type="hidden" name="_token" value="<?= e(\App\Security::csrfToken()) ?>">
-                <button class="button button-small" type="submit">Leveringen ophalen</button>
-            </form>
         <?php endif; ?>
-    </section>
-<?php endif; ?>
+    </div>
+</div>
 
 <?php if ($deliveries === []): ?>
     <section class="empty-state">
@@ -51,7 +42,7 @@
                     <td><?= e(($delivery['created_at'] ?? '') !== '' ? substr((string) $delivery['created_at'], 0, 10) : '—') ?></td>
                     <td><?= e($delivery['address']['name']) ?></td>
                     <td><?= e($delivery['address']['street']) ?></td>
-                    <td><?= e($delivery['address']['house_no']) ?></td>
+                    <td><?= e(trim((string) $delivery['address']['house_no'] . ' ' . (string) ($delivery['address']['house_no_addition'] ?? ''))) ?></td>
                     <td><?= e($delivery['address']['zip_code']) ?></td>
                     <td><?= e($delivery['address']['city']) ?></td>
                     <td><?= e($delivery['address']['country_code']) ?></td>
@@ -59,7 +50,7 @@
                     <td><?= $delivery['ship_type'] === 'F' ? e($delivery['freight_unit_type']) : '—' ?></td>
                     <td><?= e($delivery['shipment_reference'] ?: '—') ?></td>
                     <td><?= count($delivery['parcels']) ?></td>
-                    <td><?= e(number_format(array_sum(array_map(static fn ($parcel): float => (float) $parcel['weight_kg'], $delivery['parcels'])), 3, ',', '.')) ?> kg</td>
+                    <td><?= e(number_format(array_sum(array_map(static fn ($parcel): float => (float) $parcel['weight_kg'], $delivery['parcels'])), 1, ',', '.')) ?> kg</td>
                     <td><?= e(implode(', ', $delivery['tracking_numbers']) ?: '—') ?></td>
                     <td><span class="badge badge-<?= e($delivery['status']) ?>"><?= e(['new' => 'Nieuw', 'ready' => 'Klaar voor labels', 'labels_created' => 'Labels gemaakt'][$delivery['status']] ?? $delivery['status']) ?></span></td>
                     <td><a href="<?= e($deliveryUrl) ?>">Openen →</a></td>

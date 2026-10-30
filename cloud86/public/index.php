@@ -179,7 +179,10 @@ try {
         }
         $required = ['name', 'street', 'house_no', 'zip_code', 'city', 'country_code', 'email'];
         $address = [];
-        foreach (['name', 'street', 'house_no', 'zip_code', 'city', 'country_code', 'contact', 'phone', 'email'] as $field) {
+        foreach ([
+            'name', 'name_2', 'name_3', 'street', 'house_no', 'house_no_addition',
+            'zip_code', 'city', 'country_code', 'contact', 'phone', 'email', 'note_1', 'note_2',
+        ] as $field) {
             $address[$field] = trim((string) ($_POST[$field] ?? ''));
             if (in_array($field, $required, true) && $address[$field] === '') {
                 abort(422, "Adresveld {$field} is verplicht.");
@@ -191,6 +194,11 @@ try {
         }
         if (filter_var($address['email'], FILTER_VALIDATE_EMAIL) === false) {
             abort(422, 'Vul een geldig e-mailadres in.');
+        }
+        foreach (['note_1', 'note_2'] as $field) {
+            if (mb_strlen($address[$field]) > 50) {
+                abort(422, 'Notitie 1 en Notitie 2 mogen maximaal 50 tekens bevatten.');
+            }
         }
         $address['addressee_type'] = (string) ($delivery['address']['addressee_type'] ?? 'P');
         $repository->updateAddress($id, $address);
@@ -236,7 +244,7 @@ try {
             abort(409, 'De dozen kunnen na het aanmaken van labels niet meer worden gewijzigd.');
         }
         $weights = array_values(array_filter(
-            array_map(static fn ($value): float => (float) str_replace(',', '.', (string) $value), $_POST['weights'] ?? []),
+            array_map(static fn ($value): float => round((float) str_replace(',', '.', (string) $value), 1), $_POST['weights'] ?? []),
             static fn (float $value): bool => $value > 0
         ));
         $maxWeight = $delivery['ship_type'] === 'F'
@@ -248,7 +256,7 @@ try {
             }
         }
         $repository->replaceParcels($id, $weights);
-        flash('success', count($weights) . ' eenheid/eenheden opgeslagen.');
+        flash('success', count($weights) . ' doos/dozen opgeslagen.');
         redirect('/deliveries/' . rawurlencode($id));
     }
 

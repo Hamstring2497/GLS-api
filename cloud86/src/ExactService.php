@@ -121,7 +121,7 @@ final class ExactService
 
             try {
                 $address = $this->deliveryAddress($row, (int) $status['division']);
-                [$street, $houseNo] = $this->splitStreetAndHouseNumber(
+                [$street, $houseNo, $houseNoAddition] = $this->splitStreetAndHouseNumber(
                     (string) ($address['Street'] ?? $address['AddressLine1'] ?? ''),
                     (string) ($address['HouseNumber'] ?? ''),
                     (string) ($address['HouseNumberAddition'] ?? '')
@@ -149,8 +149,11 @@ final class ExactService
                     'order_number' => $orderNumber,
                     'shipping_date' => $date,
                     'name' => $name,
+                    'name_2' => trim((string) ($address['Name2'] ?? '')),
+                    'name_3' => trim((string) ($address['Name3'] ?? '')),
                     'street' => $street,
                     'house_no' => $houseNo,
+                    'house_no_addition' => $houseNoAddition,
                     'zip_code' => trim((string) ($address['Postcode'] ?? $address['ZipCode'] ?? '')),
                     'city' => trim((string) ($address['City'] ?? '')),
                     'country_code' => strtoupper(trim((string) ($address['Country'] ?? $address['CountryCode'] ?? 'NL'))),
@@ -162,6 +165,8 @@ final class ExactService
                     )),
                     'phone' => trim((string) ($address['Phone'] ?? $address['PhoneNumber'] ?? '')),
                     'email' => $this->deliveryEmail($address, $row, (int) $status['division']),
+                    'note_1' => '',
+                    'note_2' => '',
                 ];
                 $this->validateImportedDelivery($data, $deliveryNumber);
                 $deliveries->save($data);
@@ -316,18 +321,19 @@ final class ExactService
         return is_array($results) ? array_values(array_filter($results, 'is_array')) : [];
     }
 
-    /** @return array{0: string, 1: string} */
+    /** @return array{0: string, 1: string, 2: string} */
     private function splitStreetAndHouseNumber(string $line, string $number, string $addition): array
     {
         $line = trim($line);
-        $number = trim($number . $addition);
+        $number = trim($number);
+        $addition = trim($addition);
         if ($number !== '') {
-            return [$line, $number];
+            return [$line, $number, $addition];
         }
         if (preg_match('/^(.+?)\s+(\d+[a-zA-Z0-9\-\/]*)$/u', $line, $matches) === 1) {
-            return [trim($matches[1]), trim($matches[2])];
+            return [trim($matches[1]), trim($matches[2]), ''];
         }
-        return [$line, ''];
+        return [$line, '', ''];
     }
 
     private function exactDate(mixed $value): ?string

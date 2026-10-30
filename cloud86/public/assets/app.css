@@ -18,8 +18,11 @@ body { margin:0; font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMa
 a { color:var(--green); text-decoration:none; font-weight:700; }
 
 .topbar { min-height:70px; padding:0 max(24px,calc((100vw - 1840px)/2)); display:flex; align-items:center; justify-content:space-between; background:var(--green-dark); border-top:4px solid var(--lime); box-shadow:0 3px 14px rgba(0,55,88,.16); }
+.topbar-left { display:flex; align-items:center; gap:28px; min-width:0; }
 .brand { color:#fff; font-size:1.18rem; font-weight:850; letter-spacing:-.03em; }
 .brand span { color:var(--lime); }
+.exact-info { display:flex; gap:7px; align-items:baseline; color:#dceaf2; font-size:.82rem; white-space:nowrap; }
+.exact-info strong { color:#fff; }
 nav { display:flex; gap:22px; align-items:center; }
 nav form { margin:0; }
 .topbar nav>a:not(.button),.topbar .link-button { color:#fff; }
@@ -95,6 +98,8 @@ code { display:inline-block; margin:4px 5px 0 0; padding:6px 9px; border-radius:
 .overview-heading h1 { margin-bottom:2px; font-size:1.85rem; }
 .overview-heading .eyebrow { margin-bottom:3px; }
 .overview-heading .muted { margin:3px 0 0; }
+.overview-actions { display:flex; align-items:center; gap:10px; }
+.overview-actions form { margin:0; }
 .delivery-split { flex:1; min-height:0; display:grid; grid-template-rows:clamp(220px,29vh,310px) minmax(0,1fr); gap:10px; }
 .delivery-list-pane,.delivery-detail-pane { min-height:0; }
 .delivery-detail-pane { overflow-y:auto; overscroll-behavior:contain; padding:1px 5px 20px 1px; }
@@ -113,59 +118,76 @@ code { display:inline-block; margin:4px 5px 0 0; padding:6px 9px; border-radius:
 .delivery-sheet td:nth-child(5),.delivery-sheet td:nth-child(6),.delivery-sheet td:nth-child(16) { min-width:135px; max-width:210px; white-space:normal; line-height:1.25; }
 .delivery-sheet td:last-child a { display:inline-flex; padding:5px 8px; border:1px solid #b5cfdd; border-radius:5px; background:#fff; }
 
-.selected-heading { scroll-margin-top:0; align-items:center; margin:0 0 8px; padding:0 4px; }
-.selected-heading h1 { font-size:1.65rem; margin-bottom:3px; }
-.selected-heading .eyebrow { margin-bottom:3px; }
-.selected-heading .muted { margin:0; }
-.address-form { display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:8px 10px; margin-top:10px; }
-.address-form label:nth-of-type(1) { grid-column:span 3; }
-.address-form label:nth-of-type(2) { grid-column:span 3; }
-.address-form label:nth-of-type(3) { grid-column:span 1; }
-.address-form label:nth-of-type(4) { grid-column:span 2; }
-.address-form label:nth-of-type(5) { grid-column:span 2; }
-.address-form label:nth-of-type(6) { grid-column:span 1; }
-.address-form label:nth-of-type(7) { grid-column:span 3; }
-.address-form label:nth-of-type(8) { grid-column:span 3; }
-.address-form label:nth-of-type(9) { grid-column:span 4; }
-.address-form button { grid-column:span 2; align-self:end; min-height:39px; }
-.address-panel .muted { margin:0; }
-.shipping-panel { margin-bottom:10px; display:grid; grid-template-columns:145px minmax(0,1fr); column-gap:18px; align-items:start; border-top:4px solid var(--green); }
-.shipping-panel h2,.address-panel h2,.units-panel h2 { margin:6px 0 0; color:var(--green-dark); }
-.shipping-panel .muted { grid-column:2; margin:5px 0 0; font-size:.84rem; }
-.shipping-form { display:grid; grid-template-columns:minmax(120px,170px) minmax(180px,240px) minmax(200px,1fr) auto; gap:14px; align-items:end; }
+.section-bar { min-height:42px; margin:-18px -18px 10px; padding:8px 14px; display:flex; align-items:center; justify-content:space-between; gap:18px; border-bottom:1px solid #b8d5e4; background:var(--green-soft); }
+.section-bar h2 { margin:0; color:var(--green-dark); font-size:1.08rem; letter-spacing:-.02em; white-space:nowrap; }
+.section-bar>span { color:var(--muted); font-size:.8rem; }
+.shipping-panel { margin-bottom:10px; padding:14px; border-top:4px solid var(--green); }
+.shipping-bar { margin:-14px -14px 10px; }
+.shipment-title { display:flex; align-items:center; gap:20px; min-width:0; }
+.shipment-title>div { display:flex; flex-wrap:wrap; gap:4px 12px; align-items:baseline; min-width:0; }
+.shipment-title strong { color:var(--ink); font-size:.94rem; }
+.shipment-title span { color:var(--muted); font-size:.78rem; }
+.shipping-form { display:grid; grid-template-columns:135px 190px 230px auto; gap:10px; align-items:end; }
 .shipping-form .button { min-height:39px; }
+.address-form { display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:7px 9px; }
+.address-form .field-name,.address-form .field-name-2,.address-form .field-name-3 { grid-column:span 4; }
+.address-form .field-street { grid-column:span 4; }
+.address-form .field-house-no { grid-column:span 2; }
+.address-form .field-house-addition { grid-column:span 2; }
+.address-form .field-zip { grid-column:span 2; }
+.address-form .field-city { grid-column:span 2; }
+.address-form .field-country { grid-column:span 2; }
+.address-form .field-contact { grid-column:span 3; }
+.address-form .field-phone { grid-column:span 2; }
+.address-form .field-email { grid-column:span 5; }
+.address-form .field-note-1,.address-form .field-note-2 { grid-column:span 5; }
+.address-form .address-save { grid-column:span 2; align-self:end; min-height:39px; }
 .address-panel { border-top:4px solid var(--green); }
-.address-panel .muted { margin:0; font-size:.84rem; }
 .units-panel { border-top:4px solid var(--green); }
-.units-panel .stack { margin-top:10px; }
+.units-panel .stack { margin-top:0; gap:10px; }
 .heading-actions { display:flex; align-items:center; gap:12px; }
-.weight-row { display:flex; align-items:end; gap:8px; padding:8px; border:1px solid var(--line); border-radius:7px; background:#f5f9fc; }
-.weight-row label { flex:1; }
+.heading-actions form,.units-status form { margin:0; }
+.units-status { display:flex; align-items:center; justify-content:flex-end; gap:10px; color:var(--muted); font-size:.8rem; }
+.units-status strong { color:var(--green-dark); text-transform:uppercase; letter-spacing:.05em; }
+.weight-row { display:flex; align-items:end; gap:8px; padding:7px 8px; border:1px solid var(--line); border-radius:7px; background:#f5f9fc; }
+.weight-label { display:flex; align-items:center; justify-content:space-between; gap:10px; flex:1; }
+.weight-input { display:flex; align-items:center; gap:6px; color:var(--muted); font-size:.85rem; text-transform:none; }
+.weight-input input { width:105px; min-height:36px; }
 .weight-row button { flex:none; }
-.units-panel #weights { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:8px; }
+.units-panel #weights { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,320px)); gap:8px; }
 .units-actions { display:flex; justify-content:flex-end; gap:10px; }
 
 @media (max-width:1150px) {
     .address-panel,.units-panel { display:block; }
     .address-panel h2,.units-panel h2 { margin-bottom:10px; }
+    .exact-info { display:none; }
+    .address-form .field-name,.address-form .field-name-2,.address-form .field-name-3 { grid-column:span 4; }
 }
 @media (max-width:900px) {
-    .shipping-panel { display:block; }
-    .shipping-panel h2 { margin-bottom:12px; }
     .shipping-form { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .shipment-title { align-items:flex-start; flex-direction:column; gap:3px; }
+    .address-form label { grid-column:span 4 !important; }
+    .address-form .address-save { grid-column:span 4; }
 }
 @media (max-width:720px) {
     .container { width:calc(100% - 24px); margin-top:28px; }
     .topbar { padding:0 16px; }
     .topbar nav { gap:12px; }
     .topbar nav>a:first-child,.link-button,.user-name { display:none; }
-    .page-heading,.action-panel { align-items:flex-start; flex-direction:column; }
+    .page-heading { align-items:flex-start; flex-direction:column; }
+    .overview-actions { width:100%; }
+    .overview-actions .button { flex:1; }
+    .overview-actions form { display:flex; flex:1; }
+    .overview-actions form .button { width:100%; }
     .warehouse-page { height:auto; min-height:0; }
     .delivery-split { display:block; }
     .delivery-list-pane { height:280px; margin-bottom:14px; }
     .delivery-detail-pane { overflow:visible; padding:0 0 24px; }
     .detail-grid,.grid-2,.shipping-form,.address-form { grid-template-columns:1fr; }
     .span-2,.address-form label,.address-form button { grid-column:auto !important; }
+    .section-bar { align-items:flex-start; flex-direction:column; gap:5px; }
+    .shipping-bar,.units-bar { align-items:stretch; }
+    .units-status { align-items:flex-start; justify-content:flex-start; flex-wrap:wrap; }
     .units-actions { align-items:stretch; flex-direction:column; }
     h1 { font-size:1.8rem; }
     th,td { padding:13px; }

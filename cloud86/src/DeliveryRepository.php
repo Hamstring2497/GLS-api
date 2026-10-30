@@ -43,14 +43,19 @@ final class DeliveryRepository
         $defaultReference = substr((string) $digits, -4);
         $address = json_encode([
             'name' => trim((string) $data['name']),
+            'name_2' => trim((string) ($data['name_2'] ?? '')),
+            'name_3' => trim((string) ($data['name_3'] ?? '')),
             'street' => trim((string) $data['street']),
             'house_no' => trim((string) $data['house_no']),
+            'house_no_addition' => trim((string) ($data['house_no_addition'] ?? '')),
             'zip_code' => trim((string) $data['zip_code']),
             'city' => trim((string) $data['city']),
             'country_code' => strtoupper(trim((string) $data['country_code'])),
             'contact' => trim((string) ($data['contact'] ?? '')),
             'phone' => trim((string) ($data['phone'] ?? '')),
             'email' => trim((string) ($data['email'] ?? '')),
+            'note_1' => trim((string) ($data['note_1'] ?? '')),
+            'note_2' => trim((string) ($data['note_2'] ?? '')),
             'addressee_type' => 'P',
         ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
 

@@ -47,20 +47,31 @@ final class GlsService
             throw new \InvalidArgumentException('Ongeldig vrachttype.');
         }
         $maxWeight = $shipType === 'F' ? self::FREIGHT_UNITS[$freightUnitType] : 32;
+        foreach (['note_1', 'note_2'] as $noteField) {
+            if (mb_strlen(trim((string) ($address[$noteField] ?? ''))) > 50) {
+                throw new \InvalidArgumentException('Notitie 1 en Notitie 2 mogen maximaal 50 tekens bevatten.');
+            }
+        }
 
         $units = [];
         foreach ($delivery['parcels'] as $index => $parcel) {
             $weight = (float) $parcel['weight_kg'];
             if ($weight <= 0 || $weight > $maxWeight) {
                 throw new \InvalidArgumentException(
-                    sprintf('Gewicht van eenheid %d moet groter dan 0 en maximaal %d kg zijn.', $index + 1, $maxWeight)
+                    sprintf('Gewicht van doos %d moet groter dan 0 en maximaal %d kg zijn.', $index + 1, $maxWeight)
                 );
             }
-            $units[] = [
+            $unit = [
                 'UnitID' => $this->unitId($index + 1),
                 'Weight' => $weight,
-                'AdditionalInfo1' => 'Order: ' . $delivery['order_number'],
             ];
+            $note1 = trim((string) ($address['note_1'] ?? ''));
+            $note2 = trim((string) ($address['note_2'] ?? ''));
+            $unit['AdditionalInfo1'] = $note1 !== '' ? $note1 : 'Order: ' . $delivery['order_number'];
+            if ($note2 !== '') {
+                $unit['AdditionalInfo2'] = $note2;
+            }
+            $units[] = $unit;
             if ($shipType === 'F') {
                 $units[$index]['UnitType'] = $freightUnitType;
             }
@@ -69,11 +80,16 @@ final class GlsService
         $deliveryAddress = [
             'Name1' => $address['name'],
             'Street' => $address['street'],
-            'HouseNo' => $address['house_no'],
+            'HouseNo' => trim((string) $address['house_no'] . ' ' . (string) ($address['house_no_addition'] ?? '')),
             'CountryCode' => strtoupper((string) $address['country_code']),
             'ZipCode' => strtoupper(str_replace(' ', '', (string) $address['zip_code'])),
             'City' => $address['city'],
         ];
+        foreach (['Name2' => 'name_2', 'Name3' => 'name_3'] as $gls => $local) {
+            if (trim((string) ($address[$local] ?? '')) !== '') {
+                $deliveryAddress[$gls] = trim((string) $address[$local]);
+            }
+        }
         if ($shipType === 'P') {
             $deliveryAddress['AddresseeType'] = strtoupper((string) ($address['addressee_type'] ?? 'P'));
         }

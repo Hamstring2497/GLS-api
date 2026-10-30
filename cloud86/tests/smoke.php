@@ -22,9 +22,10 @@ $repository = new App\DeliveryRepository($db);
 $repository->save([
     'exact_entry_id' => 'test-delivery', 'delivery_number' => 'DEL-9',
     'order_number' => 'ORD-2026-1234', 'shipping_date' => null,
-    'name' => 'Voorbeeld BV', 'street' => 'Teststraat', 'house_no' => '12',
+    'name' => 'Voorbeeld BV', 'name_2' => 'Afdeling Logistiek', 'name_3' => 'Dock 4',
+    'street' => 'Teststraat', 'house_no' => '12', 'house_no_addition' => 'A',
     'zip_code' => '1234 AB', 'city' => 'Utrecht', 'country_code' => 'NL',
-    'email' => 'magazijn@example.com',
+    'email' => 'magazijn@example.com', 'note_1' => 'Voorzijde', 'note_2' => 'Melden bij receptie',
 ]);
 $delivery = $repository->find('test-delivery');
 assert($delivery !== null);
@@ -43,6 +44,11 @@ $parcel = $gls->buildPayload($delivery);
 assert($parcel['ShipType'] === 'P');
 assert($parcel['Reference'] === '1234');
 assert($parcel['Addresses']['DeliveryAddress']['Email'] === 'magazijn@example.com');
+assert($parcel['Addresses']['DeliveryAddress']['Name2'] === 'Afdeling Logistiek');
+assert($parcel['Addresses']['DeliveryAddress']['Name3'] === 'Dock 4');
+assert($parcel['Addresses']['DeliveryAddress']['HouseNo'] === '12 A');
+assert($parcel['Units'][0]['AdditionalInfo1'] === 'Voorzijde');
+assert($parcel['Units'][0]['AdditionalInfo2'] === 'Melden bij receptie');
 assert(count($parcel['Units']) === 2);
 assert(!isset($parcel['Units'][0]['UnitType']));
 
@@ -74,6 +80,13 @@ assert(str_contains($html, 'E-mailadres *'));
 assert(str_contains($html, 'Toegevoegd'));
 assert(str_contains($html, 'Dozen opslaan'));
 assert(str_contains($html, 'niet-opgeslagen wijzigingen'));
+assert(str_contains($html, 'Naam 2'));
+assert(str_contains($html, 'Naam 3'));
+assert(str_contains($html, 'Toevoeging'));
+assert(str_contains($html, 'Notitie 1'));
+assert(str_contains($html, 'Notitie 2'));
+assert(str_contains($html, 'step="0.1"'));
+assert(str_contains($html, 'Levering DEL-9'));
 
 $db->exec("UPDATE deliveries SET status = 'labels_created' WHERE exact_entry_id = 'test-delivery'");
 $repository->updateShippingDetails('test-delivery', 'P', 'GEWIJZIGD');
@@ -104,4 +117,4 @@ try {
     assert(str_contains($error->getMessage(), 'e-mailadres'));
 }
 
-echo "Smoke test geslaagd: vrachttype, dozen wissen, zending archiveren en vergrendeling.\n";
+echo "Smoke test geslaagd: adresregels, notities, vrachttype, dozen en vergrendeling.\n";

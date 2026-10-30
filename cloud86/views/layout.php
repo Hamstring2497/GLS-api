@@ -14,12 +14,19 @@ unset($_SESSION['flash']);
 </head>
 <body>
 <header class="topbar">
-    <a class="brand" href="/">Exact <span>→</span> GLS</a>
+    <div class="topbar-left">
+        <a class="brand" href="/">Exact <span>→</span> GLS</a>
+        <?php if (isset($exactStatus) && (\App\Security::user()['role'] ?? '') === 'admin'): ?>
+            <span class="exact-info">
+                <strong>Exact Online</strong>
+                <?= $exactStatus['connected'] ? 'gekoppeld aan administratie ' . e($exactStatus['division']) : 'nog niet gekoppeld' ?>
+            </span>
+        <?php endif; ?>
+    </div>
     <?php if (\App\Security::isAuthenticated()): ?>
         <nav>
             <?php if (\App\Security::user()): ?><span class="user-name"><?= e(\App\Security::user()['display_name']) ?></span><?php endif; ?>
             <a href="/">Leveringen</a>
-            <a class="button button-small" href="/deliveries/new">Nieuwe levering</a>
             <form method="post" action="/logout">
                 <input type="hidden" name="_token" value="<?= e(\App\Security::csrfToken()) ?>">
                 <button class="link-button" type="submit">Uitloggen</button>
