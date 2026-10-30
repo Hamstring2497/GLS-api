@@ -228,7 +228,8 @@ gecontroleerd worden toegepast.
 
 ### Laatste applicatieversie
 
-- 30 oktober 2026: de volgende applicatieversie staat lokaal gereed voor publicatie. Onder
+- 30 oktober 2026: applicatiecommit `a3683b7` staat lokaal, op GitHub en is via Plesk op Cloud86
+  gepubliceerd. Onder
   **Dozen en gewicht** staan **Zending opslaan** en **Adres opslaan** naast elkaar. De bestaande,
   dubbel bevestigde verwijderactie staat voortaan in het bovenmenu **Onderhoud**. Vrachttype `CO`
   heet in de werkplek **Collo (max. 32 kg)** en actieve invoervelden hebben een dikkere, contrastrijke
@@ -237,6 +238,10 @@ gecontroleerd worden toegepast.
   telefoon van **Besteld door** op. Aflevergegevens blijven leidend; bestelgegevens vullen alleen
   ontbrekende aanvullende gegevens aan. Er is geen databasemigratie nodig. De negen
   Python-referentietests en `git diff --check` zijn geslaagd; lokaal is geen PHP-runtime aanwezig.
+  Plesk bevestigde pull en publicatie als voltooid. Live zijn het onderhoudsmenu, beide onderste
+  opslaanknoppen, het collo-label en de dikke blauwe focusrand visueel gecontroleerd. `/health`
+  gaf `status: ok` en `gls_mode: mock`. Er is tijdens deze controle geen Exact-synchronisatie
+  gestart en er zijn geen productiegegevens opgeslagen of gewist.
 - 30 oktober 2026: applicatiecommit `5f40412` staat lokaal, op GitHub en op Cloud86. De aparte
   kolom **Openen** is verwijderd; de volledige leveringrij blijft met muis en toetsenbord
   selecteerbaar. **Zending opslaan** en **Zending wissen** staan nu onder **Dozen en gewicht**.
@@ -313,8 +318,9 @@ gecontroleerd worden toegepast.
   e-mailadres geven, kan de magazijnmedewerker het alsnog invullen. De koppen Zending,
   Afleveradres en Eenheden staan op brede schermen naast hun invoervelden. Referentie staat
   op dezelfde regel als Type en Vrachttype. Nog niet live getest.
-- Laatste bevestigde applicatiecommit op GitHub en Cloud86: `5f40412`. Eerstvolgende stap: bepalen
-  welke velden de toekomstige zoekfunctie doorzoekt en daarna de responsive weergave controleren.
+- Laatste bevestigde applicatiecommit op GitHub en Cloud86: `a3683b7`. Eerstvolgende stap: de
+  uitgebreide Exact-mapping met één herkenbare nieuwe levering controleren; daarna bepalen welke
+  velden de toekomstige zoekfunctie doorzoekt.
 
 - Commit `cff3ecd` — **Add warehouse overview and editable GLS shipment details** — staat lokaal,
   op `origin/main` en is via Plesk op Cloud86 gepubliceerd. Plesk meldde voltooiing van pull en
