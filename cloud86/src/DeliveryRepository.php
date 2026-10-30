@@ -172,15 +172,31 @@ final class DeliveryRepository
         ]);
     }
 
-    public function updateShippingDetails(string $id, string $shipType, string $reference, string $freightUnitType = 'CO'): void
+    /** @param array<string, bool|string> $glsOptions */
+    public function updateShippingDetails(
+        string $id,
+        string $shipType,
+        string $reference,
+        string $freightUnitType = 'CO',
+        string $glsProduct = 'direct_delivery_plus',
+        array $glsOptions = []
+    ): void
     {
         $this->db->beginTransaction();
         try {
             $statement = $this->db->prepare(
-                "UPDATE deliveries SET ship_type = ?, freight_unit_type = ?, updated_at = CURRENT_TIMESTAMP "
+                "UPDATE deliveries SET ship_type = ?, freight_unit_type = ?, gls_product = ?, "
+                . "gls_options_json = ?, updated_at = CURRENT_TIMESTAMP "
                 . "WHERE (exact_entry_id = ? OR merged_into_exact_entry_id = ?) AND status IN ('new', 'ready')"
             );
-            $statement->execute([$shipType, $freightUnitType, $id, $id]);
+            $statement->execute([
+                $shipType,
+                $freightUnitType,
+                $glsProduct,
+                json_encode($glsOptions, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
+                $id,
+                $id,
+            ]);
             $referenceStatement = $this->db->prepare(
                 "UPDATE deliveries SET shipment_reference = ?, updated_at = CURRENT_TIMESTAMP "
                 . "WHERE exact_entry_id = ? AND status IN ('new', 'ready')"
@@ -328,6 +344,9 @@ final class DeliveryRepository
     {
         $address = json_decode((string) $row['address_json'], true, 512, JSON_THROW_ON_ERROR);
         $numbers = json_decode((string) $row['tracking_numbers_json'], true, 512, JSON_THROW_ON_ERROR);
+        $glsOptions = !empty($row['gls_options_json'])
+            ? json_decode((string) $row['gls_options_json'], true, 512, JSON_THROW_ON_ERROR)
+            : [];
         $statement = $this->db->prepare(
             'SELECT position, weight_kg FROM parcels WHERE exact_entry_id = ? ORDER BY position'
         );
@@ -356,6 +375,8 @@ final class DeliveryRepository
         return array_merge($row, [
             'ship_type' => $row['ship_type'] ?? 'P',
             'freight_unit_type' => $row['freight_unit_type'] ?? 'CO',
+            'gls_product' => $row['gls_product'] ?? 'direct_delivery_plus',
+            'gls_options' => is_array($glsOptions) ? $glsOptions : [],
             'shipment_reference' => ($row['shipment_reference'] ?? '') !== ''
                 ? $row['shipment_reference']
                 : substr((string) preg_replace('/\D/', '', (string) $row['order_number']), -4),

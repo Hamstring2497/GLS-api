@@ -16,6 +16,7 @@ $db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 $db->exec('CREATE TABLE deliveries (
     exact_entry_id TEXT PRIMARY KEY, merged_into_exact_entry_id TEXT, delivery_number TEXT, order_number TEXT,
     ship_type TEXT, freight_unit_type TEXT, shipment_reference TEXT, address_json TEXT, shipping_date TEXT,
+    gls_product TEXT DEFAULT 'direct_delivery_plus', gls_options_json TEXT,
     status TEXT, tracking_numbers_json TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP, updated_at TEXT
 )');
 $db->exec('CREATE TABLE parcels (exact_entry_id TEXT, position INTEGER, weight_kg REAL)');
@@ -43,6 +44,7 @@ $delivery = $repository->find('test-delivery');
 assert($delivery !== null);
 assert($delivery['ship_type'] === 'P');
 assert($delivery['shipment_reference'] === '1234');
+assert($delivery['gls_product'] === 'direct_delivery_plus');
 
 $address = $delivery['address'];
 $address['street'] = 'Nieuwe straat';
@@ -68,6 +70,7 @@ assert($parcel['units'][0]['additionalInfo2'] === 'Melden bij receptie');
 assert(!isset($parcel['units'][0]['unitType']));
 assert(count($parcel['units']) === 2);
 assert(!isset($parcel['shippingDate']));
+assert(!isset($parcel['services']));
 $redactedParcel = $gls->redact($parcel);
 assert($redactedParcel['username'] === '***');
 assert($redactedParcel['password'] === '***');
@@ -77,6 +80,38 @@ $datedDelivery['shipping_date'] = '2026-10-30';
 putenv('GLS_SEND_SHIPPING_DATE=true');
 assert($gls->buildPayload($datedDelivery)['shippingDate'] === '2026-10-30T00:00:00');
 putenv('GLS_SEND_SHIPPING_DATE=false');
+
+$serviceDelivery = $delivery;
+$serviceDelivery['gls_product'] = 'point_delivery';
+$serviceDelivery['gls_options'] = [
+    'parcel_shop_id' => '34310025',
+    'point_delivery_flex' => true,
+    'saturday' => true,
+    'addressee_only' => true,
+    'point_return' => true,
+];
+$servicePayload = $gls->buildPayload($serviceDelivery);
+assert($servicePayload['services']['shopDeliveryService'] === true);
+assert($servicePayload['services']['shopDeliveryParcelShopId'] === '34310025');
+assert($servicePayload['services']['shopDeliveryPlusService'] === true);
+assert($servicePayload['services']['saturdayService'] === true);
+assert($servicePayload['services']['addresseeOnlyService'] === true);
+assert($servicePayload['services']['shopReturnService'] === true);
+
+$expressDelivery = $delivery;
+$expressDelivery['gls_product'] = 'express_delivery';
+$expressDelivery['gls_options'] = ['express_service' => 't12'];
+assert($gls->buildPayload($expressDelivery)['services']['expressService'] === 't12');
+
+$letterboxDelivery = $delivery;
+$letterboxDelivery['gls_product'] = 'letterbox_delivery';
+$letterboxDelivery['gls_options'] = [];
+assert($gls->buildPayload($letterboxDelivery)['services']['letterBoxParcel'] === true);
+
+$economyDelivery = $delivery;
+$economyDelivery['gls_product'] = 'direct_delivery';
+$economyDelivery['gls_options'] = [];
+assert($gls->buildPayload($economyDelivery)['services']['economyParcel'] === true);
 
 $repository->updateShippingDetails('test-delivery', 'F', 'ANDERS', 'PL');
 $freight = $gls->buildPayload($repository->find('test-delivery'));
@@ -98,6 +133,11 @@ require dirname(__DIR__) . '/views/deliveries/index.php';
 $html = (string) ob_get_clean();
 assert(str_contains($html, 'Vrachttype'));
 assert(str_contains($html, 'Collo (max. 32 kg)'));
+assert(str_contains($html, 'Aanvullende producten en services'));
+assert(str_contains($html, 'DirectDeliveryPlus'));
+assert(str_contains($html, 'PointDeliveryFlex'));
+assert(str_contains($html, 'GLS Point-ID'));
+assert(str_contains($html, 'Express tijd'));
 assert(!str_contains($html, 'Zending wissen'));
 assert(str_contains($html, 'Wissen'));
 assert(str_contains($html, 'value="ANDERS"'));

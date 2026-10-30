@@ -281,7 +281,50 @@ try {
         if ($reference === '' || strlen($reference) > 64) {
             abort(422, 'Vul een referentie van maximaal 64 tekens in.');
         }
-        $repository->updateShippingDetails($id, $shipType, $reference, $freightUnitType);
+        $glsProduct = (string) ($_POST['gls_product'] ?? 'direct_delivery_plus');
+        $selectedServices = is_array($_POST['gls_services'] ?? null)
+            ? array_values(array_unique(array_map('strval', $_POST['gls_services'])))
+            : [];
+        $allowedServices = ['saturday', 'addressee_only', 'point_delivery_flex', 'point_return'];
+        if (!in_array($glsProduct, GlsService::PRODUCTS, true)) {
+            abort(422, 'Kies een geldig GLS-product.');
+        }
+        if (array_diff($selectedServices, $allowedServices) !== []) {
+            abort(422, 'Er is een onbekende GLS-service gekozen.');
+        }
+        $glsOptions = [
+            'saturday' => in_array('saturday', $selectedServices, true),
+            'addressee_only' => in_array('addressee_only', $selectedServices, true),
+            'point_delivery_flex' => in_array('point_delivery_flex', $selectedServices, true),
+            'point_return' => in_array('point_return', $selectedServices, true),
+            'parcel_shop_id' => trim((string) ($_POST['gls_parcel_shop_id'] ?? '')),
+            'express_service' => strtolower(trim((string) ($_POST['gls_express_service'] ?? 't17'))),
+        ];
+        if ($shipType === 'F') {
+            $glsProduct = 'direct_delivery_plus';
+            $glsOptions = [];
+        } else {
+            if ($glsProduct === 'point_delivery' && $glsOptions['parcel_shop_id'] === '') {
+                abort(422, 'Vul voor PointDelivery het GLS Point-ID in.');
+            }
+            if (strlen((string) $glsOptions['parcel_shop_id']) > 32) {
+                abort(422, 'Het GLS Point-ID mag maximaal 32 tekens bevatten.');
+            }
+            if ($glsProduct === 'express_delivery' && !in_array($glsOptions['express_service'], GlsService::EXPRESS_SERVICES, true)) {
+                abort(422, 'Kies een geldige ExpressDelivery-tijd.');
+            }
+            if ($glsOptions['point_delivery_flex'] && $glsProduct !== 'point_delivery') {
+                abort(422, 'PointDeliveryFlex kan alleen samen met PointDelivery worden gekozen.');
+            }
+        }
+        $repository->updateShippingDetails(
+            $id,
+            $shipType,
+            $reference,
+            $freightUnitType,
+            $glsProduct,
+            $glsOptions
+        );
         flash('success', 'Verzendgegevens opgeslagen.');
         redirect('/?delivery=' . rawurlencode($id));
     }

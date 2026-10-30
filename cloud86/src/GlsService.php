@@ -7,6 +7,14 @@ namespace App;
 final class GlsService
 {
     public const FREIGHT_UNITS = ['CO' => 32, 'LG' => 25, 'MP' => 300, 'PL' => 675, 'BP' => 850, 'RL' => 350, 'XL' => 1000];
+    public const PRODUCTS = [
+        'direct_delivery_plus',
+        'direct_delivery',
+        'letterbox_delivery',
+        'point_delivery',
+        'express_delivery',
+    ];
+    public const EXPRESS_SERVICES = ['t9', 't10', 't12', 't17', 's9', 's10', 's12', 's17'];
 
     public function __construct(private readonly string $storagePath)
     {
@@ -45,6 +53,14 @@ final class GlsService
         $freightUnitType = (string) ($delivery['freight_unit_type'] ?? 'CO');
         if ($shipType === 'F' && !isset(self::FREIGHT_UNITS[$freightUnitType])) {
             throw new \InvalidArgumentException('Ongeldig vrachttype.');
+        }
+        $product = (string) ($delivery['gls_product'] ?? 'direct_delivery_plus');
+        $glsOptions = is_array($delivery['gls_options'] ?? null) ? $delivery['gls_options'] : [];
+        if (!in_array($product, self::PRODUCTS, true)) {
+            throw new \InvalidArgumentException('Kies een geldig GLS-product.');
+        }
+        if ($shipType === 'F' && ($product !== 'direct_delivery_plus' || $this->hasSelectedServices($glsOptions))) {
+            throw new \InvalidArgumentException('Aanvullende GLS-producten en services zijn alleen beschikbaar voor Parcel.');
         }
         $maxWeight = $shipType === 'F' ? self::FREIGHT_UNITS[$freightUnitType] : 32;
         foreach (['note_1', 'note_2'] as $noteField) {
@@ -119,8 +135,65 @@ final class GlsService
         if (trim((string) Env::get('GLS_CUSTOMER_NO', '')) !== '') {
             $payload['customerNo'] = Env::get('GLS_CUSTOMER_NO');
         }
+        $services = $this->buildServices($product, $glsOptions);
+        if ($services !== []) {
+            $payload['services'] = $services;
+        }
 
         return $payload;
+    }
+
+    /** @param array<string, mixed> $options @return array<string, bool|string> */
+    private function buildServices(string $product, array $options): array
+    {
+        $services = match ($product) {
+            'direct_delivery_plus' => [],
+            'direct_delivery' => ['economyParcel' => true],
+            'letterbox_delivery' => ['letterBoxParcel' => true],
+            'point_delivery' => [
+                'shopDeliveryService' => true,
+                'shopDeliveryParcelShopId' => trim((string) ($options['parcel_shop_id'] ?? '')),
+            ],
+            'express_delivery' => [
+                'expressService' => strtolower(trim((string) ($options['express_service'] ?? 't17'))),
+            ],
+            default => throw new \InvalidArgumentException('Kies een geldig GLS-product.'),
+        };
+
+        if ($product === 'point_delivery' && $services['shopDeliveryParcelShopId'] === '') {
+            throw new \InvalidArgumentException('Vul voor PointDelivery het GLS Point-ID in.');
+        }
+        if ($product === 'express_delivery' && !in_array($services['expressService'], self::EXPRESS_SERVICES, true)) {
+            throw new \InvalidArgumentException('Kies een geldige ExpressDelivery-tijd.');
+        }
+        if (!empty($options['saturday'])) {
+            $services['saturdayService'] = true;
+        }
+        if (!empty($options['addressee_only'])) {
+            $services['addresseeOnlyService'] = true;
+        }
+        if (!empty($options['point_delivery_flex'])) {
+            if ($product !== 'point_delivery') {
+                throw new \InvalidArgumentException('PointDeliveryFlex kan alleen samen met PointDelivery worden gekozen.');
+            }
+            $services['shopDeliveryPlusService'] = true;
+        }
+        if (!empty($options['point_return'])) {
+            $services['shopReturnService'] = true;
+        }
+
+        return $services;
+    }
+
+    /** @param array<string, mixed> $options */
+    private function hasSelectedServices(array $options): bool
+    {
+        foreach (['saturday', 'addressee_only', 'point_delivery_flex', 'point_return'] as $key) {
+            if (!empty($options[$key])) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** @param array<string, mixed> $payload @return array{response: array<string, mixed>, tracking_numbers: list<string>, label_path: ?string} */

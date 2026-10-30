@@ -6,6 +6,8 @@ CREATE TABLE IF NOT EXISTS deliveries (
     ship_type CHAR(1) NOT NULL DEFAULT 'P',
     freight_unit_type CHAR(2) NOT NULL DEFAULT 'CO',
     shipment_reference VARCHAR(64) NULL,
+    gls_product VARCHAR(32) NOT NULL DEFAULT 'direct_delivery_plus',
+    gls_options_json JSON NULL,
     address_json JSON NOT NULL,
     shipping_date DATE NULL,
     status VARCHAR(32) NOT NULL DEFAULT 'new',

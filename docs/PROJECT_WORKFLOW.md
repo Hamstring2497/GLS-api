@@ -141,7 +141,7 @@ geteste referentie voor de GLS-contracten. Nieuwe productiewerkzaamheden horen i
 | `GET/POST /deliveries/new` | alleen een handmatige testlevering |
 | `GET /deliveries/{id}` | levering controleren en dozen beheren |
 | `POST /deliveries/{id}/address` | lokaal afleveradres vóór labelaanmaak aanpassen |
-| `POST /deliveries/{id}/shipping` | Parcel/Freight en referentie vóór labelaanmaak opslaan |
+| `POST /deliveries/{id}/shipping` | Parcel/Freight, referentie en GLS-product/services vóór labelaanmaak opslaan |
 | `POST /deliveries/{id}/parcels` | gewichten opslaan |
 | `POST /deliveries/{id}/labels` | GLS-labels maken |
 | `GET /labels/{filename}` | beschermd label downloaden |
@@ -168,6 +168,10 @@ Voor de nieuwe velden `ship_type` en `shipment_reference` staat de eenmalige mig
 `cloud86/database/migrations/20261029_shipping_details.sql`. Voer die uit op de bestaande
 database voordat de gewijzigde PHP-code wordt gedeployed. Bestaande leveringen krijgen Parcel
 als type; hun referentie wordt bij het tonen afgeleid van het ordernummer totdat die wordt opgeslagen.
+
+Voor de per-zending gekozen GLS-producten en services staat de eenmalige migratie in
+`cloud86/database/migrations/20261030_gls_products_services.sql`. Deze voegt `gls_product` en
+`gls_options_json` toe. Bestaande leveringen krijgen DirectDeliveryPlus zonder aanvullende services.
 
 ## 7. Configuratie zonder geheimen
 
@@ -216,6 +220,17 @@ gecontroleerd worden toegepast.
 
 ## 10. Actuele stand — 30 oktober 2026
 
+- 30 oktober 2026, lokale wijziging nog niet op GitHub of Cloud86: in de sectie **Zending** staan
+  de Print & Ship-keuzes voor DirectDeliveryPlus, DirectDelivery, LetterboxDelivery,
+  PointDelivery en ExpressDelivery, plus Saturday, AddresseeOnly, PointDeliveryFlex en
+  PointReturn. DirectDeliveryPlus is de standaard. PointDelivery vraagt het verplichte GLS
+  Point-ID; ExpressDelivery vraagt een geldige GLS-tijd. De keuzes worden per levering opgeslagen
+  en naar de actuele Label API v1-velden vertaald (`economyParcel`, `letterBoxParcel`,
+  `shopDeliveryService`, `expressService`, `saturdayService`, `addresseeOnlyService`,
+  `shopDeliveryPlusService` en `shopReturnService`). De opties zijn voor Freight uitgeschakeld.
+  Voor deployment moet eerst `cloud86/database/migrations/20261030_gls_products_services.sql`
+  worden uitgevoerd. `GLS_MODE` blijft `mock` totdat de testaccount en contractbeschikbaarheid zijn
+  bevestigd.
 - 30 oktober 2026, lokale commit nog niet op GitHub of Cloud86: ontbrekende verplichte gegevens worden
   nu per levering concreet genoemd en de bijbehorende invoervelden krijgen een amberkleurige
   markering. De tabel toont pas **Klaar voor labels** als adres, geldig e-mailadres, referentie en
@@ -385,8 +400,9 @@ gecontroleerd worden toegepast.
   bevestigd. De lokale PHP 8.3 smoke test controleert voorinvulling, adresopslag,
   Parcel/Freight-payload, mocklabels, HTML-weergave en vergrendeling. Een ingelogde live
   magazijnflow en echte GLS-aanroep zijn nog niet getest.
-- De keuze van GLS-producten en services, met DirectDeliveryPlus als standaard,
-  vraagt nog validatie van de actuele GLS-requestvelden.
+- De GLS-product- en servicevelden zijn tegen de actuele openbare Label API v1-OpenAPI
+  gecontroleerd. De beschikbaarheid van iedere combinatie blijft contract-, bestemming- en
+  verzenddatumafhankelijk en moet daarom in de GLS-testomgeving worden geaccepteerd.
 
 - Commit `c9a1c9a` — **Import goods deliveries from Exact Online**.
 - Deze versie voegt tokenrefresh, `POST /exact/sync` en de knop **Leveringen ophalen** toe.
@@ -423,8 +439,9 @@ Werk deze lijst in deze volgorde af:
 7. Controleer de uitgebreide Exact-mapping met een echte nieuwe levering: leveringsnummer,
    ordernummer, datum, ontvanger, adresregel 2/3, contactpersoon en e-mailadres. Bestaande lokaal
    opgeslagen leveringen worden bij synchronisatie bewust niet overschreven.
-8. Bevestig de GLS-veldmapping voor
-   DirectDeliveryPlus en de overige gewenste leveringsopties.
+8. Voer de migratie `20261030_gls_products_services.sql` uit en test in `mock` de product- en
+   servicekeuzes. Test daarna met GLS per gecontracteerde combinatie minimaal de standaard,
+   Saturday, AddresseeOnly, PointDelivery met Point-ID en ExpressDelivery.
 9. Pas de mapping defensief aan als de Exact-response andere velden gebruikt.
 10. Vraag/controleer nu de ontbrekende GLS-testgegevens: API-subscriptionkey, MyGLS-testlogin,
    eventueel klantnummer en de toegestane producten/services. De test-URL's staan inmiddels in de
