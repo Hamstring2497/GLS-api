@@ -220,6 +220,10 @@ gecontroleerd worden toegepast.
 
 ## 10. Actuele stand — 30 oktober 2026
 
+- 30 oktober 2026, aanvullende lokale vormgevingswijziging nog niet op GitHub of Cloud86: de vier
+  teksten rechts in de bovenbalk — **BETEC Magazijn**, **Leveringen**, **Onderhoud** en **Uitloggen** —
+  gebruiken nu hetzelfde compacte letterformaat, gewicht en dezelfde regelhoogte. De merknaam
+  **Exact → GLS** links blijft bewust groter.
 - 30 oktober 2026, lokale wijziging nog niet op GitHub of Cloud86: in de sectie **Zending** staan
   de Print & Ship-keuzes voor DirectDeliveryPlus, DirectDelivery, LetterboxDelivery,
   PointDelivery en ExpressDelivery, plus Saturday, AddresseeOnly, PointDeliveryFlex en
