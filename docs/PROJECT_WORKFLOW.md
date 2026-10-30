@@ -228,6 +228,16 @@ gecontroleerd worden toegepast.
 
 ### Laatste applicatieversie
 
+- 30 oktober 2026, lokaal in voorbereiding: de teksten in het menu **Onderhoud** zijn compacter.
+  Bij een levering zonder opgeslagen dozen blijft altijd een lege rij **Doos 1** zichtbaar. Het
+  gewicht is niet HTML-verplicht; een lege rij wordt door de bestaande serverfilter niet als doos
+  opgeslagen en laat de status op `new`. De Exact-contactnaam wordt bij voorkeur opgebouwd als
+  `Titel + Tussenvoegsel + Achternaam`, of zonder titel als
+  `Voornaam + Tussenvoegsel + Achternaam`; alleen als die onderdelen ontbreken wordt `FullName`
+  gebruikt. Er is geen databasemigratie nodig. `git diff --check` en de negen
+  Python-referentietests zijn geslaagd. De PHP-smoketest bevat nieuwe controles voor de lege doos
+  en beide naamvarianten, maar kan lokaal niet worden uitgevoerd omdat PHP ontbreekt. Deze wijziging
+  is nog niet op GitHub of Cloud86 gepubliceerd.
 - 30 oktober 2026: applicatiecommit `e4a1dc2` staat lokaal, op GitHub en is via Plesk op Cloud86
   gepubliceerd. Synchronisatiemeldingen hebben een knop **Gezien**; geen nieuwe leveringen wordt
   blauw/informatief weergegeven, gedeeltelijke importproblemen amber en alleen een volledige fout
@@ -331,9 +341,9 @@ gecontroleerd worden toegepast.
   e-mailadres geven, kan de magazijnmedewerker het alsnog invullen. De koppen Zending,
   Afleveradres en Eenheden staan op brede schermen naast hun invoervelden. Referentie staat
   op dezelfde regel als Type en Vrachttype. Nog niet live getest.
-- Laatste bevestigde applicatiecommit op GitHub en Cloud86: `a3683b7`. Eerstvolgende stap: de
-  uitgebreide Exact-mapping met één herkenbare nieuwe levering controleren; daarna bepalen welke
-  velden de toekomstige zoekfunctie doorzoekt.
+- Laatste bevestigde applicatiecommit op GitHub en Cloud86: `e4a1dc2`. De documentatiecommit
+  `0843e11` staat lokaal en op GitHub, maar hoefde als documentatiewijziging niet apart naar
+  Cloud86 te worden gepubliceerd.
 
 - Commit `cff3ecd` — **Add warehouse overview and editable GLS shipment details** — staat lokaal,
   op `origin/main` en is via Plesk op Cloud86 gepubliceerd. Plesk meldde voltooiing van pull en
@@ -364,25 +374,32 @@ gecontroleerd worden toegepast.
 
 Werk deze lijst in deze volgorde af:
 
-1. Voer zodra shelltoegang beschikbaar is op Cloud86 de PHP-syntaxiscontrole en
+1. Publiceer na akkoord de compacte onderhoudstekst, permanente lege rij **Doos 1** en de nieuwe
+   Exact-contactnaamopbouw. Controleer daarna met een nieuw opgehaalde levering of Exact `Title`,
+   `FirstName`, `MiddleName` en `LastName` levert zoals verwacht.
+2. Voer zodra shelltoegang beschikbaar is op Cloud86 de PHP-syntaxiscontrole en
    `cloud86/tests/smoke.php` uit.
-2. Voeg na akkoord een zoekveld boven de tabel toe voor minimaal leveringsnummer, ordernummer,
+3. Voeg na akkoord een zoekveld boven de tabel toe voor minimaal leveringsnummer, ordernummer,
    ontvanger, straat, postcode en plaats; bepaal of Naam 2/3 en notities ook doorzoekbaar moeten zijn.
-3. Beoordeel de nieuwe vormgeving ook op een kleiner scherm.
-4. Test de volledige magazijnflow in `mock`-modus met een bestaande levering, inclusief het
+4. Beoordeel de nieuwe vormgeving ook op een kleiner scherm.
+5. Test de volledige magazijnflow in `mock`-modus met een bestaande levering, inclusief het
    aanvullen van een ontbrekend e-mailadres en het opnieuw opslaan van dozen.
-5. Controleer de uitgebreide Exact-mapping met een echte nieuwe levering: leveringsnummer,
+6. Controleer de uitgebreide Exact-mapping met een echte nieuwe levering: leveringsnummer,
    ordernummer, datum, ontvanger, adresregel 2/3, contactpersoon en e-mailadres. Bestaande lokaal
    opgeslagen leveringen worden bij synchronisatie bewust niet overschreven.
-6. Bevestig de GLS-veldmapping voor
+7. Bevestig de GLS-veldmapping voor
    DirectDeliveryPlus en de overige gewenste leveringsopties.
-7. Pas de mapping defensief aan als de Exact-response andere velden gebruikt.
-8. Vraag/controleer GLS-testgegevens en de definitieve testendpoints.
-9. Voer een GLS-acceptatietest uit met een expliciete testlevering en controleer PDF/labelprinter.
-10. Spreek af naar welk Exact-veld de track-en-tracecode wordt teruggeschreven en implementeer dit.
-11. Implementeer en test `ConfirmLabel` op het overeengekomen moment.
-12. Activeer en test de GLS-webhook met een nieuw sterk Bearer-token.
-13. Voeg pas daarna geplande automatische Exact-import toe.
+8. Pas de mapping defensief aan als de Exact-response andere velden gebruikt.
+9. Vraag/controleer GLS-testgegevens: test-`CreateLabel`-URL, API-subscriptionkey, MyGLS-testlogin,
+   eventueel klantnummer en de toegestane producten/services. Spreek ook het labeltype af: A6-PDF
+   voor afdrukken via de browser of ZPL voor een geschikte thermische printer.
+10. Leg vast of `ShippingDate` bij labelaanmaak wordt meegestuurd of dat iedere werkelijk verzonden
+    unit later via `ConfirmLabel` wordt bevestigd. Maak daarna van de magazijnactie één duidelijke,
+    idempotente stap **Zending opslaan en labels maken**; open het opgeslagen label voor afdrukken.
+11. Voer een GLS-acceptatietest uit met een expliciete testlevering en controleer PDF/labelprinter.
+12. Spreek af naar welk Exact-veld de track-en-tracecode wordt teruggeschreven en implementeer dit.
+13. Activeer en test de GLS-webhook met een nieuw sterk Bearer-token.
+14. Voeg pas daarna geplande automatische Exact-import toe.
 
 ## 12. Overdrachtssjabloon voor een nieuwe Codex-sessie
 

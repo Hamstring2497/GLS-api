@@ -191,10 +191,10 @@ final class ExactService
                     'city' => trim((string) ($address['City'] ?? '')),
                     'country_code' => strtoupper(trim((string) ($address['Country'] ?? $address['CountryCode'] ?? 'NL'))),
                     'contact' => $this->firstNonEmpty([
-                        $orderContext['contact']['FullName'] ?? null,
+                        $this->contactDisplayName($orderContext['contact']),
                         $orderContext['contact_name'],
                         $row['DeliveryContactPersonFullName'] ?? null,
-                        $deliveryContact['FullName'] ?? null,
+                        $this->contactDisplayName($deliveryContact),
                         $row['DeliverToContactPersonFullName'] ?? null,
                         $address['ContactName'] ?? null,
                     ]),
@@ -418,6 +418,28 @@ final class ExactService
             error_log('Exact contactpersoon niet beschikbaar: HTTP ' . ($error->httpStatus ?? 'onbekend'));
             return [];
         }
+    }
+
+    /**
+     * Bouw de zichtbare contactnaam op zoals in Exact: titel + tussenvoegsel + achternaam,
+     * of - als er geen titel is - voornaam + tussenvoegsel + achternaam.
+     *
+     * @param array<string, mixed> $contact
+     */
+    private function contactDisplayName(array $contact): string
+    {
+        $title = trim((string) ($contact['Title'] ?? ''));
+        $firstName = trim((string) ($contact['FirstName'] ?? ''));
+        $middleName = trim((string) ($contact['MiddleName'] ?? ''));
+        $lastName = trim((string) ($contact['LastName'] ?? ''));
+        $parts = array_values(array_filter(
+            [$title !== '' ? $title : $firstName, $middleName, $lastName],
+            static fn (string $part): bool => $part !== ''
+        ));
+        if ($parts !== []) {
+            return implode(' ', $parts);
+        }
+        return trim((string) ($contact['FullName'] ?? ''));
     }
 
     /** @param array<string, mixed> $address @param array<string, mixed> $delivery */

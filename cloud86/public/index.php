@@ -299,7 +299,10 @@ try {
             }
         }
         $repository->replaceParcels($id, $weights);
-        flash('success', count($weights) . ' doos/dozen opgeslagen.');
+        flash(
+            $weights === [] ? 'info' : 'success',
+            $weights === [] ? 'Geen gewicht ingevuld; er is geen doos opgeslagen.' : count($weights) . ' doos/dozen opgeslagen.'
+        );
         redirect('/deliveries/' . rawurlencode($id));
     }
 

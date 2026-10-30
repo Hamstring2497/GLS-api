@@ -6,6 +6,8 @@ require dirname(__DIR__) . '/src/Security.php';
 require dirname(__DIR__) . '/src/DeliveryRepository.php';
 require dirname(__DIR__) . '/src/Env.php';
 require dirname(__DIR__) . '/src/GlsService.php';
+require dirname(__DIR__) . '/src/ExactException.php';
+require dirname(__DIR__) . '/src/ExactService.php';
 require dirname(__DIR__) . '/src/helpers.php';
 
 $db = new PDO('sqlite::memory:');
@@ -19,6 +21,16 @@ $db->exec('CREATE TABLE deliveries (
 $db->exec('CREATE TABLE parcels (exact_entry_id TEXT, position INTEGER, weight_kg REAL)');
 
 $repository = new App\DeliveryRepository($db);
+$exactReflection = new ReflectionClass(App\ExactService::class);
+$exactWithoutConstructor = $exactReflection->newInstanceWithoutConstructor();
+$contactDisplayName = $exactReflection->getMethod('contactDisplayName');
+$contactDisplayName->setAccessible(true);
+assert($contactDisplayName->invoke($exactWithoutConstructor, [
+    'Title' => 'de heer', 'FirstName' => 'Fred', 'MiddleName' => 'van der', 'LastName' => 'Steen',
+]) === 'de heer van der Steen');
+assert($contactDisplayName->invoke($exactWithoutConstructor, [
+    'FirstName' => 'Fred', 'MiddleName' => 'van der', 'LastName' => 'Steen',
+]) === 'Fred van der Steen');
 $repository->save([
     'exact_entry_id' => 'test-delivery', 'delivery_number' => 'DEL-9',
     'order_number' => 'ORD-2026-1234', 'shipping_date' => null,
@@ -118,6 +130,14 @@ $repository->replaceParcels('second', [12.5]);
 $repository->replaceParcels('second', []);
 assert($repository->find('second')['status'] === 'new');
 assert($repository->find('second')['parcels'] === []);
+$deliveries = [$repository->find('second')];
+$selectedDelivery = $deliveries[0];
+ob_start();
+require dirname(__DIR__) . '/views/deliveries/index.php';
+$emptyParcelHtml = (string) ob_get_clean();
+assert(str_contains($emptyParcelHtml, '<span>Doos 1</span>'));
+assert(str_contains($emptyParcelHtml, 'name="weights[]" value=""'));
+assert(!str_contains($emptyParcelHtml, 'name="weights[]" value="" min="0.1" max="32" step="0.1" inputmode="decimal" placeholder="0,0" required'));
 assert($repository->discard('second'));
 assert(count($repository->all()) === 1);
 assert($repository->find('second')['status'] === 'discarded');

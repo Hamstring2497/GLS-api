@@ -96,12 +96,13 @@ $addressFields = [
                 <?php foreach ($delivery['parcels'] as $parcel): ?><li>Doos <?= e($parcel['position']) ?><strong><?= e(number_format((float) $parcel['weight_kg'], 1, ',', '.')) ?> kg</strong></li><?php endforeach; ?>
             </ol>
         <?php else: ?>
+            <?php $parcelRows = $delivery['parcels'] !== [] ? $delivery['parcels'] : [['weight_kg' => '']]; ?>
             <form method="post" action="/deliveries/<?= rawurlencode((string) $delivery['exact_entry_id']) ?>/parcels" class="stack">
                 <input type="hidden" name="_token" value="<?= e(\App\Security::csrfToken()) ?>">
                 <div id="weights">
-                    <?php foreach ($delivery['parcels'] as $index => $parcel): ?>
+                    <?php foreach ($parcelRows as $index => $parcel): ?>
                         <div class="weight-row">
-                            <label class="weight-label"><span>Doos <?= $index + 1 ?></span><span class="weight-input"><input type="number" name="weights[]" value="<?= e(number_format((float) $parcel['weight_kg'], 1, '.', '')) ?>" min="0.1" max="<?= $maxWeight ?>" step="0.1" inputmode="decimal" required><span>kg</span></span></label>
+                            <label class="weight-label"><span>Doos <?= $index + 1 ?></span><span class="weight-input"><input type="number" name="weights[]" value="<?= $parcel['weight_kg'] !== '' ? e(number_format((float) $parcel['weight_kg'], 1, '.', '')) : '' ?>" min="0.1" max="<?= $maxWeight ?>" step="0.1" inputmode="decimal" placeholder="0,0"><span>kg</span></span></label>
                             <button class="button button-secondary button-small" type="button" onclick="removeParcel(this)">Wissen</button>
                         </div>
                     <?php endforeach; ?>
@@ -116,11 +117,20 @@ $addressFields = [
                 const list = document.getElementById('weights');
                 const row = document.createElement('div');
                 row.className = 'weight-row';
-                row.innerHTML = '<label class="weight-label"><span>Doos</span><span class="weight-input"><input type="number" name="weights[]" min="0.1" max="<?= $maxWeight ?>" step="0.1" inputmode="decimal" required><span>kg</span></span></label><button class="button button-secondary button-small" type="button" onclick="removeParcel(this)">Wissen</button>';
+                row.innerHTML = '<label class="weight-label"><span>Doos</span><span class="weight-input"><input type="number" name="weights[]" min="0.1" max="<?= $maxWeight ?>" step="0.1" inputmode="decimal" placeholder="0,0"><span>kg</span></span></label><button class="button button-secondary button-small" type="button" onclick="removeParcel(this)">Wissen</button>';
                 list.appendChild(row);
                 renumberParcels();
             }
-            function removeParcel(button) { button.closest('.weight-row').remove(); renumberParcels(); }
+            function removeParcel(button) {
+                const rows = document.querySelectorAll('#weights .weight-row');
+                if (rows.length === 1) {
+                    const input = rows[0].querySelector('input[name="weights[]"]');
+                    if (input) input.value = '';
+                    return;
+                }
+                button.closest('.weight-row').remove();
+                renumberParcels();
+            }
             function renumberParcels() { document.querySelectorAll('#weights .weight-label > span:first-child').forEach((label, index) => { label.textContent = `Doos ${index + 1}`; }); }
             document.getElementById('ship-type').addEventListener('change', function () {
                 document.getElementById('freight-unit-type').disabled = this.value !== 'F';
