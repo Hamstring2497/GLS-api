@@ -32,16 +32,9 @@ $addressFields = [
         </div>
         <div class="heading-actions">
             <span class="badge badge-<?= e($delivery['status']) ?>"><?= e($statusLabel) ?></span>
-            <?php if (!$locked): ?>
-                <form method="post" action="/deliveries/<?= rawurlencode((string) $delivery['exact_entry_id']) ?>/delete" onsubmit="return confirm('Deze zending uit de werkvoorraad wissen? Dit kan niet ongedaan worden gemaakt.')">
-                    <input type="hidden" name="_token" value="<?= e(\App\Security::csrfToken()) ?>">
-                    <input type="hidden" name="confirm_delete" value="yes">
-                    <button class="button button-danger button-small" type="submit">Zending wissen</button>
-                </form>
-            <?php endif; ?>
         </div>
     </div>
-    <form method="post" action="/deliveries/<?= rawurlencode((string) $delivery['exact_entry_id']) ?>/shipping" class="shipping-form">
+    <form id="shipping-details-form" method="post" action="/deliveries/<?= rawurlencode((string) $delivery['exact_entry_id']) ?>/shipping" class="shipping-form">
         <input type="hidden" name="_token" value="<?= e(\App\Security::csrfToken()) ?>">
         <label>Type
             <select name="ship_type" id="ship-type" <?= $locked ? 'disabled' : '' ?>>
@@ -59,7 +52,6 @@ $addressFields = [
         <label>Referentie
             <input type="text" name="shipment_reference" value="<?= e($delivery['shipment_reference']) ?>" maxlength="64" required <?= $locked ? 'disabled' : '' ?>>
         </label>
-        <?php if (!$locked): ?><button class="button" type="submit">Zending opslaan</button><?php endif; ?>
     </form>
 </section>
 
@@ -134,6 +126,27 @@ $addressFields = [
             document.getElementById('ship-type').addEventListener('change', function () {
                 document.getElementById('freight-unit-type').disabled = this.value !== 'F';
             });
+            </script>
+        <?php endif; ?>
+        <?php if (!$locked): ?>
+            <div class="shipment-footer-actions">
+                <button class="button" type="submit" form="shipping-details-form">Zending opslaan</button>
+                <form method="post" action="/deliveries/<?= rawurlencode((string) $delivery['exact_entry_id']) ?>/delete" data-delivery-number="<?= e($delivery['delivery_number']) ?>" onsubmit="return confirmShipmentDelete(this)">
+                    <input type="hidden" name="_token" value="<?= e(\App\Security::csrfToken()) ?>">
+                    <input type="hidden" name="confirm_delete" value="no">
+                    <input type="hidden" name="supervisor_confirmation" value="no">
+                    <button class="button button-danger" type="submit">Zending wissen</button>
+                </form>
+            </div>
+            <script>
+            function confirmShipmentDelete(form) {
+                const number = form.dataset.deliveryNumber || '';
+                if (!confirm(`Weet u zeker dat u zending ${number} wilt wissen? Dit kan niet ongedaan worden gemaakt.`)) return false;
+                if (!confirm(`Haal uw supervisor.\n\nLaat uw supervisor bevestigen dat zending ${number} definitief mag worden gewist.`)) return false;
+                form.elements.confirm_delete.value = 'yes';
+                form.elements.supervisor_confirmation.value = 'yes';
+                return true;
+            }
             </script>
         <?php endif; ?>
     </section>

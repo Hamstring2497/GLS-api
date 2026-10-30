@@ -31,11 +31,11 @@
     <section class="delivery-list-pane" aria-label="Leveringen">
       <div class="table-wrap delivery-sheet">
         <table>
-            <thead><tr><th>Levering</th><th>Order</th><th>Datum</th><th>Toegevoegd</th><th>Ontvanger</th><th>Straat</th><th>Huisnr.</th><th>Postcode</th><th>Plaats</th><th>Land</th><th>Type</th><th>Vrachttype</th><th>Referentie</th><th>Dozen</th><th>Gewicht</th><th>Tracking</th><th>Status</th><th></th></tr></thead>
+            <thead><tr><th>Levering</th><th>Order</th><th>Datum</th><th>Toegevoegd</th><th>Ontvanger</th><th>Straat</th><th>Huisnr.</th><th>Postcode</th><th>Plaats</th><th>Land</th><th>Type</th><th>Vrachttype</th><th>Referentie</th><th>Dozen</th><th>Gewicht</th><th>Tracking</th><th>Status</th></tr></thead>
             <tbody>
             <?php foreach ($deliveries as $delivery): ?>
                 <?php $deliveryUrl = '/?delivery=' . rawurlencode((string) $delivery['exact_entry_id']); ?>
-                <tr class="delivery-row <?= $selectedDelivery && $selectedDelivery['exact_entry_id'] === $delivery['exact_entry_id'] ? 'selected-row' : '' ?> <?= in_array($delivery['status'], ['ready', 'labels_created'], true) ? 'completed-row' : '' ?>" data-delivery-url="<?= e($deliveryUrl) ?>" tabindex="0" aria-selected="<?= $selectedDelivery && $selectedDelivery['exact_entry_id'] === $delivery['exact_entry_id'] ? 'true' : 'false' ?>">
+                <tr class="delivery-row <?= $selectedDelivery && $selectedDelivery['exact_entry_id'] === $delivery['exact_entry_id'] ? 'selected-row' : '' ?> <?= in_array($delivery['status'], ['ready', 'labels_created'], true) ? 'completed-row' : '' ?>" data-delivery-url="<?= e($deliveryUrl) ?>" tabindex="0" aria-label="Selecteer levering <?= e($delivery['delivery_number']) ?>" aria-selected="<?= $selectedDelivery && $selectedDelivery['exact_entry_id'] === $delivery['exact_entry_id'] ? 'true' : 'false' ?>">
                     <td><strong><?= e($delivery['delivery_number']) ?></strong></td>
                     <td><?= e($delivery['order_number']) ?></td>
                     <td><?= e($delivery['shipping_date'] ?: '—') ?></td>
@@ -53,7 +53,6 @@
                     <td><?= e(number_format(array_sum(array_map(static fn ($parcel): float => (float) $parcel['weight_kg'], $delivery['parcels'])), 1, ',', '.')) ?> kg</td>
                     <td><?= e(implode(', ', $delivery['tracking_numbers']) ?: '—') ?></td>
                     <td><span class="badge badge-<?= e($delivery['status']) ?>"><?= e(['new' => 'Nieuw', 'ready' => 'Klaar voor labels', 'labels_created' => 'Labels gemaakt'][$delivery['status']] ?? $delivery['status']) ?></span></td>
-                    <td><a href="<?= e($deliveryUrl) ?>">Openen →</a></td>
                 </tr>
             <?php endforeach; ?>
             </tbody>

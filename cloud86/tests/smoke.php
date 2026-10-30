@@ -72,6 +72,8 @@ require dirname(__DIR__) . '/views/deliveries/index.php';
 $html = (string) ob_get_clean();
 assert(str_contains($html, 'Vrachttype'));
 assert(str_contains($html, 'Zending wissen'));
+assert(str_contains($html, 'Haal uw supervisor'));
+assert(str_contains($html, 'supervisor_confirmation'));
 assert(str_contains($html, 'Wissen'));
 assert(str_contains($html, 'value="ANDERS"'));
 assert(str_contains($html, 'Nieuwe straat'));
@@ -87,6 +89,7 @@ assert(str_contains($html, 'Notitie 1'));
 assert(str_contains($html, 'Notitie 2'));
 assert(str_contains($html, 'step="0.1"'));
 assert(str_contains($html, 'Levering DEL-9'));
+assert(!str_contains($html, 'Openen →'));
 
 $db->exec("UPDATE deliveries SET status = 'labels_created' WHERE exact_entry_id = 'test-delivery'");
 $repository->updateShippingDetails('test-delivery', 'P', 'GEWIJZIGD');

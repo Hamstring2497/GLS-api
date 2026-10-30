@@ -262,8 +262,8 @@ try {
 
     if ($method === 'POST' && preg_match('#^/deliveries/([^/]+)/delete$#', $path, $matches)) {
         Security::verifyCsrf();
-        if (($_POST['confirm_delete'] ?? '') !== 'yes') {
-            abort(422, 'Bevestig eerst het verwijderen van de zending.');
+        if (($_POST['confirm_delete'] ?? '') !== 'yes' || ($_POST['supervisor_confirmation'] ?? '') !== 'yes') {
+            abort(422, 'Bevestig eerst samen met uw supervisor het verwijderen van de zending.');
         }
         if (!$repository->discard(rawurldecode($matches[1]))) {
             abort(409, 'Deze zending kan niet worden gewist. GLS-labels zijn mogelijk al aangemaakt.');
