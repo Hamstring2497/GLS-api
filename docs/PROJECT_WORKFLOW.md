@@ -210,7 +210,7 @@ gecontroleerd worden toegepast.
 - Houd de maximale GLS-doosgrens van 32 kg aan.
 - Gebruik HTTPS en houd `src`, `views`, `database`, `storage` en `.env` buiten de document root.
 
-## 10. Actuele stand — 29 oktober 2026
+## 10. Actuele stand — 30 oktober 2026
 
 ### Bevestigd werkend op Cloud86
 
@@ -224,6 +224,16 @@ gecontroleerd worden toegepast.
 
 ### Laatste applicatieversie
 
+- 30 oktober 2026: na het overnemen van de wijzigingen van de andere computer staat lokaal een
+  nieuwe, nog niet naar GitHub of Cloud86 gepubliceerde vormgeving in
+  `cloud86/public/assets/app.css`. De werkruimte gebruikt op brede schermen maximaal 1840 px, de
+  leveringstabel is compacter en lange ontvanger-, straat- en trackingwaarden mogen afbreken. De
+  navigatie en tabelkop gebruiken donker BETEC-groen met een lichtgroen accent. Formulierlabels
+  zijn klein, vet en donkergroen; invoervelden hebben een lichte achtergrond, een duidelijke
+  tweepixelrand en een zichtbare focusstatus. De PHP- en databaselogica zijn niet gewijzigd.
+  `git diff --check` en de negen Python-referentietests zijn geslaagd. De laatste bevestigde
+  GitHub-commit is `e84c896`; de laatst bevestigde gepubliceerde applicatiecode op Cloud86 is
+  `ebcb9ba`.
 - 29 oktober 2026: de UI-uitbreiding staat lokaal en op GitHub in commit `ebcb9ba` en is
   via Plesk op Cloud86 gepubliceerd. Publicatie werd opnieuw gecontroleerd met de nieuwe CSS,
   `/health` HTTP 200 (`GLS_MODE=mock`) en de ingelogde magazijnwerkplek.
@@ -275,20 +285,23 @@ gecontroleerd worden toegepast.
 
 Werk deze lijst in deze volgorde af:
 
-1. Publiceer de reparatie voor de eerste Exact-synchronisatiefout naar GitHub en Cloud86.
-2. Klik opnieuw op **Leveringen ophalen** en noteer alleen de resultaatmelding, geen geheimen of
-   volledige persoonsgegevens.
-3. Controleer de Exact-mapping met een echte levering: leveringsnummer, ordernummer, datum,
+1. Beoordeel de nieuwe lokale vormgeving op groot en klein scherm. Commit en push de CSS daarna
+   naar GitHub.
+2. Laat Plesk de nieuwe commit ophalen en controleer de magazijnwerkplek zonder cache; bevestig
+   vooral tabelbreedte, geselecteerde regel, labels, invoervelden en mobiele weergave.
+3. Test de volledige magazijnflow in `mock`-modus met een bestaande levering, inclusief het
+   aanvullen van een ontbrekend e-mailadres en het opnieuw opslaan van eenheden.
+4. Controleer de Exact-mapping met een echte levering: leveringsnummer, ordernummer, datum,
    ontvanger en afleveradres.
-4. Controleer de nieuwe overzichtsweergave en adresbewerking, en bevestig de GLS-veldmapping voor
+5. Bevestig de GLS-veldmapping voor
    DirectDeliveryPlus en de overige gewenste leveringsopties.
-5. Pas de mapping defensief aan als de Exact-response andere velden gebruikt.
-6. Vraag/controleer GLS-testgegevens en de definitieve testendpoints.
-7. Voer een GLS-acceptatietest uit met een expliciete testlevering en controleer PDF/labelprinter.
-8. Spreek af naar welk Exact-veld de track-en-tracecode wordt teruggeschreven en implementeer dit.
-9. Implementeer en test `ConfirmLabel` op het overeengekomen moment.
-10. Activeer en test de GLS-webhook met een nieuw sterk Bearer-token.
-11. Voeg pas daarna geplande automatische Exact-import toe.
+6. Pas de mapping defensief aan als de Exact-response andere velden gebruikt.
+7. Vraag/controleer GLS-testgegevens en de definitieve testendpoints.
+8. Voer een GLS-acceptatietest uit met een expliciete testlevering en controleer PDF/labelprinter.
+9. Spreek af naar welk Exact-veld de track-en-tracecode wordt teruggeschreven en implementeer dit.
+10. Implementeer en test `ConfirmLabel` op het overeengekomen moment.
+11. Activeer en test de GLS-webhook met een nieuw sterk Bearer-token.
+12. Voeg pas daarna geplande automatische Exact-import toe.
 
 ## 12. Overdrachtssjabloon voor een nieuwe Codex-sessie
 
