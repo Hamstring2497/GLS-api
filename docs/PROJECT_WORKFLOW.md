@@ -229,9 +229,11 @@ gecontroleerd worden toegepast.
   antwoordde met HTTP 401 en fout `A005` voor de fictieve gebruiker; daarmee is bevestigd dat de
   aanvraag de gebruikersauthenticatie bereikt zonder API-key. De key is daarom optioneel gemaakt.
   De geheime waarden staan uitsluitend in de productie-`.env`; die staat correct naast `bin`,
-  `src`, `public` en de overige applicatiemappen. De productie-healthcheck geeft HTTP 200 met
-  `status: ok` en `gls_mode: test`. Nog te bevestigen is of de ontvangen echte login voor test,
-  productie of beide omgevingen bedoeld is. Er is nog geen echte GLS-zending aangemaakt.
+  `src`, `public` en de overige applicatiemappen. De echte login is via `ValidateLogin` zonder
+  labelaanmaak gecontroleerd: de GLS-testomgeving weigerde deze met HTTP 401/A005, terwijl de
+  productie-`ValidateLogin` slaagde. De ontvangen login is dus voor productie bedoeld. De app is
+  daarna bewust teruggezet naar `GLS_MODE=mock`; de healthcheck geeft HTTP 200 met `status: ok` en
+  `gls_mode: mock`. Er is nog geen echte GLS-zending aangemaakt.
 - 2 november 2026, commit `ad2e6e6` lokaal, op GitHub en Cloud86: de vier
   teksten rechts in de bovenbalk — **BETEC Magazijn**, **Leveringen**, **Onderhoud** en **Uitloggen** —
   gebruiken nu hetzelfde compacte letterformaat, gewicht en dezelfde regelhoogte. De merknaam
@@ -289,8 +291,9 @@ gecontroleerd worden toegepast.
   `GLS_SEND_SHIPPING_DATE=false` is toegevoegd als veilige standaard, zodat pas na een expliciete
   keuze zendingen direct met een verzenddatum aan GLS worden vrijgegeven. De negen
   Python-referentietests en `git diff --check` zijn geslaagd; lokaal ontbreekt nog steeds een
-  PHP-runtime. `GLS_MODE=test` is op productie actief voor de gecontroleerde login- en
-  acceptatieproef; er is nog geen echte GLS-zending aangemaakt.
+  PHP-runtime. De echte login is geldig op de GLS-productieomgeving en niet op de testomgeving.
+  `GLS_MODE=mock` is daarom weer actief totdat de productie-acceptatie expliciet is afgesproken;
+  er is nog geen echte GLS-zending aangemaakt.
 - 30 oktober 2026, applicatiecommit `c22b0c6` lokaal, op GitHub en via Plesk op Cloud86
   gepubliceerd: de teksten in het menu **Onderhoud** zijn compacter.
   Bij een levering zonder opgeslagen dozen blijft altijd een lege rij **Doos 1** zichtbaar. Het
@@ -442,9 +445,9 @@ gecontroleerd worden toegepast.
 
 Werk deze lijst in deze volgorde af:
 
-1. Voer via de Cloud86-shell vanuit `~/gls.beteccontrols.nl/app/cloud86` eerst
-   `php bin/test-gls-connection.php` uit. Dit controleert uitsluitend de echte GLS-testlogin en
-   maakt geen zending of label aan. Leg de veilige status/foutcode vast, maar nooit het wachtwoord.
+1. Vraag GLS om bevestiging dat een gecontroleerde productie-acceptatietest mag worden uitgevoerd
+   en welke product/servicecombinaties voor klantnummer Parcel zijn geactiveerd. De productielogin
+   is reeds veilig met `ValidateLogin` bevestigd; de testomgeving accepteert deze login niet.
 2. Controleer met een nieuw opgehaalde levering of Exact `Title`,
    `FirstName`, `MiddleName` en `LastName` levert zoals verwacht.
 3. Voer zodra shelltoegang beschikbaar is op Cloud86 de PHP-syntaxiscontrole en
@@ -461,12 +464,12 @@ Werk deze lijst in deze volgorde af:
    gecontracteerde combinatie minimaal de standaard,
    Saturday, AddresseeOnly, PointDelivery met Point-ID en ExpressDelivery.
 9. Pas de mapping defensief aan als de Exact-response andere velden gebruikt.
-10. Bevestig bij GLS of de ontvangen API-login voor test, productie of beide omgevingen bedoeld is,
-   en welke producten/services zijn toegestaan. De Nederlandse test-Label API accepteert technisch
+10. De ontvangen API-login is door de gecontroleerde `ValidateLogin` als productie-login bevestigd.
+   Bevestig nog welke producten/services zijn toegestaan. De Nederlandse test-Label API accepteert technisch
    aanvragen zonder subscription key; vul een key alleen in als GLS die expliciet verstrekt.
    A6-PDF (`pdfa6s`) is gekozen voor de Zebra-printer. Gebruikersnaam, wachtwoord en beide
-   klantnummers staan uitsluitend in de Cloud86-`.env`; `GLS_MODE=test` is live actief. Schakel
-   nog niet naar `live` voordat de loginproef en acceptatietest zijn geslaagd.
+   klantnummers staan uitsluitend in de Cloud86-`.env`; `GLS_MODE=mock` is live actief. Schakel
+   nog niet naar `live` voordat de productie-acceptatietest expliciet is afgesproken.
 11. Leg vast of `ShippingDate` bij labelaanmaak wordt meegestuurd (`GLS_SEND_SHIPPING_DATE=true`) of dat iedere werkelijk verzonden
     unit later via `ConfirmLabel` wordt bevestigd. Maak daarna van de magazijnactie één duidelijke,
     idempotente stap **Zending opslaan en labels maken**; open het opgeslagen label voor afdrukken.
