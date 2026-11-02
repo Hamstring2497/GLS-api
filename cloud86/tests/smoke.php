@@ -54,8 +54,11 @@ $delivery = $repository->find('test-delivery');
 assert($delivery['address']['street'] === 'Nieuwe straat');
 
 $gls = new App\GlsService(sys_get_temp_dir());
+putenv('GLS_PARCEL_CUSTOMER_NO=parcel-test-123');
+putenv('GLS_FREIGHT_CUSTOMER_NO=freight-test-456');
 $parcel = $gls->buildPayload($delivery);
 assert($parcel['shiptype'] === 'p');
+assert($parcel['customerNo'] === 'parcel-test-123');
 assert($parcel['reference'] === '1234');
 assert($parcel['trackingLinkType'] === 'u');
 assert($parcel['labelType'] === 'pdfa6s');
@@ -116,9 +119,12 @@ assert($gls->buildPayload($economyDelivery)['services']['economyParcel'] === tru
 $repository->updateShippingDetails('test-delivery', 'F', 'ANDERS', 'PL');
 $freight = $gls->buildPayload($repository->find('test-delivery'));
 assert($freight['shiptype'] === 'f');
+assert($freight['customerNo'] === 'freight-test-456');
 assert($freight['reference'] === 'ANDERS');
 assert($freight['units'][0]['unitType'] === 'pl');
 assert($freight['units'][1]['unitType'] === 'pl');
+putenv('GLS_PARCEL_CUSTOMER_NO');
+putenv('GLS_FREIGHT_CUSTOMER_NO');
 
 $mock = $gls->createLabels($freight, 'test-delivery');
 assert(count($mock['tracking_numbers']) === 2);

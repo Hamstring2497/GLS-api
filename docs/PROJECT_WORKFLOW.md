@@ -218,8 +218,15 @@ gecontroleerd worden toegepast.
 - Houd de maximale GLS-doosgrens van 32 kg aan.
 - Gebruik HTTPS en houd `src`, `views`, `database`, `storage` en `.env` buiten de document root.
 
-## 10. Actuele stand — 30 oktober 2026
+## 10. Actuele stand — 2 november 2026
 
+- 2 november 2026, lokaal nog niet gepubliceerd: GLS heeft een API-gebruikersnaam, wachtwoord en
+  afzonderlijke operationele klantnummers voor Parcel en Freight verstrekt. De werkelijke waarden
+  staan bewust niet in Git of dit document. De payload kiest voortaan automatisch
+  `GLS_PARCEL_CUSTOMER_NO` bij Parcel en `GLS_FREIGHT_CUSTOMER_NO` bij Freight, met het bestaande
+  `GLS_CUSTOMER_NO` alleen als achterwaarts compatibele terugval. Voor een verbindingstest ontbreken
+  nog de subscription/API-key en bevestiging of de ontvangen login voor test, productie of beide
+  omgevingen bedoeld is. `GLS_MODE` blijft daarom `mock`.
 - 30 oktober 2026, aanvullende lokale vormgevingswijziging nog niet op GitHub of Cloud86: de vier
   teksten rechts in de bovenbalk — **BETEC Magazijn**, **Leveringen**, **Onderhoud** en **Uitloggen** —
   gebruiken nu hetzelfde compacte letterformaat, gewicht en dezelfde regelhoogte. De merknaam
@@ -447,11 +454,11 @@ Werk deze lijst in deze volgorde af:
    servicekeuzes. Test daarna met GLS per gecontracteerde combinatie minimaal de standaard,
    Saturday, AddresseeOnly, PointDelivery met Point-ID en ExpressDelivery.
 9. Pas de mapping defensief aan als de Exact-response andere velden gebruikt.
-10. Vraag/controleer nu de ontbrekende GLS-testgegevens: API-subscriptionkey, MyGLS-testlogin,
-   eventueel klantnummer en de toegestane producten/services. De test-URL's staan inmiddels in de
-   configuratie. Spreek ook het labeltype af: A6-PDF (`pdfa6s`) voor afdrukken via de browser of ZPL
-   voor een geschikte thermische printer. Vul de geheimen uitsluitend in de Cloud86-`.env` in en
-   voer eerst `php bin/test-gls-connection.php` uit met `GLS_MODE=test`.
+10. Vraag GLS nog om de ontbrekende API-subscriptionkey en bevestiging of de ontvangen API-login
+   voor test, productie of beide omgevingen bedoeld is. Bevestig tevens de toegestane
+   producten/services. A6-PDF (`pdfa6s`) is gekozen voor de Zebra-printer. Vul gebruikersnaam,
+   wachtwoord, subscriptionkey en beide klantnummers uitsluitend in de Cloud86-`.env` in en voer
+   eerst `php bin/test-gls-connection.php` uit met `GLS_MODE=test`.
 11. Leg vast of `ShippingDate` bij labelaanmaak wordt meegestuurd (`GLS_SEND_SHIPPING_DATE=true`) of dat iedere werkelijk verzonden
     unit later via `ConfirmLabel` wordt bevestigd. Maak daarna van de magazijnactie één duidelijke,
     idempotente stap **Zending opslaan en labels maken**; open het opgeslagen label voor afdrukken.

@@ -132,8 +132,13 @@ final class GlsService
         if ($this->sendShippingDate() && !empty($delivery['shipping_date'])) {
             $payload['shippingDate'] = $delivery['shipping_date'] . 'T00:00:00';
         }
-        if (trim((string) Env::get('GLS_CUSTOMER_NO', '')) !== '') {
-            $payload['customerNo'] = Env::get('GLS_CUSTOMER_NO');
+        $customerNoKey = $shipType === 'F' ? 'GLS_FREIGHT_CUSTOMER_NO' : 'GLS_PARCEL_CUSTOMER_NO';
+        $customerNo = trim((string) Env::get($customerNoKey, ''));
+        if ($customerNo === '') {
+            $customerNo = trim((string) Env::get('GLS_CUSTOMER_NO', ''));
+        }
+        if ($customerNo !== '') {
+            $payload['customerNo'] = $customerNo;
         }
         $services = $this->buildServices($product, $glsOptions);
         if ($services !== []) {

@@ -169,7 +169,8 @@ in `cloud86/.env` op Cloud86. De niet-geheime testendpoints staan al in `.env.ex
 
 - de API-subscriptionkey voor header `Ocp-Apim-Subscription-Key`;
 - een geldige MyGLS-testgebruikersnaam en -wachtwoord;
-- indien GLS dit voor het contract vereist: het klantnummer;
+- de afzonderlijke operationele klantnummers voor Parcel (`GLS_PARCEL_CUSTOMER_NO`) en Freight
+  (`GLS_FREIGHT_CUSTOMER_NO`);
 - bevestiging dat `pdfa6s` het gewenste A6-PDF-labeltype is.
 
 Zet daarna tijdelijk `GLS_MODE=test` en controleer uitsluitend de inlog, zonder een zending te maken:
