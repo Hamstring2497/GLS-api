@@ -17,7 +17,7 @@ $db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 $db->exec('CREATE TABLE deliveries (
     exact_entry_id TEXT PRIMARY KEY, merged_into_exact_entry_id TEXT, delivery_number TEXT, order_number TEXT,
     ship_type TEXT, freight_unit_type TEXT, shipment_reference TEXT, address_json TEXT, shipping_date TEXT,
-    gls_product TEXT DEFAULT 'direct_delivery_plus', gls_options_json TEXT,
+    gls_product TEXT DEFAULT \'direct_delivery_plus\', gls_options_json TEXT,
     status TEXT, tracking_numbers_json TEXT, gls_request_json TEXT, gls_response_json TEXT,
     label_path TEXT, last_gls_state TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP, updated_at TEXT
 )');
