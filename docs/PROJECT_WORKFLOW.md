@@ -117,11 +117,16 @@ geteste referentie voor de GLS-contracten. Nieuwe productiewerkzaamheden horen i
   een herkenbare echte levering voordat de referentie als definitief wordt beschouwd.
 - Elk gewicht moet groter dan 0 en maximaal 32 kg zijn.
 - De app bouwt één GLS `CreateLabel`-request met het juiste aantal parcels.
-- In `mock` ontstaan alleen testcodes; er wordt geen echte GLS-zending gemaakt.
+- Vóór iedere labelaanvraag wordt de levering atomair vergrendeld als `gls_processing`, zodat een
+  dubbele klik of gelijktijdige aanvraag geen tweede GLS-zending kan maken.
+- In `mock` ontstaan testcodes plus een duidelijk ongeldig A6-testlabel van 100 × 150 mm; er wordt
+  geen echte GLS-zending gemaakt.
 - In GLS-test/productiemodus wordt de officiële GLS API aangeroepen.
+- Een onduidelijke timeout of serverrespons zet de levering op `gls_unknown`. Maak dan niet opnieuw
+  aan: controleer eerst in GLS en laat alleen een beheerder de levering daarna vrijgeven.
 - Base64-PDF-labels worden in `cloud86/storage/labels/` opgeslagen.
 - Na status `labels_created` kunnen de dozen niet meer worden gewijzigd en kan niet nogmaals een
-  labelaanvraag worden gedaan.
+  labelaanvraag worden gedaan. Herafdrukken opent alleen de opgeslagen PDF.
 
 ### D. Track & Trace
 
@@ -144,7 +149,8 @@ geteste referentie voor de GLS-contracten. Nieuwe productiewerkzaamheden horen i
 | `POST /deliveries/{id}/shipping` | Parcel/Freight, referentie en GLS-product/services vóór labelaanmaak opslaan |
 | `POST /deliveries/{id}/parcels` | gewichten opslaan |
 | `POST /deliveries/{id}/labels` | GLS-labels maken |
-| `GET /labels/{filename}` | beschermd label downloaden |
+| `POST /deliveries/{id}/labels/release` | onzekere aanvraag na handmatige GLS-controle vrijgeven (beheerder) |
+| `GET /deliveries/{id}/label` | opgeslagen label beschermd openen of opnieuw afdrukken |
 | `GET /oauth/exact/start` | Exact OAuth starten |
 | `GET /oauth/exact/callback` | Exact OAuth afronden |
 | `POST /exact/sync` | recente goederenleveringen ophalen |
@@ -220,6 +226,18 @@ gecontroleerd worden toegepast.
 
 ## 10. Actuele stand — 2 november 2026
 
+- 2 november 2026, nog niet gepubliceerd: de labelworkflow is voorbereid op een gecontroleerde
+  productieacceptatie. Een labelaanvraag vergrendelt de hoofdlevering en eventuele samengevoegde
+  leveringen vóór de GLS-call. Een duidelijke afwijzing geeft de levering weer vrij; een timeout,
+  HTTP 408/409/425/429, serverfout of ongeldige respons krijgt status `gls_unknown` en mag pas na
+  controle in GLS door een beheerder worden vrijgegeven. Test- en productieaanvragen vragen een
+  expliciete browserbevestiging; productie toont een extra waarschuwing dat een betaalde zending kan
+  ontstaan. Mockmodus maakt nu een duidelijk ongeldig A6-PDF-testlabel van 100 × 150 mm. Het
+  opgeslagen PDF-bestand kan worden geopend en opnieuw afgedrukt zonder een nieuwe `CreateLabel`-
+  aanvraag. Hiervoor is geen databasemigratie nodig: de bestaande status-, request-, response-,
+  label- en laatste-statusvelden worden gebruikt. De negen Python-referentietests en
+  `git diff --check` slagen; lokale PHP ontbreekt nog, dus PHP-lint en de uitgebreide smoketest moeten
+  vóór publicatie op Cloud86 worden uitgevoerd. `GLS_MODE=mock` blijft actief.
 - 2 november 2026, gepubliceerd tot en met commit `2e71c2b`: GLS heeft een API-gebruikersnaam, wachtwoord en
   afzonderlijke operationele klantnummers voor Parcel en Freight verstrekt. De werkelijke waarden
   staan bewust niet in Git of dit document. De payload kiest voortaan automatisch
@@ -445,38 +463,41 @@ gecontroleerd worden toegepast.
 
 Werk deze lijst in deze volgorde af:
 
-1. Vraag GLS om bevestiging dat een gecontroleerde productie-acceptatietest mag worden uitgevoerd
+1. Voer op Cloud86 eerst PHP-lint en `cloud86/tests/smoke.php` uit voor de nog niet gepubliceerde
+   vergrendeling, onzekerheidsstatus, vrijgave en A6-mock-PDF. Publiceer pas als beide slagen en
+   controleer daarna `/health`; `GLS_MODE` blijft `mock`.
+2. Test in mockmodus met één bestaande levering dat het testlabel wordt opgeslagen, geopend en
+   opnieuw afgedrukt zonder een tweede labelaanvraag.
+3. Vraag GLS om bevestiging dat een gecontroleerde productie-acceptatietest mag worden uitgevoerd
    en welke product/servicecombinaties voor klantnummer Parcel zijn geactiveerd. De productielogin
    is reeds veilig met `ValidateLogin` bevestigd; de testomgeving accepteert deze login niet.
-2. Controleer met een nieuw opgehaalde levering of Exact `Title`,
+4. Controleer met een nieuw opgehaalde levering of Exact `Title`,
    `FirstName`, `MiddleName` en `LastName` levert zoals verwacht.
-3. Voer zodra shelltoegang beschikbaar is op Cloud86 de PHP-syntaxiscontrole en
-   `cloud86/tests/smoke.php` uit.
-4. Voeg na akkoord een zoekveld boven de tabel toe voor minimaal leveringsnummer, ordernummer,
+5. Voeg na akkoord een zoekveld boven de tabel toe voor minimaal leveringsnummer, ordernummer,
    ontvanger, straat, postcode en plaats; bepaal of Naam 2/3 en notities ook doorzoekbaar moeten zijn.
-5. Beoordeel de nieuwe vormgeving ook op een kleiner scherm.
-6. Test de volledige magazijnflow in `mock`-modus met een bestaande levering, inclusief het
+6. Beoordeel de nieuwe vormgeving ook op een kleiner scherm.
+7. Test de volledige magazijnflow in `mock`-modus met een bestaande levering, inclusief het
    aanvullen van een ontbrekend e-mailadres en het opnieuw opslaan van dozen.
-7. Controleer de uitgebreide Exact-mapping met een echte nieuwe levering: leveringsnummer,
+8. Controleer de uitgebreide Exact-mapping met een echte nieuwe levering: leveringsnummer,
    ordernummer, datum, ontvanger, adresregel 2/3, contactpersoon en e-mailadres. Bestaande lokaal
    opgeslagen leveringen worden bij synchronisatie bewust niet overschreven.
-8. Test de product- en servicekeuzes eerst zonder echte verzending. Test daarna met GLS per
+9. Test de product- en servicekeuzes eerst zonder echte verzending. Test daarna met GLS per
    gecontracteerde combinatie minimaal de standaard,
    Saturday, AddresseeOnly, PointDelivery met Point-ID en ExpressDelivery.
-9. Pas de mapping defensief aan als de Exact-response andere velden gebruikt.
-10. De ontvangen API-login is door de gecontroleerde `ValidateLogin` als productie-login bevestigd.
+10. Pas de mapping defensief aan als de Exact-response andere velden gebruikt.
+11. De ontvangen API-login is door de gecontroleerde `ValidateLogin` als productie-login bevestigd.
    Bevestig nog welke producten/services zijn toegestaan. De Nederlandse test-Label API accepteert technisch
    aanvragen zonder subscription key; vul een key alleen in als GLS die expliciet verstrekt.
    A6-PDF (`pdfa6s`) is gekozen voor de Zebra-printer. Gebruikersnaam, wachtwoord en beide
    klantnummers staan uitsluitend in de Cloud86-`.env`; `GLS_MODE=mock` is live actief. Schakel
    nog niet naar `live` voordat de productie-acceptatietest expliciet is afgesproken.
-11. Leg vast of `ShippingDate` bij labelaanmaak wordt meegestuurd (`GLS_SEND_SHIPPING_DATE=true`) of dat iedere werkelijk verzonden
+12. Leg vast of `ShippingDate` bij labelaanmaak wordt meegestuurd (`GLS_SEND_SHIPPING_DATE=true`) of dat iedere werkelijk verzonden
     unit later via `ConfirmLabel` wordt bevestigd. Maak daarna van de magazijnactie één duidelijke,
     idempotente stap **Zending opslaan en labels maken**; open het opgeslagen label voor afdrukken.
-12. Voer een GLS-acceptatietest uit met een expliciete testlevering en controleer PDF/labelprinter.
-13. Spreek af naar welk Exact-veld de track-en-tracecode wordt teruggeschreven en implementeer dit.
-14. Activeer en test de GLS-webhook met een nieuw sterk Bearer-token.
-15. Voeg pas daarna geplande automatische Exact-import toe.
+13. Voer een GLS-acceptatietest uit met een expliciete testlevering en controleer PDF/labelprinter.
+14. Spreek af naar welk Exact-veld de track-en-tracecode wordt teruggeschreven en implementeer dit.
+15. Activeer en test de GLS-webhook met een nieuw sterk Bearer-token.
+16. Voeg pas daarna geplande automatische Exact-import toe.
 
 ## 12. Overdrachtssjabloon voor een nieuwe Codex-sessie
 

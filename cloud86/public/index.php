@@ -7,6 +7,7 @@ use App\DeliveryRepository;
 use App\Env;
 use App\ExactException;
 use App\ExactService;
+use App\GlsException;
 use App\GlsService;
 use App\HttpException;
 use App\Security;
@@ -88,6 +89,7 @@ try {
             'deliveries' => $deliveries,
             'selectedDelivery' => $selected,
             'exactStatus' => $exactStatus,
+            'glsMode' => strtolower((string) Env::get('GLS_MODE', 'mock')),
             'mergeCandidates' => $selected !== null ? $repository->mergeCandidates((string) $selected['exact_entry_id']) : [],
         ]);
     }
@@ -409,17 +411,71 @@ try {
         if ($missing !== []) {
             abort(422, 'Vul eerst de ontbrekende gegevens in: ' . implode(', ', $missing) . '.');
         }
+        $glsMode = strtolower((string) Env::get('GLS_MODE', 'mock'));
+        if (!in_array($glsMode, ['mock', 'test', 'live'], true)) {
+            abort(500, 'De GLS-modus is ongeldig geconfigureerd.');
+        }
+        if ($glsMode !== 'mock' && ($_POST['confirm_gls_request'] ?? '') !== 'yes') {
+            abort(422, 'Bevestig eerst expliciet dat deze zending naar GLS mag worden verstuurd.');
+        }
         $payload = $gls->buildPayload($delivery);
-        $result = $gls->createLabels($payload, $id);
+        $redactedPayload = $gls->redact($payload);
+        if (!$repository->beginGlsRequest($id, $redactedPayload)) {
+            abort(409, 'Deze zending wordt al door GLS verwerkt of is niet meer beschikbaar voor labelaanmaak.');
+        }
+        try {
+            $result = $gls->createLabels($payload, $id);
+        } catch (GlsException $error) {
+            if ($error->outcomeUnknown) {
+                $repository->markGlsOutcomeUnknown($id, $error->getMessage());
+                flash(
+                    'warning',
+                    'De uitkomst bij GLS is onzeker. Maak de zending niet opnieuw aan; controleer eerst in GLS en laat haar daarna door een beheerder vrijgeven.'
+                );
+            } else {
+                $repository->resetRejectedGlsRequest($id, $error->getMessage());
+                flash('error', 'GLS heeft de aanvraag afgewezen: ' . $error->getMessage());
+            }
+            redirect('/?delivery=' . rawurlencode($id));
+        } catch (Throwable $error) {
+            error_log($error->__toString());
+            if ($glsMode === 'mock') {
+                $repository->resetRejectedGlsRequest($id, $error->getMessage());
+                flash('error', 'Het afdrukbare testlabel kon niet worden gemaakt. De zending is vrijgegeven voor een nieuwe poging.');
+            } else {
+                $repository->markGlsOutcomeUnknown($id, $error->getMessage());
+                flash(
+                    'warning',
+                    'De GLS-aanvraag gaf geen betrouwbaar eindresultaat. Maak geen tweede zending aan voordat GLS is gecontroleerd.'
+                );
+            }
+            redirect('/?delivery=' . rawurlencode($id));
+        }
         $repository->saveGlsResult(
             $id,
-            $gls->redact($payload),
+            $redactedPayload,
             $result['response'],
             $result['tracking_numbers'],
             $result['label_path']
         );
         flash('success', count($result['tracking_numbers']) . ' GLS-label(s) aangemaakt.');
-        redirect('/deliveries/' . rawurlencode($id));
+        redirect('/?delivery=' . rawurlencode($id));
+    }
+
+    if ($method === 'POST' && preg_match('#^/deliveries/([^/]+)/labels/release$#', $path, $matches)) {
+        Security::verifyCsrf();
+        if ((Security::user()['role'] ?? '') !== 'admin') {
+            abort(403, 'Alleen een beheerder kan een onzekere GLS-aanvraag vrijgeven.');
+        }
+        if (($_POST['confirm_no_gls_shipment'] ?? '') !== 'yes') {
+            abort(422, 'Bevestig eerst dat in GLS is gecontroleerd dat er geen zending is aangemaakt.');
+        }
+        $id = rawurldecode($matches[1]);
+        if (!$repository->releaseGlsRequestAfterCheck($id)) {
+            abort(409, 'Deze zending heeft geen onzekere GLS-aanvraag die kan worden vrijgegeven.');
+        }
+        flash('success', 'De zending is na handmatige GLS-controle vrijgegeven voor een nieuwe poging.');
+        redirect('/?delivery=' . rawurlencode($id));
     }
 
     if ($method === 'GET' && preg_match('#^/deliveries/([^/]+)/label$#', $path, $matches)) {

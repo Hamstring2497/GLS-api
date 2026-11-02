@@ -1,11 +1,24 @@
 <?php
-$locked = $delivery['status'] === 'labels_created';
+$glsMode = strtolower((string) ($glsMode ?? 'mock'));
+$labelsCreated = $delivery['status'] === 'labels_created';
+$glsPending = in_array($delivery['status'], ['gls_processing', 'gls_unknown'], true);
+$locked = $labelsCreated || $glsPending;
 $freightUnits = ['CO' => 'Collo (max. 32 kg)', 'LG' => 'Lang collo (25 kg)', 'MP' => 'Minipallet (300 kg)', 'PL' => 'Pallet (675 kg)', 'BP' => 'Blokpallet (850 kg)', 'RL' => 'Rolcontainer (350 kg)', 'XL' => 'XL-pallet (1000 kg)'];
 $maxWeight = $delivery['ship_type'] === 'F' ? (\App\GlsService::FREIGHT_UNITS[$delivery['freight_unit_type']] ?? 32) : 32;
 $missingData = delivery_missing_data($delivery);
 $missingKeys = array_keys($missingData);
-$statusLabel = $locked ? 'Labels gemaakt' : ($missingData === [] ? 'Klaar voor labels' : 'Gegevens ontbreken');
-$statusClass = $locked ? 'labels_created' : ($missingData === [] ? 'ready' : 'missing');
+$statusLabel = match ($delivery['status']) {
+    'labels_created' => 'Labels gemaakt',
+    'gls_processing' => 'Bezig met GLS',
+    'gls_unknown' => 'GLS-controle nodig',
+    default => $missingData === [] ? 'Klaar voor labels' : 'Gegevens ontbreken',
+};
+$statusClass = match ($delivery['status']) {
+    'labels_created' => 'labels_created',
+    'gls_processing' => 'processing',
+    'gls_unknown' => 'unknown',
+    default => $missingData === [] ? 'ready' : 'missing',
+};
 $mergeCandidates = $mergeCandidates ?? [];
 $glsProduct = (string) ($delivery['gls_product'] ?? 'direct_delivery_plus');
 $glsOptions = is_array($delivery['gls_options'] ?? null) ? $delivery['gls_options'] : [];
@@ -175,24 +188,42 @@ $addressFields = [
         <div class="section-bar units-bar">
             <h2><?= $delivery['ship_type'] === 'F' ? 'Vrachteenheden en gewicht' : 'Dozen en gewicht' ?></h2>
             <div class="units-status">
-                <?php if ($locked): ?>
+                <?php if ($labelsCreated): ?>
                     <span><strong>GLS gereed</strong> · <?= count($delivery['tracking_numbers']) ?> track-en-tracecode(s)</span>
-                    <?php if (!empty($delivery['label_path'])): ?><a class="button button-small" target="_blank" href="/deliveries/<?= rawurlencode((string) $delivery['exact_entry_id']) ?>/label">Label openen</a><?php endif; ?>
+                    <?php if (!empty($delivery['label_path'])): ?><a class="button button-small" target="_blank" href="/deliveries/<?= rawurlencode((string) $delivery['exact_entry_id']) ?>/label">Label openen / opnieuw afdrukken</a><?php endif; ?>
+                <?php elseif ($glsPending): ?>
+                    <span class="gls-uncertain-status"><strong><?= $delivery['status'] === 'gls_unknown' ? 'Eerst GLS controleren' : 'Aanvraag wordt verwerkt' ?></strong> · niet opnieuw versturen</span>
                 <?php elseif ($missingData === []): ?>
-                    <span><strong>Klaar om labels te maken</strong></span>
-                    <form method="post" action="/deliveries/<?= rawurlencode((string) $delivery['exact_entry_id']) ?>/labels" onsubmit="this.querySelector('button').disabled=true">
+                    <span><strong><?= $glsMode === 'mock' ? 'Klaar voor afdrukbare testlabels' : 'Klaar om naar GLS te versturen' ?></strong></span>
+                    <form method="post" action="/deliveries/<?= rawurlencode((string) $delivery['exact_entry_id']) ?>/labels" data-gls-mode="<?= e($glsMode) ?>" data-delivery-number="<?= e($delivery['delivery_number']) ?>" data-parcel-count="<?= count($delivery['parcels']) ?>" onsubmit="return confirmGlsLabelRequest(this)">
                         <input type="hidden" name="_token" value="<?= e(\App\Security::csrfToken()) ?>">
-                        <button class="button button-small" type="submit">Maak <?= count($delivery['parcels']) ?> GLS-label(s)</button>
+                        <input type="hidden" name="confirm_gls_request" value="no">
+                        <button class="button button-small" type="submit"><?= $glsMode === 'mock' ? 'Maak afdrukbaar testlabel' : 'Maak ' . count($delivery['parcels']) . ' GLS-label(s)' ?></button>
                     </form>
                 <?php else: ?>
                     <span class="missing-summary"><strong>Ontbreekt</strong> · <?= e(implode(', ', $missingData)) ?></span>
                 <?php endif; ?>
             </div>
         </div>
-        <?php if ($locked): ?>
+        <?php if ($labelsCreated): ?>
             <ol class="parcel-list">
                 <?php foreach ($delivery['parcels'] as $parcel): ?><li>Doos <?= e($parcel['position']) ?><strong><?= e(number_format((float) $parcel['weight_kg'], 1, ',', '.')) ?> kg</strong></li><?php endforeach; ?>
             </ol>
+            <?php if (!empty($delivery['label_path'])): ?>
+                <p class="label-print-note">Opnieuw afdrukken gebruikt het opgeslagen PDF-bestand en maakt geen nieuwe GLS-zending aan.</p>
+            <?php endif; ?>
+        <?php elseif ($glsPending): ?>
+            <div class="gls-uncertain-panel">
+                <strong><?= $delivery['status'] === 'gls_unknown' ? 'De uitkomst van de GLS-aanvraag is onbekend.' : 'De GLS-aanvraag is nog vergrendeld.' ?></strong>
+                <p>Controleer eerst in GLS op leveringsnummer <?= e($delivery['delivery_number']) ?> en referentie <?= e($delivery['effective_reference']) ?>. Maak niet opnieuw aan zolang dit niet is gecontroleerd.</p>
+                <?php if ((\App\Security::user()['role'] ?? '') === 'admin'): ?>
+                    <form method="post" action="/deliveries/<?= rawurlencode((string) $delivery['exact_entry_id']) ?>/labels/release" onsubmit="return confirmGlsRelease(this)">
+                        <input type="hidden" name="_token" value="<?= e(\App\Security::csrfToken()) ?>">
+                        <input type="hidden" name="confirm_no_gls_shipment" value="no">
+                        <button class="button button-secondary" type="submit">Na GLS-controle vrijgeven</button>
+                    </form>
+                <?php endif; ?>
+            </div>
         <?php else: ?>
             <?php $parcelRows = $delivery['parcels'] !== [] ? $delivery['parcels'] : [['weight_kg' => '']]; ?>
             <form method="post" action="/deliveries/<?= rawurlencode((string) $delivery['exact_entry_id']) ?>/parcels" class="stack">

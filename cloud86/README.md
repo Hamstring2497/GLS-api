@@ -156,11 +156,15 @@ mocklabels; hij maakt geen zending bij GLS en raakt de productie-MySQL-database 
 1. Log in.
 2. Voeg een levering toe met een fictief adres.
 3. Voeg twee dozen toe, bijvoorbeeld 4,5 en 7,2 kg.
-4. Klik op **Maak 2 GLS-label(s)**.
+4. Klik op **Maak afdrukbaar testlabel**.
 5. Controleer dat er twee `MOCK-...` codes ontstaan.
-6. Controleer dat een tweede klik of directe herhaling wordt geblokkeerd.
+6. Open de opgeslagen A6-PDF en controleer dat deze duidelijk als ongeldig testlabel is gemarkeerd.
+7. Controleer dat **Label openen / opnieuw afdrukken** hetzelfde opgeslagen bestand opent en geen
+   nieuwe zending aanmaakt.
+8. Controleer dat een tweede labelaanvraag of directe herhaling wordt geblokkeerd.
 
-Mockmodus maakt geen PDF-label, omdat er geen echte labeldata van GLS terugkomt.
+Mockmodus maakt een eenvoudige PDF van 100 × 150 mm. Dit bestand is uitsluitend bedoeld om de
+opslag- en afdrukroute te testen en is nadrukkelijk geen geldig GLS-label.
 
 ## GLS-testomgeving activeren
 
@@ -213,5 +217,9 @@ keer, maar geeft bij een herhaling opnieuw HTTP 200 zodat het retrymechanisme va
 - Begin met de GLS-testomgeving; zet nooit direct productiegegevens in de app.
 - Herhaal een mislukte `CreateLabel` na een timeout niet blind. Controleer eerst in MyGLS of de zending
   al bestaat, anders kunnen dubbele pakketten ontstaan.
+- Vóór een echte GLS-call krijgt de levering status `gls_processing`. Bij een timeout of onduidelijke
+  respons blijft zij vergrendeld als `gls_unknown`. Alleen een beheerder mag haar na controle in GLS
+  weer vrijgeven.
+- Opnieuw afdrukken opent altijd de opgeslagen PDF en voert nooit opnieuw `CreateLabel` uit.
 - De applicatie bewaart GLS-gebruikersnaam en wachtwoord niet in de database of logs.
 

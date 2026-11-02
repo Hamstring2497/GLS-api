@@ -65,6 +65,12 @@
                 } elseif ($delivery['status'] === 'labels_created') {
                     $tableStatus = 'Labels gemaakt';
                     $tableStatusClass = 'labels_created';
+                } elseif ($delivery['status'] === 'gls_processing') {
+                    $tableStatus = 'Bezig met GLS';
+                    $tableStatusClass = 'processing';
+                } elseif ($delivery['status'] === 'gls_unknown') {
+                    $tableStatus = 'GLS-controle nodig';
+                    $tableStatusClass = 'unknown';
                 } elseif ($missingData !== []) {
                     $tableStatus = 'Ontbreekt: ' . implode(', ', $missingData);
                     $tableStatusClass = 'missing';
@@ -73,7 +79,7 @@
                     $tableStatusClass = 'ready';
                 }
                 ?>
-                <tr class="delivery-row <?= $selectedDelivery && $selectedDelivery['exact_entry_id'] === $delivery['exact_entry_id'] ? 'selected-row' : '' ?> <?= in_array($delivery['status'], ['ready', 'labels_created'], true) ? 'completed-row' : '' ?> <?= $isQuickMergeCandidate ? 'merge-candidate-row' : '' ?>" data-delivery-url="<?= e($deliveryUrl) ?>" data-merge-candidate="<?= $isQuickMergeCandidate ? '1' : '0' ?>" data-delivery-id="<?= e($delivery['exact_entry_id']) ?>" data-delivery-number="<?= e($delivery['delivery_number']) ?>" data-order-number="<?= e($delivery['order_number']) ?>" tabindex="0" aria-label="Selecteer levering <?= e($delivery['delivery_number']) ?>" aria-selected="<?= $selectedDelivery && $selectedDelivery['exact_entry_id'] === $delivery['exact_entry_id'] ? 'true' : 'false' ?>">
+                <tr class="delivery-row <?= $selectedDelivery && $selectedDelivery['exact_entry_id'] === $delivery['exact_entry_id'] ? 'selected-row' : '' ?> <?= in_array($delivery['status'], ['ready', 'labels_created'], true) ? 'completed-row' : '' ?> <?= in_array($delivery['status'], ['gls_processing', 'gls_unknown'], true) ? 'gls-pending-row' : '' ?> <?= $isQuickMergeCandidate ? 'merge-candidate-row' : '' ?>" data-delivery-url="<?= e($deliveryUrl) ?>" data-merge-candidate="<?= $isQuickMergeCandidate ? '1' : '0' ?>" data-delivery-id="<?= e($delivery['exact_entry_id']) ?>" data-delivery-number="<?= e($delivery['delivery_number']) ?>" data-order-number="<?= e($delivery['order_number']) ?>" tabindex="0" aria-label="Selecteer levering <?= e($delivery['delivery_number']) ?>" aria-selected="<?= $selectedDelivery && $selectedDelivery['exact_entry_id'] === $delivery['exact_entry_id'] ? 'true' : 'false' ?>">
                     <td><strong><?= e($delivery['delivery_number']) ?></strong></td>
                     <td><?= e($delivery['order_number']) ?></td>
                     <td><?= e($delivery['shipping_date'] ?: '—') ?></td>

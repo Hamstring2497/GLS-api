@@ -284,6 +284,70 @@ final class DeliveryRepository
         }
     }
 
+    /** @param array<string, mixed> $request */
+    public function beginGlsRequest(string $id, array $request): bool
+    {
+        $this->db->beginTransaction();
+        try {
+            $statement = $this->db->prepare(
+                "UPDATE deliveries SET status = 'gls_processing', gls_request_json = ?, "
+                . "gls_response_json = NULL, last_gls_state = 'request_started', updated_at = CURRENT_TIMESTAMP "
+                . "WHERE exact_entry_id = ? AND status IN ('new', 'ready')"
+            );
+            $statement->execute([
+                json_encode($request, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
+                $id,
+            ]);
+            if ($statement->rowCount() !== 1) {
+                $this->db->rollBack();
+                return false;
+            }
+            $children = $this->db->prepare(
+                "UPDATE deliveries SET status = 'gls_processing', gls_request_json = ?, "
+                . "gls_response_json = NULL, last_gls_state = 'request_started', updated_at = CURRENT_TIMESTAMP "
+                . 'WHERE merged_into_exact_entry_id = ?'
+            );
+            $children->execute([
+                json_encode($request, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
+                $id,
+            ]);
+            $this->db->commit();
+            return true;
+        } catch (\Throwable $error) {
+            $this->db->rollBack();
+            throw $error;
+        }
+    }
+
+    public function markGlsOutcomeUnknown(string $id, string $message): void
+    {
+        $statement = $this->db->prepare(
+            "UPDATE deliveries SET status = 'gls_unknown', gls_response_json = ?, "
+            . "last_gls_state = 'outcome_unknown', updated_at = CURRENT_TIMESTAMP "
+            . 'WHERE exact_entry_id = ? OR merged_into_exact_entry_id = ?'
+        );
+        $statement->execute([
+            json_encode(['error' => $message, 'outcome_unknown' => true], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
+            $id,
+            $id,
+        ]);
+    }
+
+    public function resetRejectedGlsRequest(string $id, string $message): void
+    {
+        $this->resetGlsRequest($id, $message, 'request_rejected');
+    }
+
+    public function releaseGlsRequestAfterCheck(string $id): bool
+    {
+        $delivery = $this->find($id);
+        if ($delivery === null || !in_array($delivery['status'], ['gls_processing', 'gls_unknown'], true)) {
+            return false;
+        }
+        $this->resetGlsRequest($id, 'Handmatig vrijgegeven na controle bij GLS.', 'released_after_check');
+        return true;
+    }
+
     /** @param array<string, mixed> $request @param array<string, mixed> $response @param list<string> $numbers */
     public function saveGlsResult(
         string $id,
@@ -295,7 +359,8 @@ final class DeliveryRepository
         $statement = $this->db->prepare(
             "UPDATE deliveries SET status = 'labels_created', tracking_numbers_json = ?, "
             . 'gls_request_json = ?, gls_response_json = ?, label_path = ?, '
-            . 'updated_at = CURRENT_TIMESTAMP WHERE exact_entry_id = ? OR merged_into_exact_entry_id = ?'
+            . "last_gls_state = 'labels_created', updated_at = CURRENT_TIMESTAMP "
+            . 'WHERE exact_entry_id = ? OR merged_into_exact_entry_id = ?'
         );
         $statement->execute([
             json_encode($numbers, JSON_THROW_ON_ERROR),
@@ -305,6 +370,31 @@ final class DeliveryRepository
             $id,
             $id,
         ]);
+    }
+
+    private function resetGlsRequest(string $id, string $message, string $state): void
+    {
+        $this->db->beginTransaction();
+        try {
+            $parcelCount = $this->db->prepare('SELECT COUNT(*) FROM parcels WHERE exact_entry_id = ?');
+            $parcelCount->execute([$id]);
+            $primaryStatus = (int) $parcelCount->fetchColumn() > 0 ? 'ready' : 'new';
+            $response = json_encode(['message' => $message], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+            $primary = $this->db->prepare(
+                'UPDATE deliveries SET status = ?, gls_response_json = ?, last_gls_state = ?, '
+                . 'updated_at = CURRENT_TIMESTAMP WHERE exact_entry_id = ?'
+            );
+            $primary->execute([$primaryStatus, $response, $state, $id]);
+            $children = $this->db->prepare(
+                "UPDATE deliveries SET status = 'new', gls_response_json = ?, last_gls_state = ?, "
+                . 'updated_at = CURRENT_TIMESTAMP WHERE merged_into_exact_entry_id = ?'
+            );
+            $children->execute([$response, $state, $id]);
+            $this->db->commit();
+        } catch (\Throwable $error) {
+            $this->db->rollBack();
+            throw $error;
+        }
     }
 
     /** @param array<string, mixed> $payload */

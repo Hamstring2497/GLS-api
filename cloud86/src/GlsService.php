@@ -211,16 +211,20 @@ final class GlsService
                 'unitNo' => 'MOCK-' . strtoupper(bin2hex(random_bytes(6))),
                 'unitTrackingLink' => 'https://example.invalid/tracking',
             ], $payload['units']);
+            $labelPath = $this->storeMockLabel($deliveryId, $units);
             return [
                 'response' => ['mock' => true, 'units' => $units],
                 'tracking_numbers' => array_column($units, 'unitNo'),
-                'label_path' => null,
+                'label_path' => $labelPath,
             ];
         }
 
         $response = $this->request(Env::require('GLS_CREATE_LABEL_URL'), $payload, 'CreateLabel');
         if (($response['error'] ?? false) === true || empty($response['units'])) {
-            throw new \RuntimeException((string) ($response['message'] ?? 'GLS gaf geen units terug.'));
+            throw new GlsException(
+                (string) ($response['message'] ?? 'GLS gaf geen units terug.'),
+                empty($response['error'])
+            );
         }
         $numbers = [];
         foreach ($response['units'] as $unit) {
@@ -256,7 +260,7 @@ final class GlsService
     private function request(string $url, array $payload, string $operation): array
     {
         if (!str_starts_with($url, 'https://')) {
-            throw new \RuntimeException("GLS {$operation} vereist een HTTPS-endpoint.");
+            throw new GlsException("GLS {$operation} vereist een HTTPS-endpoint.");
         }
         $headers = ['Content-Type: application/json'];
         $apiKey = trim((string) Env::get('GLS_API_KEY', ''));
@@ -284,14 +288,29 @@ final class GlsService
                     $message = ' ' . trim($decoded['message']);
                 }
             }
-            throw new \RuntimeException(
-                "GLS {$operation} gaf HTTP {$status}.{$message} {$error}"
+            $outcomeUnknown = $body === false
+                || $status === 0
+                || in_array($status, [408, 409, 425, 429], true)
+                || $status >= 500;
+            throw new GlsException(
+                trim("GLS {$operation} gaf HTTP {$status}.{$message} {$error}"),
+                $outcomeUnknown,
+                $status
             );
         }
 
-        $response = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
+        try {
+            $response = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException $error) {
+            throw new GlsException(
+                "GLS {$operation} gaf geen geldige JSON-respons.",
+                true,
+                $status,
+                $error
+            );
+        }
         if (!is_array($response)) {
-            throw new \RuntimeException("GLS {$operation} gaf geen geldig JSON-object terug.");
+            throw new GlsException("GLS {$operation} gaf geen geldig JSON-object terug.", true, $status);
         }
         return $response;
     }
@@ -321,6 +340,59 @@ final class GlsService
             throw new \RuntimeException('Het label kon niet veilig worden opgeslagen.');
         }
         return $filename;
+    }
+
+    /** @param list<array<string, mixed>> $units */
+    private function storeMockLabel(string $deliveryId, array $units): string
+    {
+        $lines = [
+            'TESTLABEL - GEEN GELDIGE GLS-ZENDING',
+            'Levering: ' . $deliveryId,
+            'Aantal dozen: ' . count($units),
+        ];
+        foreach ($units as $index => $unit) {
+            $lines[] = 'Doos ' . ($index + 1) . ': ' . (string) ($unit['unitNo'] ?? 'MOCK');
+        }
+
+        $escape = static fn (string $value): string => str_replace(
+            ['\\', '(', ')'],
+            ['\\\\', '\\(', '\\)'],
+            $value
+        );
+        $commands = ['BT', '/F1 13 Tf', '20 395 Td'];
+        foreach ($lines as $index => $line) {
+            if ($index > 0) {
+                $commands[] = '0 -24 Td';
+            }
+            $commands[] = '(' . $escape($line) . ') Tj';
+        }
+        $commands[] = 'ET';
+        $stream = implode("\n", $commands);
+        $objects = [
+            '<< /Type /Catalog /Pages 2 0 R >>',
+            '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+            '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 283.46 425.20] '
+                . '/Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
+            '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>',
+            "<< /Length " . strlen($stream) . ">>\nstream\n{$stream}\nendstream",
+        ];
+        $pdf = "%PDF-1.4\n";
+        $offsets = [0];
+        foreach ($objects as $index => $object) {
+            $offsets[] = strlen($pdf);
+            $number = $index + 1;
+            $pdf .= "{$number} 0 obj\n{$object}\nendobj\n";
+        }
+        $xref = strlen($pdf);
+        $pdf .= "xref\n0 " . (count($objects) + 1) . "\n";
+        $pdf .= "0000000000 65535 f \n";
+        foreach (array_slice($offsets, 1) as $offset) {
+            $pdf .= sprintf('%010d 00000 n ', $offset) . "\n";
+        }
+        $pdf .= 'trailer << /Size ' . (count($objects) + 1) . " /Root 1 0 R >>\n";
+        $pdf .= "startxref\n{$xref}\n%%EOF\n";
+
+        return $this->storeLabel($deliveryId, base64_encode($pdf));
     }
 
     private function unitId(int $position): string

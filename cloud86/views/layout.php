@@ -1,6 +1,8 @@
 <?php
 $flashMessage = $_SESSION['flash'] ?? null;
 unset($_SESSION['flash']);
+$canDeleteSelectedDelivery = isset($selectedDelivery)
+    && in_array(($selectedDelivery['status'] ?? ''), ['new', 'ready'], true);
 ?>
 <!doctype html>
 <html lang="nl">
@@ -27,11 +29,11 @@ unset($_SESSION['flash']);
         <nav>
             <?php if (\App\Security::user()): ?><span class="user-name"><?= e(\App\Security::user()['display_name']) ?></span><?php endif; ?>
             <a href="/">Leveringen</a>
-            <?php if ((\App\Security::user()['role'] ?? '') === 'admin' || (isset($selectedDelivery) && ($selectedDelivery['status'] ?? '') !== 'labels_created')): ?>
+            <?php if ((\App\Security::user()['role'] ?? '') === 'admin' || $canDeleteSelectedDelivery): ?>
                 <details class="maintenance-menu">
                     <summary>Onderhoud</summary>
                     <div class="maintenance-menu-panel">
-                        <?php if (isset($selectedDelivery) && ($selectedDelivery['status'] ?? '') !== 'labels_created'): ?>
+                        <?php if ($canDeleteSelectedDelivery): ?>
                             <form method="post" action="/deliveries/<?= rawurlencode((string) $selectedDelivery['exact_entry_id']) ?>/delete" data-delivery-number="<?= e($selectedDelivery['delivery_number']) ?>" onsubmit="return confirmShipmentDelete(this)">
                                 <input type="hidden" name="_token" value="<?= e(\App\Security::csrfToken()) ?>">
                                 <input type="hidden" name="confirm_delete" value="no">
@@ -78,6 +80,28 @@ function confirmTableRefresh(form) {
     if (!confirm('De volledige levertabel, inclusief dozen en statussen, wordt verwijderd. Wilt u doorgaan?')) return false;
     if (!confirm('Na het leegmaken worden de nieuwste leveringen direct opnieuw uit Exact opgehaald. Definitief uitvoeren?')) return false;
     form.elements.confirm_refresh.value = 'yes';
+    return true;
+}
+function confirmGlsLabelRequest(form) {
+    const mode = form.dataset.glsMode || 'mock';
+    const delivery = form.dataset.deliveryNumber || '';
+    const parcels = form.dataset.parcelCount || '0';
+    const button = form.querySelector('button[type="submit"]');
+    if (mode === 'mock') {
+        if (button) button.disabled = true;
+        return true;
+    }
+    const environment = mode === 'live' ? 'de GLS-productieomgeving' : 'de GLS-testomgeving';
+    if (!confirm(`U gaat levering ${delivery} met ${parcels} doos/dozen naar ${environment} versturen. Wilt u doorgaan?`)) return false;
+    if (mode === 'live' && !confirm('Dit kan een echte betaalde GLS-zending aanmaken. Definitief versturen?')) return false;
+    form.elements.confirm_gls_request.value = 'yes';
+    if (button) button.disabled = true;
+    return true;
+}
+function confirmGlsRelease(form) {
+    if (!confirm('Heeft u in GLS gecontroleerd dat deze aanvraag géén zending heeft aangemaakt?')) return false;
+    if (!confirm('Alleen na die controle mag een nieuwe poging worden vrijgegeven. Definitief vrijgeven?')) return false;
+    form.elements.confirm_no_gls_shipment.value = 'yes';
     return true;
 }
 </script>

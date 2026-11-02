@@ -5,6 +5,7 @@ declare(strict_types=1);
 require dirname(__DIR__) . '/src/Security.php';
 require dirname(__DIR__) . '/src/DeliveryRepository.php';
 require dirname(__DIR__) . '/src/Env.php';
+require dirname(__DIR__) . '/src/GlsException.php';
 require dirname(__DIR__) . '/src/GlsService.php';
 require dirname(__DIR__) . '/src/ExactException.php';
 require dirname(__DIR__) . '/src/ExactService.php';
@@ -17,7 +18,8 @@ $db->exec('CREATE TABLE deliveries (
     exact_entry_id TEXT PRIMARY KEY, merged_into_exact_entry_id TEXT, delivery_number TEXT, order_number TEXT,
     ship_type TEXT, freight_unit_type TEXT, shipment_reference TEXT, address_json TEXT, shipping_date TEXT,
     gls_product TEXT DEFAULT 'direct_delivery_plus', gls_options_json TEXT,
-    status TEXT, tracking_numbers_json TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP, updated_at TEXT
+    status TEXT, tracking_numbers_json TEXT, gls_request_json TEXT, gls_response_json TEXT,
+    label_path TEXT, last_gls_state TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP, updated_at TEXT
 )');
 $db->exec('CREATE TABLE parcels (exact_entry_id TEXT, position INTEGER, weight_kg REAL)');
 
@@ -128,7 +130,24 @@ putenv('GLS_FREIGHT_CUSTOMER_NO');
 
 $mock = $gls->createLabels($freight, 'test-delivery');
 assert(count($mock['tracking_numbers']) === 2);
-assert($mock['label_path'] === null);
+assert(is_string($mock['label_path']) && $mock['label_path'] !== '');
+$mockLabel = sys_get_temp_dir() . '/' . $mock['label_path'];
+assert(is_file($mockLabel));
+assert(str_starts_with((string) file_get_contents($mockLabel), '%PDF-1.4'));
+unlink($mockLabel);
+
+$redactedFreight = $gls->redact($freight);
+assert($repository->beginGlsRequest('test-delivery', $redactedFreight));
+assert($repository->find('test-delivery')['status'] === 'gls_processing');
+assert(!$repository->beginGlsRequest('test-delivery', $redactedFreight));
+$repository->markGlsOutcomeUnknown('test-delivery', 'Timeout tijdens de test.');
+assert($repository->find('test-delivery')['status'] === 'gls_unknown');
+assert($repository->releaseGlsRequestAfterCheck('test-delivery'));
+assert($repository->find('test-delivery')['status'] === 'ready');
+assert(!$repository->releaseGlsRequestAfterCheck('test-delivery'));
+$repository->beginGlsRequest('test-delivery', $redactedFreight);
+$repository->resetRejectedGlsRequest('test-delivery', 'Aanvraag afgewezen.');
+assert($repository->find('test-delivery')['status'] === 'ready');
 
 $deliveries = [$repository->find('test-delivery')];
 $selectedDelivery = $deliveries[0];
@@ -152,6 +171,8 @@ assert(str_contains($html, 'selected-row'));
 assert(str_contains($html, 'E-mailadres *'));
 assert(str_contains($html, 'Toegevoegd'));
 assert(str_contains($html, 'Dozen opslaan'));
+assert(str_contains($html, 'Maak afdrukbaar testlabel'));
+assert(str_contains($html, 'confirmGlsLabelRequest'));
 assert(str_contains($html, 'form="address-details-form">Adres opslaan'));
 assert(str_contains($html, 'niet-opgeslagen wijzigingen'));
 assert(str_contains($html, 'Naam 2'));
@@ -173,6 +194,8 @@ assert(str_contains($layout, 'Tabel leegmaken en opnieuw ophalen'));
 assert(str_contains($layout, 'confirmTableRefresh'));
 assert(str_contains($layout, 'Haal uw supervisor'));
 assert(str_contains($layout, 'supervisor_confirmation'));
+assert(str_contains($layout, 'Dit kan een echte betaalde GLS-zending aanmaken'));
+assert(str_contains($layout, 'confirmGlsRelease'));
 
 $db->exec("UPDATE deliveries SET status = 'labels_created' WHERE exact_entry_id = 'test-delivery'");
 $repository->updateShippingDetails('test-delivery', 'P', 'GEWIJZIGD');
