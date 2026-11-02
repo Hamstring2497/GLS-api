@@ -226,7 +226,8 @@ gecontroleerd worden toegepast.
 
 ## 10. Actuele stand — 2 november 2026
 
-- 2 november 2026, nog niet gepubliceerd: de labelworkflow is voorbereid op een gecontroleerde
+- 2 november 2026, applicatiecommits `59accd9` en `8c7be51` lokaal, op GitHub en Cloud86: de
+  labelworkflow is voorbereid op een gecontroleerde
   productieacceptatie. Een labelaanvraag vergrendelt de hoofdlevering en eventuele samengevoegde
   leveringen vóór de GLS-call. Een duidelijke afwijzing geeft de levering weer vrij; een timeout,
   HTTP 408/409/425/429, serverfout of ongeldige respons krijgt status `gls_unknown` en mag pas na
@@ -236,8 +237,11 @@ gecontroleerd worden toegepast.
   opgeslagen PDF-bestand kan worden geopend en opnieuw afgedrukt zonder een nieuwe `CreateLabel`-
   aanvraag. Hiervoor is geen databasemigratie nodig: de bestaande status-, request-, response-,
   label- en laatste-statusvelden worden gebruikt. De negen Python-referentietests en
-  `git diff --check` slagen; lokale PHP ontbreekt nog, dus PHP-lint en de uitgebreide smoketest moeten
-  vóór publicatie op Cloud86 worden uitgevoerd. `GLS_MODE=mock` blijft actief.
+  `git diff --check` slagen. Op Cloud86 zijn alle PHP-bestanden zonder syntaxfouten gecontroleerd en
+  de uitgebreide PHP-smoketest is geslaagd. Die controle bracht eerst een foutieve aanhaling in het
+  testschema aan het licht; dit is apart hersteld in `8c7be51` en daarna opnieuw groen getest. De
+  publieke healthcheck geeft HTTP 200 met `status: ok` en `gls_mode: mock`. Er is geen echte
+  GLS-aanvraag gedaan en er was geen databasemigratie nodig.
 - 2 november 2026, gepubliceerd tot en met commit `2e71c2b`: GLS heeft een API-gebruikersnaam, wachtwoord en
   afzonderlijke operationele klantnummers voor Parcel en Freight verstrekt. De werkelijke waarden
   staan bewust niet in Git of dit document. De payload kiest voortaan automatisch
@@ -463,41 +467,38 @@ gecontroleerd worden toegepast.
 
 Werk deze lijst in deze volgorde af:
 
-1. Voer op Cloud86 eerst PHP-lint en `cloud86/tests/smoke.php` uit voor de nog niet gepubliceerde
-   vergrendeling, onzekerheidsstatus, vrijgave en A6-mock-PDF. Publiceer pas als beide slagen en
-   controleer daarna `/health`; `GLS_MODE` blijft `mock`.
-2. Test in mockmodus met één bestaande levering dat het testlabel wordt opgeslagen, geopend en
+1. Test ingelogd in mockmodus met één bestaande levering dat het testlabel wordt opgeslagen, geopend en
    opnieuw afgedrukt zonder een tweede labelaanvraag.
-3. Vraag GLS om bevestiging dat een gecontroleerde productie-acceptatietest mag worden uitgevoerd
+2. Vraag GLS om bevestiging dat een gecontroleerde productie-acceptatietest mag worden uitgevoerd
    en welke product/servicecombinaties voor klantnummer Parcel zijn geactiveerd. De productielogin
    is reeds veilig met `ValidateLogin` bevestigd; de testomgeving accepteert deze login niet.
-4. Controleer met een nieuw opgehaalde levering of Exact `Title`,
+3. Controleer met een nieuw opgehaalde levering of Exact `Title`,
    `FirstName`, `MiddleName` en `LastName` levert zoals verwacht.
-5. Voeg na akkoord een zoekveld boven de tabel toe voor minimaal leveringsnummer, ordernummer,
+4. Voeg na akkoord een zoekveld boven de tabel toe voor minimaal leveringsnummer, ordernummer,
    ontvanger, straat, postcode en plaats; bepaal of Naam 2/3 en notities ook doorzoekbaar moeten zijn.
-6. Beoordeel de nieuwe vormgeving ook op een kleiner scherm.
-7. Test de volledige magazijnflow in `mock`-modus met een bestaande levering, inclusief het
+5. Beoordeel de nieuwe vormgeving ook op een kleiner scherm.
+6. Test de volledige magazijnflow in `mock`-modus met een bestaande levering, inclusief het
    aanvullen van een ontbrekend e-mailadres en het opnieuw opslaan van dozen.
-8. Controleer de uitgebreide Exact-mapping met een echte nieuwe levering: leveringsnummer,
+7. Controleer de uitgebreide Exact-mapping met een echte nieuwe levering: leveringsnummer,
    ordernummer, datum, ontvanger, adresregel 2/3, contactpersoon en e-mailadres. Bestaande lokaal
    opgeslagen leveringen worden bij synchronisatie bewust niet overschreven.
-9. Test de product- en servicekeuzes eerst zonder echte verzending. Test daarna met GLS per
+8. Test de product- en servicekeuzes eerst zonder echte verzending. Test daarna met GLS per
    gecontracteerde combinatie minimaal de standaard,
    Saturday, AddresseeOnly, PointDelivery met Point-ID en ExpressDelivery.
-10. Pas de mapping defensief aan als de Exact-response andere velden gebruikt.
-11. De ontvangen API-login is door de gecontroleerde `ValidateLogin` als productie-login bevestigd.
+9. Pas de mapping defensief aan als de Exact-response andere velden gebruikt.
+10. De ontvangen API-login is door de gecontroleerde `ValidateLogin` als productie-login bevestigd.
    Bevestig nog welke producten/services zijn toegestaan. De Nederlandse test-Label API accepteert technisch
    aanvragen zonder subscription key; vul een key alleen in als GLS die expliciet verstrekt.
    A6-PDF (`pdfa6s`) is gekozen voor de Zebra-printer. Gebruikersnaam, wachtwoord en beide
    klantnummers staan uitsluitend in de Cloud86-`.env`; `GLS_MODE=mock` is live actief. Schakel
    nog niet naar `live` voordat de productie-acceptatietest expliciet is afgesproken.
-12. Leg vast of `ShippingDate` bij labelaanmaak wordt meegestuurd (`GLS_SEND_SHIPPING_DATE=true`) of dat iedere werkelijk verzonden
+11. Leg vast of `ShippingDate` bij labelaanmaak wordt meegestuurd (`GLS_SEND_SHIPPING_DATE=true`) of dat iedere werkelijk verzonden
     unit later via `ConfirmLabel` wordt bevestigd. Maak daarna van de magazijnactie één duidelijke,
     idempotente stap **Zending opslaan en labels maken**; open het opgeslagen label voor afdrukken.
-13. Voer een GLS-acceptatietest uit met een expliciete testlevering en controleer PDF/labelprinter.
-14. Spreek af naar welk Exact-veld de track-en-tracecode wordt teruggeschreven en implementeer dit.
-15. Activeer en test de GLS-webhook met een nieuw sterk Bearer-token.
-16. Voeg pas daarna geplande automatische Exact-import toe.
+12. Voer een GLS-acceptatietest uit met een expliciete testlevering en controleer PDF/labelprinter.
+13. Spreek af naar welk Exact-veld de track-en-tracecode wordt teruggeschreven en implementeer dit.
+14. Activeer en test de GLS-webhook met een nieuw sterk Bearer-token.
+15. Voeg pas daarna geplande automatische Exact-import toe.
 
 ## 12. Overdrachtssjabloon voor een nieuwe Codex-sessie
 
