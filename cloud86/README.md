@@ -10,7 +10,7 @@ Deze map is bedoeld voor het Cloud86 WooCommerce Power-pakket en heeft geen Comp
 - één of meer dozen met maximaal 32 kg per doos;
 - GLS `CreateLabel`-payload volgens de aangeleverde Shipping API;
 - veilige mockmodus zonder echte GLS-zendingen;
-- echte HTTPS-aanroep met subscription key wanneer testgegevens zijn ingevuld;
+- echte HTTPS-aanroep met de GLS-login en, wanneer verstrekt, een optionele subscription key;
 - blokkeren van een tweede labelaanvraag voor dezelfde levering;
 - Base64-PDF-labels opslaan buiten de publieke webmap;
 - GLS Track & Trace-webhook met Bearer-token, deduplicatie en snelle HTTP 200-response;
@@ -167,7 +167,8 @@ Mockmodus maakt geen PDF-label, omdat er geen echte labeldata van GLS terugkomt.
 Vraag GLS eerst om toegang tot de **Label API-testomgeving** en plaats de ontvangen geheimen alleen
 in `cloud86/.env` op Cloud86. De niet-geheime testendpoints staan al in `.env.example`. Benodigd zijn:
 
-- de API-subscriptionkey voor header `Ocp-Apim-Subscription-Key`;
+- indien GLS die voor de gekozen omgeving verstrekt: de API-subscriptionkey voor header
+  `Ocp-Apim-Subscription-Key`;
 - een geldige MyGLS-testgebruikersnaam en -wachtwoord;
 - de afzonderlijke operationele klantnummers voor Parcel (`GLS_PARCEL_CUSTOMER_NO`) en Freight
   (`GLS_FREIGHT_CUSTOMER_NO`);
@@ -181,7 +182,7 @@ php bin/test-gls-connection.php
 ```
 
 Het script toont alleen of de login is geslaagd en eventueel een GLS-transactie-ID; het toont geen
-wachtwoord of subscriptionkey. Zet bij een mislukte of uitgestelde acceptatietest `GLS_MODE` terug
+wachtwoord of eventuele subscriptionkey. Zet bij een mislukte of uitgestelde acceptatietest `GLS_MODE` terug
 op `mock`.
 
 `GLS_SEND_SHIPPING_DATE=false` is de veilige standaard. Dan maakt `CreateLabel` wel labels en

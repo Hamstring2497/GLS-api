@@ -258,17 +258,18 @@ final class GlsService
         if (!str_starts_with($url, 'https://')) {
             throw new \RuntimeException("GLS {$operation} vereist een HTTPS-endpoint.");
         }
-        $apiKey = Env::require('GLS_API_KEY');
+        $headers = ['Content-Type: application/json'];
+        $apiKey = trim((string) Env::get('GLS_API_KEY', ''));
+        if ($apiKey !== '') {
+            $headers[] = Env::get('GLS_API_KEY_HEADER', 'Ocp-Apim-Subscription-Key') . ': ' . $apiKey;
+        }
         $handle = curl_init($url);
         curl_setopt_array($handle, [
             CURLOPT_POST => true,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_CONNECTTIMEOUT => 10,
             CURLOPT_TIMEOUT => 30,
-            CURLOPT_HTTPHEADER => [
-                'Content-Type: application/json',
-                Env::get('GLS_API_KEY_HEADER', 'Ocp-Apim-Subscription-Key') . ': ' . $apiKey,
-            ],
+            CURLOPT_HTTPHEADER => $headers,
             CURLOPT_POSTFIELDS => json_encode($payload, JSON_THROW_ON_ERROR),
         ]);
         $body = curl_exec($handle);

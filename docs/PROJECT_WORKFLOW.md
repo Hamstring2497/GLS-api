@@ -179,7 +179,7 @@ Gebruik `cloud86/.env.example` als volledige namenlijst. De productie-`.env` bev
 
 - algemene appinstellingen: `APP_ENV`, `APP_URL`, `APP_TIMEZONE`, `APP_KEY`;
 - database: `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`;
-- GLS: modus, endpoints, subscription key, MyGLS-login, klantnummer, labeltype en webhooktoken;
+- GLS: modus, endpoints, optionele subscription key, MyGLS-login, klantnummer, labeltype en webhooktoken;
 - Exact: base-URL, client-id, client-secret, callback, optionele division en synchronisatielimiet.
 
 Nooit echte waarden in dit document zetten. `EXACT_DIVISION` mag leeg blijven: de app bepaalt deze
@@ -224,9 +224,12 @@ gecontroleerd worden toegepast.
   afzonderlijke operationele klantnummers voor Parcel en Freight verstrekt. De werkelijke waarden
   staan bewust niet in Git of dit document. De payload kiest voortaan automatisch
   `GLS_PARCEL_CUSTOMER_NO` bij Parcel en `GLS_FREIGHT_CUSTOMER_NO` bij Freight, met het bestaande
-  `GLS_CUSTOMER_NO` alleen als achterwaarts compatibele terugval. Voor een verbindingstest ontbreken
-  nog de subscription/API-key en bevestiging of de ontvangen login voor test, productie of beide
-  omgevingen bedoeld is. `GLS_MODE` blijft daarom `mock`.
+  `GLS_CUSTOMER_NO` alleen als achterwaarts compatibele terugval. De openbare test-`ValidateLogin`
+  is op 2 november met uitsluitend fictieve gegevens en zonder subscription key aangeroepen. GLS
+  antwoordde met HTTP 401 en fout `A005` voor de fictieve gebruiker; daarmee is bevestigd dat de
+  aanvraag de gebruikersauthenticatie bereikt zonder API-key. De key is daarom optioneel gemaakt.
+  Nog te bevestigen is of de ontvangen echte login voor test, productie of beide omgevingen bedoeld
+  is. `GLS_MODE` blijft tot de gecontroleerde loginproef `mock`.
 - 30 oktober 2026, aanvullende lokale vormgevingswijziging nog niet op GitHub of Cloud86: de vier
   teksten rechts in de bovenbalk — **BETEC Magazijn**, **Leveringen**, **Onderhoud** en **Uitloggen** —
   gebruiken nu hetzelfde compacte letterformaat, gewicht en dezelfde regelhoogte. De merknaam
@@ -454,11 +457,12 @@ Werk deze lijst in deze volgorde af:
    servicekeuzes. Test daarna met GLS per gecontracteerde combinatie minimaal de standaard,
    Saturday, AddresseeOnly, PointDelivery met Point-ID en ExpressDelivery.
 9. Pas de mapping defensief aan als de Exact-response andere velden gebruikt.
-10. Vraag GLS nog om de ontbrekende API-subscriptionkey en bevestiging of de ontvangen API-login
-   voor test, productie of beide omgevingen bedoeld is. Bevestig tevens de toegestane
-   producten/services. A6-PDF (`pdfa6s`) is gekozen voor de Zebra-printer. Vul gebruikersnaam,
-   wachtwoord, subscriptionkey en beide klantnummers uitsluitend in de Cloud86-`.env` in en voer
-   eerst `php bin/test-gls-connection.php` uit met `GLS_MODE=test`.
+10. Bevestig bij GLS of de ontvangen API-login voor test, productie of beide omgevingen bedoeld is,
+   en welke producten/services zijn toegestaan. De Nederlandse test-Label API accepteert technisch
+   aanvragen zonder subscription key; vul een key alleen in als GLS die expliciet verstrekt.
+   A6-PDF (`pdfa6s`) is gekozen voor de Zebra-printer. Vul gebruikersnaam, wachtwoord en beide
+   klantnummers uitsluitend in de Cloud86-`.env` in en voer eerst
+   `php bin/test-gls-connection.php` uit met `GLS_MODE=test`.
 11. Leg vast of `ShippingDate` bij labelaanmaak wordt meegestuurd (`GLS_SEND_SHIPPING_DATE=true`) of dat iedere werkelijk verzonden
     unit later via `ConfirmLabel` wordt bevestigd. Maak daarna van de magazijnactie één duidelijke,
     idempotente stap **Zending opslaan en labels maken**; open het opgeslagen label voor afdrukken.
