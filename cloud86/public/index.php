@@ -185,6 +185,60 @@ try {
         redirect('/');
     }
 
+    if ($method === 'GET' && $path === '/maintenance/tracking-import') {
+        if ((Security::user()['role'] ?? '') !== 'admin') {
+            abort(403, 'Alleen een beheerder kan bestaande GLS-zendingen koppelen.');
+        }
+        view('maintenance/tracking-import', [
+            'deliveries' => array_values(array_filter(
+                $repository->all(),
+                static fn (array $delivery): bool => $delivery['tracking_numbers'] === []
+            )),
+        ]);
+    }
+
+    if ($method === 'POST' && $path === '/maintenance/tracking-import') {
+        Security::verifyCsrf();
+        if ((Security::user()['role'] ?? '') !== 'admin') {
+            abort(403, 'Alleen een beheerder kan bestaande GLS-zendingen koppelen.');
+        }
+        if (($_POST['confirm_import'] ?? '') !== 'yes') {
+            abort(422, 'Bevestig eerst dat de zendingen al bij GLS bestaan.');
+        }
+
+        $assignments = [];
+        $lines = preg_split('/\R/', trim((string) ($_POST['assignments'] ?? ''))) ?: [];
+        foreach ($lines as $lineNumber => $line) {
+            $line = trim($line);
+            if ($line === '') {
+                continue;
+            }
+            if (!preg_match('/^([^=]+)=([^=]+)$/', $line, $parts)) {
+                abort(422, 'Regel ' . ($lineNumber + 1) . ' heeft niet de vorm levering=trackingnummer.');
+            }
+            $deliveryIds = array_values(array_filter(preg_split('/[\s,;]+/', trim($parts[1])) ?: []));
+            $trackingNumbers = array_values(array_filter(preg_split('/[\s,;]+/', trim($parts[2])) ?: []));
+            if ($deliveryIds === [] || $trackingNumbers === []) {
+                abort(422, 'Regel ' . ($lineNumber + 1) . ' mist een levering of trackingnummer.');
+            }
+            $assignments[] = [
+                'delivery_ids' => $deliveryIds,
+                'tracking_numbers' => $trackingNumbers,
+            ];
+        }
+        if ($assignments === []) {
+            abort(422, 'Vul minimaal één koppeling in.');
+        }
+
+        try {
+            $updated = $repository->importExistingTracking($assignments);
+        } catch (InvalidArgumentException $error) {
+            abort(422, $error->getMessage());
+        }
+        flash('success', "{$updated} levering(en) aan bestaande GLS-tracking gekoppeld.");
+        redirect('/');
+    }
+
     if ($method === 'GET' && $path === '/deliveries/new') {
         view('deliveries/new');
     }

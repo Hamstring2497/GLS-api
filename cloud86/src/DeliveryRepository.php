@@ -372,6 +372,81 @@ final class DeliveryRepository
         ]);
     }
 
+    /**
+     * Koppelt buiten deze werkplek aangemaakte GLS-zendingen aan bestaande Exact-leveringen.
+     *
+     * @param list<array{delivery_ids: list<string>, tracking_numbers: list<string>}> $assignments
+     */
+    public function importExistingTracking(array $assignments): int
+    {
+        $this->db->beginTransaction();
+        try {
+            $lock = $this->db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql' ? ' FOR UPDATE' : '';
+            $select = $this->db->prepare(
+                'SELECT status, tracking_numbers_json FROM deliveries WHERE exact_entry_id = ?' . $lock
+            );
+            $update = $this->db->prepare(
+                "UPDATE deliveries SET status = 'labels_created', tracking_numbers_json = ?, "
+                . 'gls_response_json = ?, label_path = NULL, last_gls_state = ?, updated_at = CURRENT_TIMESTAMP '
+                . 'WHERE exact_entry_id = ?'
+            );
+            $updated = 0;
+
+            foreach ($assignments as $assignment) {
+                $numbers = array_values(array_unique(array_filter(array_map(
+                    static fn (string $number): string => trim($number),
+                    $assignment['tracking_numbers']
+                ))));
+                if ($numbers === []) {
+                    throw new \InvalidArgumentException('Vul minimaal één GLS-trackingnummer in.');
+                }
+                foreach ($numbers as $number) {
+                    if (!preg_match('/^\d{8,32}$/', $number)) {
+                        throw new \InvalidArgumentException('GLS-trackingnummers mogen alleen uit 8 tot 32 cijfers bestaan.');
+                    }
+                }
+
+                foreach (array_values(array_unique($assignment['delivery_ids'])) as $deliveryId) {
+                    $select->execute([$deliveryId]);
+                    $row = $select->fetch();
+                    if (!$row) {
+                        throw new \InvalidArgumentException("Levering {$deliveryId} bestaat niet.");
+                    }
+                    if (in_array((string) $row['status'], ['gls_processing', 'gls_unknown'], true)) {
+                        throw new \InvalidArgumentException(
+                            "Levering {$deliveryId} heeft eerst handmatige GLS-controle nodig."
+                        );
+                    }
+                    $existing = json_decode((string) $row['tracking_numbers_json'], true, 512, JSON_THROW_ON_ERROR);
+                    if ($existing !== [] && $existing !== $numbers) {
+                        throw new \InvalidArgumentException(
+                            "Levering {$deliveryId} heeft al andere trackingnummers."
+                        );
+                    }
+
+                    $response = [
+                        'source' => 'GLS Track & Trace',
+                        'imported_existing_shipment' => true,
+                        'tracking_numbers' => $numbers,
+                    ];
+                    $update->execute([
+                        json_encode($numbers, JSON_THROW_ON_ERROR),
+                        json_encode($response, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
+                        'tracking_imported',
+                        $deliveryId,
+                    ]);
+                    $updated += $update->rowCount();
+                }
+            }
+
+            $this->db->commit();
+            return $updated;
+        } catch (\Throwable $error) {
+            $this->db->rollBack();
+            throw $error;
+        }
+    }
+
     private function resetGlsRequest(string $id, string $message, string $state): void
     {
         $this->db->beginTransaction();

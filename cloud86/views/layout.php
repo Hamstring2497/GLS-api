@@ -42,6 +42,7 @@ $canDeleteSelectedDelivery = isset($selectedDelivery)
                             </form>
                         <?php endif; ?>
                         <?php if ((\App\Security::user()['role'] ?? '') === 'admin'): ?>
+                            <a class="maintenance-link" href="/maintenance/tracking-import">Bestaande GLS-zending koppelen</a>
                             <form method="post" action="/maintenance/refresh-deliveries" onsubmit="return confirmTableRefresh(this)">
                                 <input type="hidden" name="_token" value="<?= e(\App\Security::csrfToken()) ?>">
                                 <input type="hidden" name="confirm_refresh" value="no">
@@ -80,6 +81,11 @@ function confirmTableRefresh(form) {
     if (!confirm('De volledige levertabel, inclusief dozen en statussen, wordt verwijderd. Wilt u doorgaan?')) return false;
     if (!confirm('Na het leegmaken worden de nieuwste leveringen direct opnieuw uit Exact opgehaald. Definitief uitvoeren?')) return false;
     form.elements.confirm_refresh.value = 'yes';
+    return true;
+}
+function confirmTrackingImport(form) {
+    if (!confirm('Bevestig dat deze zendingen al in GLS zijn aangemaakt. De werkplek maakt hiervoor geen nieuw labelbestand aan.')) return false;
+    form.elements.confirm_import.value = 'yes';
     return true;
 }
 function confirmGlsLabelRequest(form) {

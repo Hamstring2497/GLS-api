@@ -226,6 +226,15 @@ gecontroleerd worden toegepast.
 
 ## 10. Actuele stand — 3 november 2026
 
+- 3 november 2026: bestaande zendingen die eerder rechtstreeks in GLS Print & Ship zijn gemaakt,
+  kunnen door een beheerder via **Onderhoud → Bestaande GLS-zending koppelen** aan één of meer
+  Exact-leveringen worden gekoppeld. Eén koppeling ondersteunt zowel samengevoegde orders met één
+  trackingnummer als een zending met meerdere pakketnummers. De levering krijgt status
+  `labels_created`, zodat de werkplek niet per ongeluk nogmaals een GLS-zending maakt. Er wordt geen
+  lokaal labelbestand verzonnen: alleen de bestaande trackingnummers en de herkomst GLS Track & Trace
+  worden opgeslagen. De import is atomair, controleert bestaande afwijkende tracking en weigert
+  leveringen met een onzekere of lopende GLS-aanvraag. Hiervoor is geen databasemigratie nodig.
+
 - 3 november 2026: de ingeklapte keuze **Aanvullende producten** gebruikt nu dezelfde veldopbouw
   als **Type**, **Vrachttype** en **Referentie**: een los label boven een invoervak van dezelfde
   hoogte, rand, tekstgrootte en focusmarkering. DirectDeliveryPlus blijft de standaard. Het mocklabel

@@ -268,6 +268,14 @@ assert($merged['effective_reference'] === '2000 / ORD-2001');
 assert($repository->find('merge-child')['merged_into_exact_entry_id'] === 'merge-primary');
 assert($gls->buildPayload($merged)['reference'] === '2000 / ORD-2001');
 assert(delivery_missing_data($merged) === []);
+$imported = $repository->importExistingTracking([[
+    'delivery_ids' => ['merge-primary', 'merge-child'],
+    'tracking_numbers' => ['73220023886849'],
+]]);
+assert($imported === 2);
+assert($repository->find('merge-primary')['tracking_numbers'] === ['73220023886849']);
+assert($repository->find('merge-child')['status'] === 'labels_created');
+assert($repository->find('merge-child')['last_gls_state'] === 'tracking_imported');
 $missingMergeEmail = $merged;
 $missingMergeEmail['address']['email'] = '';
 assert(delivery_missing_data($missingMergeEmail)['email'] === 'geldig e-mailadres');
@@ -285,4 +293,4 @@ assert($repository->clearAll() === 4);
 assert($repository->all() === []);
 assert($db->query('SELECT COUNT(*) FROM parcels')->fetchColumn() == 0);
 
-echo "Smoke test geslaagd: adresregels, notities, vrachttype, dozen en vergrendeling.\n";
+echo "Smoke test geslaagd: adresregels, notities, vrachttype, dozen, trackingimport en vergrendeling.\n";
