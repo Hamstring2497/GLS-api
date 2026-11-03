@@ -99,7 +99,7 @@ function confirmGlsLabelRequest(form) {
     }
     const environment = mode === 'live' ? 'de GLS-productieomgeving' : 'de GLS-testomgeving';
     if (!confirm(`U gaat levering ${delivery} met ${parcels} doos/dozen naar ${environment} versturen. Wilt u doorgaan?`)) return false;
-    if (mode === 'live' && !confirm('Dit kan een echte betaalde GLS-zending aanmaken. Definitief versturen?')) return false;
+    if (mode === 'live' && !confirm(`Dit maakt een echte betaalde GLS-zending voor verzending op ${form.elements.shipping_date_confirmed.value}. Alleen doorgaan als deze dozen op die datum meegaan. Definitief versturen?`)) return false;
     form.elements.confirm_gls_request.value = 'yes';
     if (button) button.disabled = true;
     return true;

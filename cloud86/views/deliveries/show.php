@@ -210,7 +210,7 @@ $addressFields = [
                         <?php else: ?>· Exact nog niet bijgewerkt<?php endif; ?>
                     </span>
                     <?php if (!empty($delivery['label_path'])): ?><a class="button button-small" target="_blank" href="/deliveries/<?= rawurlencode((string) $delivery['exact_entry_id']) ?>/label">Label openen / opnieuw afdrukken</a><?php endif; ?>
-                    <?php if ($glsMode !== 'mock' && !$mockTracking && !$exactTrackingSynced): ?>
+                    <?php if ($glsMode === 'live' && !$mockTracking && !$exactTrackingSynced): ?>
                         <form method="post" action="/deliveries/<?= rawurlencode((string) $delivery['exact_entry_id']) ?>/tracking/exact">
                             <input type="hidden" name="_token" value="<?= e(\App\Security::csrfToken()) ?>">
                             <button class="button button-secondary button-small" type="submit">Opnieuw naar Exact</button>
@@ -219,10 +219,11 @@ $addressFields = [
                 <?php elseif ($glsPending): ?>
                     <span class="gls-uncertain-status"><strong><?= $delivery['status'] === 'gls_unknown' ? 'Eerst GLS controleren' : 'Aanvraag wordt verwerkt' ?></strong> · niet opnieuw versturen</span>
                 <?php elseif ($missingData === []): ?>
-                    <span><strong><?= $glsMode === 'mock' ? 'Klaar voor afdrukbare testlabels' : 'Klaar om naar GLS te versturen' ?></strong></span>
+                    <span><strong><?= $glsMode === 'mock' ? 'Klaar voor afdrukbare testlabels' : 'Klaar om naar GLS te versturen' ?></strong><?php if ($glsMode === 'live'): ?> · Verzenden op <?= e(date('d-m-Y')) ?><?php endif; ?></span>
                     <form method="post" action="/deliveries/<?= rawurlencode((string) $delivery['exact_entry_id']) ?>/labels" data-gls-mode="<?= e($glsMode) ?>" data-delivery-number="<?= e($delivery['delivery_number']) ?>" data-parcel-count="<?= count($delivery['parcels']) ?>" onsubmit="return confirmGlsLabelRequest(this)">
                         <input type="hidden" name="_token" value="<?= e(\App\Security::csrfToken()) ?>">
                         <input type="hidden" name="confirm_gls_request" value="no">
+                        <input type="hidden" name="shipping_date_confirmed" value="<?= e(date('Y-m-d')) ?>">
                         <button class="button button-small" type="submit"><?= $glsMode === 'mock' ? 'Maak afdrukbaar testlabel' : 'Maak ' . count($delivery['parcels']) . ' GLS-label(s)' ?></button>
                     </form>
                 <?php else: ?>

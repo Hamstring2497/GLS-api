@@ -315,10 +315,10 @@ final class ExactService
         $response = $delivery['gls_response_json'] ?? null;
         if (is_string($response) && $response !== '') {
             $decoded = json_decode($response, true);
-            if (is_array($decoded) && ($decoded['mock'] ?? false) === true) {
+            if (is_array($decoded) && (($decoded['mock'] ?? false) === true || ($decoded['test'] ?? false) === true)) {
                 return true;
             }
-        } elseif (is_array($response) && ($response['mock'] ?? false) === true) {
+        } elseif (is_array($response) && (($response['mock'] ?? false) === true || ($response['test'] ?? false) === true)) {
             return true;
         }
 

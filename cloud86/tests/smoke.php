@@ -42,6 +42,9 @@ assert(App\ExactService::isMockTracking([
     'tracking_numbers' => ['MOCK-ABC123'],
     'gls_response_json' => '{"mock":true}',
 ]));
+assert(App\ExactService::isMockTracking([
+    'tracking_numbers' => ['123456789'], 'gls_response_json' => '{"test":true}',
+]));
 assert(!App\ExactService::isMockTracking([
     'tracking_numbers' => ['73220023887426'],
     'gls_response_json' => '{"source":"GLS Track & Trace"}',
@@ -95,7 +98,31 @@ assert($redactedParcel['password'] === '***');
 $datedDelivery = $delivery;
 $datedDelivery['shipping_date'] = '2026-10-30';
 putenv('GLS_SEND_SHIPPING_DATE=true');
-assert($gls->buildPayload($datedDelivery)['shippingDate'] === '2026-10-30T00:00:00');
+assert($gls->buildPayload($datedDelivery)['shippingDate'] === date('Y-m-d') . 'T00:00:00');
+assert($gls->buildPayload($delivery)['shippingDate'] === date('Y-m-d') . 'T00:00:00');
+putenv('GLS_SEND_SHIPPING_DATE=false');
+
+// Configuratiefouten worden vóór de externe call en de leveringsvergrendeling gevonden.
+putenv('GLS_MODE=live');
+putenv('GLS_USERNAME=test-user');
+putenv('GLS_PASSWORD=test-password');
+putenv('GLS_CREATE_LABEL_URL=https://api.gls.nl/test/v1/api/Label/Create?api-version=1.0');
+try {
+    $gls->validateLabelConfiguration();
+    assert(false, 'Live mag niet via het testendpoint verzenden.');
+} catch (RuntimeException $error) {
+    assert(str_contains($error->getMessage(), 'endpoint'));
+}
+putenv('GLS_CREATE_LABEL_URL=https://api.gls.nl/v1/api/Label/Create?api-version=1.0');
+try {
+    $gls->validateLabelConfiguration();
+    assert(false, 'Live mag niet zonder verzendbevestiging starten.');
+} catch (RuntimeException $error) {
+    assert(str_contains($error->getMessage(), 'verzenddatum'));
+}
+putenv('GLS_SEND_SHIPPING_DATE=true');
+$gls->validateLabelConfiguration();
+putenv('GLS_MODE=mock');
 putenv('GLS_SEND_SHIPPING_DATE=false');
 
 $serviceDelivery = $delivery;

@@ -129,8 +129,9 @@ final class GlsService
             'labelType' => strtolower((string) Env::get('GLS_LABEL_TYPE', 'pdfa6s')),
             'addresses' => ['deliveryAddress' => $deliveryAddress],
         ];
-        if ($this->sendShippingDate() && !empty($delivery['shipping_date'])) {
-            $payload['shippingDate'] = $delivery['shipping_date'] . 'T00:00:00';
+        if ($this->sendShippingDate()) {
+            // De Exact-leverdatum kan in het verleden liggen; het magazijn verzendt vandaag.
+            $payload['shippingDate'] = date('Y-m-d') . 'T00:00:00';
         }
         $customerNoKey = $shipType === 'F' ? 'GLS_FREIGHT_CUSTOMER_NO' : 'GLS_PARCEL_CUSTOMER_NO';
         $customerNo = trim((string) Env::get($customerNoKey, ''));
@@ -204,6 +205,7 @@ final class GlsService
     /** @param array<string, mixed> $payload @return array{response: array<string, mixed>, tracking_numbers: list<string>, label_path: ?string} */
     public function createLabels(array $payload, string $deliveryId): array
     {
+        $this->validateLabelConfiguration();
         $mode = strtolower((string) Env::get('GLS_MODE', 'mock'));
         if ($mode === 'mock') {
             $units = array_map(static fn (array $unit): array => [
@@ -229,6 +231,9 @@ final class GlsService
             );
         }
         $numbers = [];
+        if (count($response['units']) !== count($payload['units'])) {
+            throw new GlsException('GLS gaf een afwijkend aantal dozen terug. Controleer de zending in GLS.', true);
+        }
         foreach ($response['units'] as $unit) {
             if (empty($unit['unitNo'])) {
                 throw new \RuntimeException('Een GLS-unit bevat geen unitNo.');
@@ -240,9 +245,44 @@ final class GlsService
         if ($label === '' && count($response['units']) === 1) {
             $label = (string) ($response['units'][0]['label'] ?? '');
         }
-        $labelPath = $label === '' ? null : $this->storeLabel($deliveryId, $label);
+        if ($label === '') {
+            throw new GlsException('GLS gaf geen PDF-label terug. Controleer de zending in GLS.', true);
+        }
+        $labelPath = $this->storeLabel($deliveryId, $label);
+        if ($mode === 'test') {
+            $response['test'] = true;
+        }
 
         return ['response' => $response, 'tracking_numbers' => $numbers, 'label_path' => $labelPath];
+    }
+
+    /** Controleer vóór de databasevergrendeling en vóór iedere externe labelaanvraag. */
+    public function validateLabelConfiguration(): void
+    {
+        $mode = strtolower((string) Env::get('GLS_MODE', 'mock'));
+        if ($mode === 'mock') {
+            return;
+        }
+        if (!in_array($mode, ['test', 'live'], true)) {
+            throw new \RuntimeException('Ongeldige GLS-modus.');
+        }
+        $url = parse_url(Env::require('GLS_CREATE_LABEL_URL'));
+        $path = $mode === 'live' ? '/v1/api/Label/Create' : '/test/v1/api/Label/Create';
+        if (($url['scheme'] ?? '') !== 'https' || ($url['host'] ?? '') !== 'api.gls.nl'
+            || ($url['path'] ?? '') !== $path || isset($url['user']) || isset($url['pass'])) {
+            throw new \RuntimeException('Het GLS-labelendpoint past niet bij de ingestelde modus.');
+        }
+        Env::require('GLS_USERNAME');
+        Env::require('GLS_PASSWORD');
+        if (strtolower((string) Env::get('GLS_LABEL_TYPE', 'pdfa6s')) !== 'pdfa6s') {
+            throw new \RuntimeException('Deze werkplek vereist GLS-labeltype pdfa6s.');
+        }
+        if ($mode === 'live' && !$this->sendShippingDate()) {
+            throw new \RuntimeException('Verzenden is geblokkeerd: activeer de GLS-verzenddatum.');
+        }
+        if (!is_dir($this->storagePath) || !is_writable($this->storagePath)) {
+            throw new \RuntimeException('De map voor GLS-labels is niet schrijfbaar.');
+        }
     }
 
     /** @return array<string, mixed> */

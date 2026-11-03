@@ -472,6 +472,10 @@ try {
         if ($glsMode !== 'mock' && ($_POST['confirm_gls_request'] ?? '') !== 'yes') {
             abort(422, 'Bevestig eerst expliciet dat deze zending naar GLS mag worden verstuurd.');
         }
+        $gls->validateLabelConfiguration();
+        if ($glsMode === 'live' && ($_POST['shipping_date_confirmed'] ?? '') !== date('Y-m-d')) {
+            abort(422, 'De verzenddatum is gewijzigd. Vernieuw de pagina en bevestig de zending opnieuw.');
+        }
         $payload = $gls->buildPayload($delivery);
         $redactedPayload = $gls->redact($payload);
         if (!$repository->beginGlsRequest($id, $redactedPayload)) {
@@ -514,6 +518,8 @@ try {
         );
         if ($glsMode === 'mock') {
             flash('success', count($result['tracking_numbers']) . ' ongeldig(e) GLS-testlabel(s) aangemaakt; Exact is niet bijgewerkt.');
+        } elseif ($glsMode === 'test') {
+            flash('success', count($result['tracking_numbers']) . ' GLS-testlabel(s) aangemaakt; Exact is niet bijgewerkt.');
         } else {
             try {
                 $deliveryWithTracking = $repository->find($id);
@@ -552,8 +558,8 @@ try {
 
     if ($method === 'POST' && preg_match('#^/deliveries/([^/]+)/tracking/exact$#', $path, $matches)) {
         Security::verifyCsrf();
-        if (strtolower((string) Env::get('GLS_MODE', 'mock')) === 'mock') {
-            abort(409, 'Tracking naar Exact schrijven is uitgeschakeld zolang de applicatie in GLS-mockmodus staat.');
+        if (strtolower((string) Env::get('GLS_MODE', 'mock')) !== 'live') {
+            abort(409, 'Tracking naar Exact schrijven is alleen beschikbaar in GLS-livemodus.');
         }
         $id = rawurldecode($matches[1]);
         $delivery = $repository->find($id);

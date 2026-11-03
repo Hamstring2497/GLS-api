@@ -13,7 +13,7 @@ De webapp ondersteunt het magazijn bij het verzenden van Exact Online-goederenle
 4. De app maakt via de GLS Label API één zending met de benodigde labels aan.
 5. De labels worden als PDF opgeslagen buiten de publieke webmap en kunnen worden afgedrukt.
 6. De GLS-track-en-tracecode wordt lokaal opgeslagen.
-7. In een latere fase schrijft de app de track-en-tracecode terug naar een afgesproken veld in Exact.
+7. De app schrijft echte GLS-tracking terug naar `GoodsDeliveries.TrackingNumber` in Exact.
 8. GLS-statusupdates kunnen via de Track & Trace-webhook binnenkomen.
 
 De app is een zelfstandige magazijnwerkplek en wordt niet in Exact of WordPress geïnstalleerd.
@@ -234,6 +234,21 @@ gecontroleerd worden toegepast.
 - Gebruik HTTPS en houd `src`, `views`, `database`, `storage` en `.env` buiten de document root.
 
 ## 10. Actuele stand — 3 november 2026
+
+- Voorbereiding eerste echte verzending: de magazijnflow gebruikt bij ingeschakelde
+  `GLS_SEND_SHIPPING_DATE` de datum van labelaanmaak in `APP_TIMEZONE`, niet de historische
+  Exact-leverdatum. De datum staat naast de labelknop en in de productiebevestiging; een formulier
+  dat over middernacht openblijft moet opnieuw geladen worden. GLS beschrijft in de aangeleverde
+  Shipping API-handleiding §4.2.4 dat deze datum de labelgegevens vrijgeeft aan het TMS.
+  `ConfirmLabel` is daarom niet nodig voor deze werkstroom van verzenden op de dag van labelaanmaak.
+  Live blokkeert zonder verzenddatum, een passend officieel productie-endpoint, inloggegevens,
+  `pdfa6s` en schrijfbare labelopslag. Afwijkende aantallen dozen of een ontbrekende PDF krijgen
+  een onzekere uitkomst; er volgt geen automatische herhaling. GLS-testresultaten gaan niet naar
+  Exact, ook niet als later live wordt ingeschakeld. Geen databasemigratie nodig.
+  Het nieuwe `bin/check-live-readiness.php --validate-login` controleert configuratie, aanwezige
+  databasekolommen, opgeslagen Exact-koppeling en optioneel uitsluitend GLS-authenticatie. Het
+  maakt geen zending aan en bewijst nog geen succesvolle echte labelaanmaak of Exact-writeback.
+  Publicatie en productiecontrole van deze wijziging worden na uitvoering hieronder vastgelegd.
 
 - 3 november 2026, applicatiecommit `3dbe598` lokaal, op GitHub en via Plesk op Cloud86
   gepubliceerd: na een succesvolle echte GLS-labelaanvraag schrijft
@@ -525,6 +540,14 @@ gecontroleerd worden toegepast.
 
 Werk deze lijst in deze volgorde af:
 
+- Eerst de nieuwe PHP-controles op Cloud86 uitvoeren in mockmodus. Daarna de productie-endpoints
+  en `GLS_SEND_SHIPPING_DATE=true` instellen, veilig met tijdelijke CLI-modus `live` controleren en
+  pas bij succes de webapp op `GLS_MODE=live` zetten voor de door de gebruiker gevraagde eerste echte
+  levering. De gebruiker maakt die levering zelf. Gebruik standaard Parcel/DirectDeliveryPlus.
+- Bij die eerste levering: officiële GLS-PDF, aantal labels, 100 × 150 mm afdruk en
+  `GoodsDeliveries.TrackingNumber` in Exact controleren. Bij een onzekere aanvraag nooit opnieuw
+  aanmaken. Alleen dezelfde opgeslagen PDF opnieuw openen/afdrukken.
+
 1. Publiceer en test ingelogd in mockmodus met één bestaande levering dat het vernieuwde testlabel
    per doos een afzonderlijke A6-pagina bevat, wordt opgeslagen, geopend en opnieuw afgedrukt zonder
    een tweede labelaanvraag. Druk één pagina op de Zebra GK420d af en controleer de schaal op
@@ -552,8 +575,9 @@ Werk deze lijst in deze volgorde af:
    A6-PDF (`pdfa6s`) is gekozen voor de Zebra-printer. Gebruikersnaam, wachtwoord en beide
    klantnummers staan uitsluitend in de Cloud86-`.env`; `GLS_MODE=mock` is live actief. Schakel
    nog niet naar `live` voordat de productie-acceptatietest expliciet is afgesproken.
-11. Leg vast of `ShippingDate` bij labelaanmaak wordt meegestuurd (`GLS_SEND_SHIPPING_DATE=true`) of dat iedere werkelijk verzonden
-    unit later via `ConfirmLabel` wordt bevestigd. Maak daarna van de magazijnactie één duidelijke,
+11. Voor de eerste livewerkstroom wordt `ShippingDate` bij labelaanmaak meegestuurd
+    (`GLS_SEND_SHIPPING_DATE=true`, vandaag). Labelaanmaak betekent dus verzenden op die datum.
+    Een aparte latere `ConfirmLabel`-werkstroom is niet geïmplementeerd. Maak van de magazijnactie één duidelijke,
     idempotente stap **Zending opslaan en labels maken**; open het opgeslagen label voor afdrukken.
 12. Voer een GLS-acceptatietest uit met een expliciete testlevering en controleer PDF/labelprinter.
 13. Controleer tijdens de eerste afgesproken echte GLS-acceptatietest dat
