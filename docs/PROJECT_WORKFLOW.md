@@ -226,6 +226,14 @@ gecontroleerd worden toegepast.
 
 ## 10. Actuele stand — 3 november 2026
 
+- 3 november 2026, applicatiecommits `fcd084f` en `82f6d5d` lokaal, op GitHub en Cloud86: via de
+  nieuwe trackingimport zijn tien eerder rechtstreeks in GLS Print & Ship aangemaakte leveringen
+  gekoppeld aan zeven bestaande GLS-zendingen. De import omvat één samengevoegde zending met drie
+  Exact-leveringen, één GLS-zending die bij twee identieke Exact-leveringen hoort en één zending met
+  twee pakketnummers. De twee leveringen bij order `40065243` zijn bewust niet gekoppeld, omdat GLS
+  Track & Trace voor die referentie geen zending vond. De productie-healthcheck is groen,
+  `GLS_MODE=mock` is behouden en de PHP-syntax- en smoketest zijn op Cloud86 geslaagd.
+
 - 3 november 2026: bestaande zendingen die eerder rechtstreeks in GLS Print & Ship zijn gemaakt,
   kunnen door een beheerder via **Onderhoud → Bestaande GLS-zending koppelen** aan één of meer
   Exact-leveringen worden gekoppeld. Eén koppeling ondersteunt zowel samengevoegde orders met één
