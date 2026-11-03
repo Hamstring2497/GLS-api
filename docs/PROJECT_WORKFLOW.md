@@ -235,7 +235,8 @@ gecontroleerd worden toegepast.
 
 ## 10. Actuele stand — 3 november 2026
 
-- 3 november 2026, lokaal nog niet gepubliceerd: na een succesvolle echte GLS-labelaanvraag schrijft
+- 3 november 2026, applicatiecommit `3dbe598` lokaal, op GitHub en via Plesk op Cloud86
+  gepubliceerd: na een succesvolle echte GLS-labelaanvraag schrijft
   de PHP-app de tracking automatisch terug naar `GoodsDeliveries.TrackingNumber` in Exact. Een
   samengevoegde zending werkt alle onderliggende Exact-leveringen bij; meerdere pakketnummers worden
   uniek en komma-gescheiden opgeslagen. Iedere geslaagde Exact-update krijgt lokaal een tijdstempel,
@@ -243,7 +244,10 @@ gecontroleerd worden toegepast.
   Exact-storing blijven GLS-label en tracking veilig opgeslagen en verschijnt **Opnieuw naar Exact**;
   er wordt nadrukkelijk geen tweede GLS-zending gemaakt. Mockresultaten en `MOCK-`-codes zijn zowel
   in de service als de interface geblokkeerd. De al aanwezige kolom
-  `exact_tracking_synced_at` wordt gebruikt; er is geen nieuwe databasemigratie nodig.
+  `exact_tracking_synced_at` wordt gebruikt; er is geen nieuwe databasemigratie nodig. De negen
+  Python-regressietests zijn lokaal geslaagd. Op Cloud86 zijn alle PHP-bestanden zonder syntaxfout
+  gecontroleerd en is de PHP-smoketest geslaagd. De live healthcheck geeft `status: ok` en
+  `gls_mode: mock`; er is bij deze publicatie geen echte GLS- of Exact-mutatie uitgevoerd.
 
 - 3 november 2026, applicatiecommits `fcd084f` en `82f6d5d` lokaal, op GitHub en Cloud86: via de
   nieuwe trackingimport zijn tien eerder rechtstreeks in GLS Print & Ship aangemaakte leveringen
