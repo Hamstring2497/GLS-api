@@ -8,6 +8,7 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 tmp/
+output/
 cloud86/.env
 cloud86/storage/labels/*
 !cloud86/storage/labels/.gitkeep

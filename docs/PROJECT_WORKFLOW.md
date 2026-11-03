@@ -224,7 +224,15 @@ gecontroleerd worden toegepast.
 - Houd de maximale GLS-doosgrens van 32 kg aan.
 - Gebruik HTTPS en houd `src`, `views`, `database`, `storage` en `.env` buiten de document root.
 
-## 10. Actuele stand — 2 november 2026
+## 10. Actuele stand — 3 november 2026
+
+- 3 november 2026: het mocklabel is opnieuw ontworpen als herkenbaar verzendetiket op exact
+  100 × 150 mm. Iedere doos krijgt een eigen A6-pagina met afleveradres, referentie, doosnummer,
+  gewicht en mocktrackingnummer. Lange adressen en samengestelde orderreferenties worden automatisch
+  verkleind zodat ze binnen hun vak blijven. De streepjescode is bewust alleen een visuele testcode
+  en het label vermeldt prominent **GLS TEST**, **ONGELDIG - NIET VERZENDEN** en
+  **TESTLABEL - GEEN GELDIGE GLS-ZENDING**. Er is geen echte GLS-aanvraag nodig en er is geen
+  databasemigratie.
 
 - 2 november 2026, applicatiecommits `59accd9` en `8c7be51` lokaal, op GitHub en Cloud86: de
   labelworkflow is voorbereid op een gecontroleerde
@@ -467,8 +475,10 @@ gecontroleerd worden toegepast.
 
 Werk deze lijst in deze volgorde af:
 
-1. Test ingelogd in mockmodus met één bestaande levering dat het testlabel wordt opgeslagen, geopend en
-   opnieuw afgedrukt zonder een tweede labelaanvraag.
+1. Publiceer en test ingelogd in mockmodus met één bestaande levering dat het vernieuwde testlabel
+   per doos een afzonderlijke A6-pagina bevat, wordt opgeslagen, geopend en opnieuw afgedrukt zonder
+   een tweede labelaanvraag. Druk één pagina op de Zebra GK420d af en controleer de schaal op
+   100 × 150 mm.
 2. Vraag GLS om bevestiging dat een gecontroleerde productie-acceptatietest mag worden uitgevoerd
    en welke product/servicecombinaties voor klantnummer Parcel zijn geactiveerd. De productielogin
    is reeds veilig met `ValidateLogin` bevestigd; de testomgeving accepteert deze login niet.

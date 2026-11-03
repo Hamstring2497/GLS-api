@@ -133,7 +133,16 @@ assert(count($mock['tracking_numbers']) === 2);
 assert(is_string($mock['label_path']) && $mock['label_path'] !== '');
 $mockLabel = sys_get_temp_dir() . '/' . $mock['label_path'];
 assert(is_file($mockLabel));
-assert(str_starts_with((string) file_get_contents($mockLabel), '%PDF-1.4'));
+$mockPdf = (string) file_get_contents($mockLabel);
+assert(str_starts_with($mockPdf, '%PDF-1.4'));
+assert(str_contains($mockPdf, '/MediaBox [0 0 283.46 425.20]'));
+assert(str_contains($mockPdf, '/Count 2'));
+assert(substr_count($mockPdf, '/Type /Page ') === 2);
+assert(str_contains($mockPdf, 'GLS TEST'));
+assert(str_contains($mockPdf, 'ONGELDIG - NIET VERZENDEN'));
+assert(str_contains($mockPdf, 'Voorbeeld BV'));
+assert(str_contains($mockPdf, 'Nieuwe straat 12A'));
+assert(str_contains($mockPdf, '7,2 kg'));
 unlink($mockLabel);
 
 $redactedFreight = $gls->redact($freight);

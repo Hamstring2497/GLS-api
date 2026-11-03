@@ -158,13 +158,15 @@ mocklabels; hij maakt geen zending bij GLS en raakt de productie-MySQL-database 
 3. Voeg twee dozen toe, bijvoorbeeld 4,5 en 7,2 kg.
 4. Klik op **Maak afdrukbaar testlabel**.
 5. Controleer dat er twee `MOCK-...` codes ontstaan.
-6. Open de opgeslagen A6-PDF en controleer dat deze duidelijk als ongeldig testlabel is gemarkeerd.
+6. Open de opgeslagen A6-PDF en controleer dat iedere doos een eigen pagina heeft met afleveradres,
+   referentie, doosnummer, gewicht, testtrackingnummer en een duidelijke ongeldigheidsmarkering.
 7. Controleer dat **Label openen / opnieuw afdrukken** hetzelfde opgeslagen bestand opent en geen
    nieuwe zending aanmaakt.
 8. Controleer dat een tweede labelaanvraag of directe herhaling wordt geblokkeerd.
 
-Mockmodus maakt een eenvoudige PDF van 100 × 150 mm. Dit bestand is uitsluitend bedoeld om de
-opslag- en afdrukroute te testen en is nadrukkelijk geen geldig GLS-label.
+Mockmodus maakt een labelvormige PDF van 100 × 150 mm, met één A6-pagina per doos. De getoonde
+streepjescode is bewust een niet-scanbare visuele testcode. Dit bestand is uitsluitend bedoeld om de
+opslag- en afdrukroute en de Zebra-printer te testen en is nadrukkelijk geen geldig GLS-label.
 
 ## GLS-testomgeving activeren
 

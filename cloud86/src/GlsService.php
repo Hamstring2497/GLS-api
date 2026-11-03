@@ -210,8 +210,10 @@ final class GlsService
                 'unitId' => $unit['unitId'],
                 'unitNo' => 'MOCK-' . strtoupper(bin2hex(random_bytes(6))),
                 'unitTrackingLink' => 'https://example.invalid/tracking',
+                'weight' => (float) ($unit['weight'] ?? 0),
+                'unitType' => (string) ($unit['unitType'] ?? ''),
             ], $payload['units']);
-            $labelPath = $this->storeMockLabel($deliveryId, $units);
+            $labelPath = $this->storeMockLabel($deliveryId, $payload, $units);
             return [
                 'response' => ['mock' => true, 'units' => $units],
                 'tracking_numbers' => array_column($units, 'unitNo'),
@@ -342,57 +344,182 @@ final class GlsService
         return $filename;
     }
 
-    /** @param list<array<string, mixed>> $units */
-    private function storeMockLabel(string $deliveryId, array $units): string
+    /** @param array<string, mixed> $payload @param list<array<string, mixed>> $units */
+    private function storeMockLabel(string $deliveryId, array $payload, array $units): string
     {
-        $lines = [
-            'TESTLABEL - GEEN GELDIGE GLS-ZENDING',
-            'Levering: ' . $deliveryId,
-            'Aantal dozen: ' . count($units),
+        $pageNumbers = [];
+        $objects = [
+            1 => '<< /Type /Catalog /Pages 2 0 R >>',
+            2 => '',
+            3 => '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>',
+            4 => '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>',
         ];
         foreach ($units as $index => $unit) {
-            $lines[] = 'Doos ' . ($index + 1) . ': ' . (string) ($unit['unitNo'] ?? 'MOCK');
+            $pageNumber = 5 + ($index * 2);
+            $contentNumber = $pageNumber + 1;
+            $pageNumbers[] = $pageNumber . ' 0 R';
+            $stream = $this->mockLabelPage($deliveryId, $payload, $unit, $index + 1, count($units));
+            $objects[$pageNumber] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 283.46 425.20] '
+                . '/Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents '
+                . $contentNumber . ' 0 R >>';
+            $objects[$contentNumber] = '<< /Length ' . strlen($stream) . ">>\nstream\n{$stream}\nendstream";
         }
+        $objects[2] = '<< /Type /Pages /Kids [' . implode(' ', $pageNumbers) . '] /Count ' . count($units) . ' >>';
+        ksort($objects);
 
-        $escape = static fn (string $value): string => str_replace(
-            ['\\', '(', ')'],
-            ['\\\\', '\\(', '\\)'],
-            $value
-        );
-        $commands = ['BT', '/F1 13 Tf', '20 395 Td'];
-        foreach ($lines as $index => $line) {
-            if ($index > 0) {
-                $commands[] = '0 -24 Td';
-            }
-            $commands[] = '(' . $escape($line) . ') Tj';
-        }
-        $commands[] = 'ET';
-        $stream = implode("\n", $commands);
-        $objects = [
-            '<< /Type /Catalog /Pages 2 0 R >>',
-            '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
-            '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 283.46 425.20] '
-                . '/Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
-            '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>',
-            "<< /Length " . strlen($stream) . ">>\nstream\n{$stream}\nendstream",
-        ];
         $pdf = "%PDF-1.4\n";
         $offsets = [0];
-        foreach ($objects as $index => $object) {
-            $offsets[] = strlen($pdf);
-            $number = $index + 1;
+        foreach ($objects as $number => $object) {
+            $offsets[$number] = strlen($pdf);
             $pdf .= "{$number} 0 obj\n{$object}\nendobj\n";
         }
         $xref = strlen($pdf);
         $pdf .= "xref\n0 " . (count($objects) + 1) . "\n";
         $pdf .= "0000000000 65535 f \n";
-        foreach (array_slice($offsets, 1) as $offset) {
-            $pdf .= sprintf('%010d 00000 n ', $offset) . "\n";
+        for ($number = 1; $number <= count($objects); $number++) {
+            $pdf .= sprintf('%010d 00000 n ', $offsets[$number]) . "\n";
         }
         $pdf .= 'trailer << /Size ' . (count($objects) + 1) . " /Root 1 0 R >>\n";
         $pdf .= "startxref\n{$xref}\n%%EOF\n";
 
         return $this->storeLabel($deliveryId, base64_encode($pdf));
+    }
+
+    /** @param array<string, mixed> $payload @param array<string, mixed> $unit */
+    private function mockLabelPage(
+        string $deliveryId,
+        array $payload,
+        array $unit,
+        int $position,
+        int $total
+    ): string {
+        $address = is_array($payload['addresses']['deliveryAddress'] ?? null)
+            ? $payload['addresses']['deliveryAddress']
+            : [];
+        $nameLines = array_values(array_filter([
+            trim((string) ($address['name1'] ?? '')),
+            trim((string) ($address['name2'] ?? '')),
+            trim((string) ($address['name3'] ?? '')),
+        ], static fn (string $value): bool => $value !== ''));
+        $house = trim((string) ($address['houseNo'] ?? ''));
+        $extension = trim((string) ($address['houseNoExt'] ?? ''));
+        $streetLine = trim((string) ($address['street'] ?? '') . ' ' . $house . $extension);
+        $postalLine = trim((string) ($address['zipCode'] ?? '') . '  ' . (string) ($address['city'] ?? ''));
+        $country = strtoupper((string) ($address['countryCode'] ?? ''));
+        $unitNo = (string) ($unit['unitNo'] ?? 'MOCK');
+        $weight = number_format((float) ($unit['weight'] ?? 0), 1, ',', '.') . ' kg';
+        $reference = (string) ($payload['reference'] ?? $deliveryId);
+        $shipType = strtoupper((string) ($payload['shiptype'] ?? 'P'));
+        $customerNo = (string) ($payload['customerNo'] ?? 'TEST');
+
+        $commands = [
+            '1 1 1 rg 0 0 283.46 425.20 re f',
+            '0 0 0 rg 0 370 283.46 55.20 re f',
+            $this->pdfText(14, 397, 24, 'GLS TEST', true, '1 1 1 rg'),
+            $this->pdfText(14, 380, 9, 'ONGELDIG - NIET VERZENDEN', true, '1 1 1 rg'),
+            '1 1 1 RG 1.5 w 231 379 36 31 re S',
+            $this->pdfText(241, 387, 20, $shipType, true, '1 1 1 rg'),
+            '0.82 g 0 354 283.46 16 re f',
+            $this->pdfText(14, 359, 8, 'AFLEVERADRES', true),
+        ];
+
+        $y = 329.0;
+        foreach ($nameLines as $lineIndex => $name) {
+            $commands[] = $this->pdfText(14, $y, $this->mockAddressFontSize($name, $lineIndex === 0), $name, true);
+            $y -= $lineIndex === 0 ? 22 : 17;
+        }
+        $commands[] = $this->pdfText(
+            14,
+            min($y - 3, 282),
+            $this->mockFitFontSize($streetLine, 255, 14, 8),
+            $streetLine,
+            false
+        );
+        $commands[] = $this->pdfText(
+            14,
+            min($y - 25, 260),
+            $this->mockFitFontSize($postalLine, 255, 16, 9),
+            $postalLine,
+            true
+        );
+        $commands[] = $this->pdfText(14, min($y - 43, 242), 10, $country, true);
+        $commands[] = '0 0 0 RG 1 w 14 218 m 269 218 l S';
+        $commands[] = $this->pdfText(14, 202, 7, 'REFERENTIE', true);
+        $commands[] = $this->pdfText(14, 184, $this->mockFitFontSize($reference, 155, 14, 7), $reference, true);
+        $commands[] = $this->pdfText(184, 202, 7, 'DOOS', true);
+        $commands[] = $this->pdfText(184, 184, 14, $position . ' / ' . $total, true);
+        $commands[] = $this->pdfText(236, 202, 7, 'GEWICHT', true);
+        $commands[] = $this->pdfText(226, 184, 12, $weight, true);
+        $commands[] = '0 0 0 RG 1 w 14 166 m 269 166 l S';
+        $commands[] = $this->pdfText(14, 151, 7, 'TRACKINGNUMMER', true);
+        $commands[] = $this->pdfText(14, 133, $this->mockFitFontSize($unitNo, 255, 13, 8), $unitNo, true);
+        $commands[] = $this->mockBarcode($unitNo);
+        $commands[] = $this->pdfText(14, 21, 7, 'Klant ' . $customerNo . '  |  Levering ' . $deliveryId, false);
+        $commands[] = $this->pdfText(14, 9, 7, 'TESTLABEL - GEEN GELDIGE GLS-ZENDING', true);
+
+        return implode("\n", $commands);
+    }
+
+    private function mockAddressFontSize(string $value, bool $primary): float
+    {
+        $length = strlen($this->pdfEscape($value));
+        if ($length > 42) {
+            return 10;
+        }
+        if ($length > 30) {
+            return 12;
+        }
+        return $primary ? 16 : 12;
+    }
+
+    private function mockFitFontSize(string $value, float $maxWidth, float $preferred, float $minimum): float
+    {
+        $length = max(1, strlen($this->pdfEscape($value)));
+        $fitted = $maxWidth / ($length * 0.58);
+        return max($minimum, min($preferred, floor($fitted * 2) / 2));
+    }
+
+    private function pdfText(float $x, float $y, float $size, string $value, bool $bold, string $color = '0 0 0 rg'): string
+    {
+        $font = $bold ? 'F1' : 'F2';
+        return 'BT ' . $color . ' /' . $font . ' ' . $this->pdfNumber($size) . ' Tf 1 0 0 1 '
+            . $this->pdfNumber($x) . ' ' . $this->pdfNumber($y) . ' Tm (' . $this->pdfEscape($value) . ') Tj ET';
+    }
+
+    private function pdfEscape(string $value): string
+    {
+        $value = trim((string) preg_replace('/\s+/u', ' ', $value));
+        if (function_exists('iconv')) {
+            $converted = iconv('UTF-8', 'Windows-1252//TRANSLIT//IGNORE', $value);
+            if (is_string($converted)) {
+                $value = $converted;
+            }
+        }
+        return str_replace(['\\', '(', ')'], ['\\\\', '\\(', '\\)'], $value);
+    }
+
+    private function pdfNumber(float $value): string
+    {
+        return rtrim(rtrim(number_format($value, 2, '.', ''), '0'), '.');
+    }
+
+    private function mockBarcode(string $value): string
+    {
+        $hash = hash('sha256', $value);
+        $x = 18.0;
+        $commands = ['0 0 0 rg'];
+        foreach (str_split(substr($hash, 0, 56)) as $index => $digit) {
+            $number = hexdec($digit);
+            $width = 1.0 + ($number % 3);
+            $height = 55.0 + (($number + $index) % 3) * 4;
+            if ($x + $width > 266) {
+                break;
+            }
+            $commands[] = $this->pdfNumber($x) . ' 48 ' . $this->pdfNumber($width) . ' '
+                . $this->pdfNumber($height) . ' re f';
+            $x += $width + 1.2 + (($number >> 2) % 2);
+        }
+        return implode("\n", $commands);
     }
 
     private function unitId(int $position): string
