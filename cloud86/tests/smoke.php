@@ -245,6 +245,7 @@ assert(str_contains($html, 'Toegevoegd'));
 assert(str_contains($html, 'Dozen opslaan'));
 assert(str_contains($html, 'Testlabel maken en afdrukken'));
 assert(str_contains($html, 'createAndPrintGlsLabel'));
+assert(str_contains($html, 'name="shipping_date_confirmed"'));
 assert(str_contains($html, 'form="address-details-form">Adres opslaan'));
 assert(str_contains($html, 'niet-opgeslagen wijzigingen'));
 assert(str_contains($html, 'Naam 2'));
@@ -268,8 +269,7 @@ assert(str_contains($layout, 'Tabel leegmaken en opnieuw ophalen'));
 assert(str_contains($layout, 'confirmTableRefresh'));
 assert(str_contains($layout, 'Haal uw supervisor'));
 assert(str_contains($layout, 'supervisor_confirmation'));
-assert(str_contains($layout, 'Dit maakt een echte betaalde GLS-zending voor verzending op'));
-assert(str_contains($layout, 'shipping_date_confirmed.value'));
+assert(!str_contains($layout, 'Dit maakt een echte betaalde GLS-zending voor verzending op'));
 assert(str_contains($layout, 'confirmGlsRelease'));
 
 $db->exec("UPDATE deliveries SET status = 'labels_created' WHERE exact_entry_id = 'test-delivery'");
