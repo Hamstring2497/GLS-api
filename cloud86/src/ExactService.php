@@ -563,19 +563,21 @@ final class ExactService
     }
 
     /**
-     * Bouw de zichtbare contactnaam op zoals in Exact: titel + tussenvoegsel + achternaam,
-     * of - als er geen titel is - voornaam + tussenvoegsel + achternaam.
+     * Bouw de zichtbare contactnaam op met de leesbare titelafkorting uit Exact:
+     * titelafkorting + tussenvoegsel + achternaam, of - als die ontbreekt -
+     * voornaam + tussenvoegsel + achternaam. Het veld Title bevat de interne code
+     * en is daarom bewust niet geschikt voor weergave op het GLS-label.
      *
      * @param array<string, mixed> $contact
      */
     private function contactDisplayName(array $contact): string
     {
-        $title = trim((string) ($contact['Title'] ?? ''));
+        $titleAbbreviation = trim((string) ($contact['TitleAbbreviation'] ?? ''));
         $firstName = trim((string) ($contact['FirstName'] ?? ''));
         $middleName = trim((string) ($contact['MiddleName'] ?? ''));
         $lastName = trim((string) ($contact['LastName'] ?? ''));
         $parts = array_values(array_filter(
-            [$title !== '' ? $title : $firstName, $middleName, $lastName],
+            [$titleAbbreviation !== '' ? $titleAbbreviation : $firstName, $middleName, $lastName],
             static fn (string $part): bool => $part !== ''
         ));
         if ($parts !== []) {

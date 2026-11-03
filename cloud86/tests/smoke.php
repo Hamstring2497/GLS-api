@@ -30,8 +30,12 @@ $exactWithoutConstructor = $exactReflection->newInstanceWithoutConstructor();
 $contactDisplayName = $exactReflection->getMethod('contactDisplayName');
 $contactDisplayName->setAccessible(true);
 assert($contactDisplayName->invoke($exactWithoutConstructor, [
-    'Title' => 'de heer', 'FirstName' => 'Fred', 'MiddleName' => 'van der', 'LastName' => 'Steen',
-]) === 'de heer van der Steen');
+    'Title' => 'MR', 'TitleAbbreviation' => 'dhr.', 'FirstName' => 'Fred',
+    'MiddleName' => 'van der', 'LastName' => 'Steen',
+]) === 'dhr. van der Steen');
+assert($contactDisplayName->invoke($exactWithoutConstructor, [
+    'Title' => 'MR', 'FirstName' => 'Fred', 'MiddleName' => 'van der', 'LastName' => 'Steen',
+]) === 'Fred van der Steen');
 assert($contactDisplayName->invoke($exactWithoutConstructor, [
     'FirstName' => 'Fred', 'MiddleName' => 'van der', 'LastName' => 'Steen',
 ]) === 'Fred van der Steen');

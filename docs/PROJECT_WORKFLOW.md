@@ -235,6 +235,11 @@ gecontroleerd worden toegepast.
 
 ## 10. Actuele stand — 3 november 2026
 
+- Contactpersonen uit Exact gebruiken voor de zichtbare aanspreektitel nu
+  `TitleAbbreviation` (bijvoorbeeld `dhr.`) en nooit meer de interne `Title`-code. Als Exact geen
+  titelafkorting levert, gebruikt de app voornaam + tussenvoegsel + achternaam. Geen migratie nodig;
+  dit geldt voor leveringen die na publicatie opnieuw uit Exact worden opgehaald.
+
 - Werkvoorraadoverzicht verbeterd: de server en tabel sorteren standaard op leverdatum met de
   nieuwste datum bovenaan. Bij openen selecteert de app de vroegst toegevoegde levering zonder
   trackingnummer. Order, datum, toegevoegd, ontvanger, straat en postcode zijn via de kolomkoppen
@@ -612,8 +617,9 @@ Werk deze lijst in deze volgorde af:
 2. Vraag GLS om bevestiging dat een gecontroleerde productie-acceptatietest mag worden uitgevoerd
    en welke product/servicecombinaties voor klantnummer Parcel zijn geactiveerd. De productielogin
    is reeds veilig met `ValidateLogin` bevestigd; de testomgeving accepteert deze login niet.
-3. Controleer met een nieuw opgehaalde levering of Exact `Title`,
-   `FirstName`, `MiddleName` en `LastName` levert zoals verwacht.
+3. Controleer met een nieuw opgehaalde levering of Exact `TitleAbbreviation`,
+   `FirstName`, `MiddleName` en `LastName` levert zoals verwacht en de interne `Title`-code niet
+   meer in de contactpersoon verschijnt.
 4. Beoordeel de nieuwe zoek-, sorteer- en afdrukbediening ook op een kleiner scherm.
 6. Test de volledige magazijnflow in `mock`-modus met een bestaande levering, inclusief het
    aanvullen van een ontbrekend e-mailadres en het opnieuw opslaan van dozen.
