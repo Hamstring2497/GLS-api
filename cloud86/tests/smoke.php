@@ -244,7 +244,8 @@ assert(str_contains($layout, 'Tabel leegmaken en opnieuw ophalen'));
 assert(str_contains($layout, 'confirmTableRefresh'));
 assert(str_contains($layout, 'Haal uw supervisor'));
 assert(str_contains($layout, 'supervisor_confirmation'));
-assert(str_contains($layout, 'Dit kan een echte betaalde GLS-zending aanmaken'));
+assert(str_contains($layout, 'Dit maakt een echte betaalde GLS-zending voor verzending op'));
+assert(str_contains($layout, 'shipping_date_confirmed.value'));
 assert(str_contains($layout, 'confirmGlsRelease'));
 
 $db->exec("UPDATE deliveries SET status = 'labels_created' WHERE exact_entry_id = 'test-delivery'");
