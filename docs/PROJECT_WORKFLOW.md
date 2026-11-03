@@ -235,6 +235,13 @@ gecontroleerd worden toegepast.
 
 ## 10. Actuele stand — 3 november 2026
 
+- De detailvolgorde in de magazijnwerkplek is aangepast naar **Afleveradres → Zending → Dozen en
+  gewicht**. Het zendingblok staat daardoor direct boven de dozen. Gewicht wordt voortaan in hele
+  kilo's ingevoerd en getoond; de browser én server weigeren decimalen en blijven de bestaande
+  maximumgewichten per vrachttype bewaken. Na succesvolle labelaanmaak krijgt de levering in tabel
+  en details een groene markering met **Zending klaar ✓**. Geen databasemigratie nodig. Deze
+  wijziging is lokaal gereed maar nog niet naar GitHub of Cloud86 gepubliceerd.
+
 - Contactpersonen uit Exact gebruiken voor de zichtbare aanspreektitel nu
   `TitleAbbreviation` (bijvoorbeeld `dhr.`) en nooit meer de interne `Title`-code. Als Exact geen
   titelafkorting levert, gebruikt de app voornaam + tussenvoegsel + achternaam. Geen migratie nodig;
@@ -590,6 +597,9 @@ gecontroleerd worden toegepast.
 
 Werk deze lijst in deze volgorde af:
 
+- Publiceer de nieuwe detailvolgorde, hele-kilo-invoer en groene gereedmarkering. Controleer in
+  Plesk eerst de PHP-syntax en smoketest; test daarna één nog niet verzonden levering en één reeds
+  gemaakte zending zonder een nieuwe GLS-aanvraag te doen.
 - Test na publicatie ingelogd zoeken, alle zes sorteerkoppen, **Reset**, de standaardselectie en
   één samenvoeging met een referentie als `5256 / 5261`. Controleer daarna met een reeds gemaakt
   label dat **Label openen en afdrukken** geen nieuwe GLS-zending maakt. Maak pas daarna één nieuw

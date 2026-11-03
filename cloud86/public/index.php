@@ -405,10 +405,17 @@ try {
         if (!in_array($delivery['status'], ['new', 'ready'], true)) {
             abort(409, 'De dozen kunnen na het aanmaken van labels niet meer worden gewijzigd.');
         }
-        $weights = array_values(array_filter(
-            array_map(static fn ($value): float => round((float) str_replace(',', '.', (string) $value), 1), $_POST['weights'] ?? []),
-            static fn (float $value): bool => $value > 0
-        ));
+        $weights = [];
+        foreach ($_POST['weights'] ?? [] as $index => $rawWeight) {
+            $normalizedWeight = trim(str_replace(',', '.', (string) $rawWeight));
+            if ($normalizedWeight === '') {
+                continue;
+            }
+            if (!is_numeric($normalizedWeight) || (float) $normalizedWeight < 1 || floor((float) $normalizedWeight) !== (float) $normalizedWeight) {
+                abort(422, sprintf('Vul voor doos %d een gewicht in hele kilo\'s in.', $index + 1));
+            }
+            $weights[] = (float) (int) $normalizedWeight;
+        }
         $maxWeight = $delivery['ship_type'] === 'F'
             ? (GlsService::FREIGHT_UNITS[$delivery['freight_unit_type']] ?? 32)
             : 32;

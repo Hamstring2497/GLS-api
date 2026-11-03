@@ -13,7 +13,7 @@ $maxWeight = $delivery['ship_type'] === 'F' ? (\App\GlsService::FREIGHT_UNITS[$d
 $missingData = delivery_missing_data($delivery);
 $missingKeys = array_keys($missingData);
 $statusLabel = match ($delivery['status']) {
-    'labels_created' => 'Labels gemaakt',
+    'labels_created' => 'Zending klaar ✓',
     'gls_processing' => 'Bezig met GLS',
     'gls_unknown' => 'GLS-controle nodig',
     default => $missingData === [] ? 'Klaar voor labels' : 'Gegevens ontbreken',
@@ -63,6 +63,7 @@ $addressFields = [
 ];
 ?>
 
+<div class="detail-stack">
 <section class="panel shipping-panel" id="selected-delivery">
     <div class="section-bar shipping-bar">
         <div class="shipment-title">
@@ -180,7 +181,6 @@ $addressFields = [
     <?php endif; ?>
 </section>
 
-<div class="detail-stack">
     <section class="panel address-panel">
         <div class="section-bar">
             <h2>Afleveradres</h2>
@@ -197,13 +197,13 @@ $addressFields = [
         </form>
     </section>
 
-    <section class="panel units-panel">
+    <section class="panel units-panel <?= $labelsCreated ? 'shipment-ready-panel' : '' ?>">
         <div class="section-bar units-bar">
             <h2><?= $delivery['ship_type'] === 'F' ? 'Vrachteenheden en gewicht' : 'Dozen en gewicht' ?></h2>
             <div class="units-status">
                 <?php if ($labelsCreated): ?>
                     <span>
-                        <strong>GLS gereed</strong> · <?= count($delivery['tracking_numbers']) ?> track-en-tracecode(s)
+                        <strong>✓ Zending klaar · GLS gereed</strong> · <?= count($delivery['tracking_numbers']) ?> track-en-tracecode(s)
                         <?php if ($mockTracking): ?>· test, niet naar Exact
                         <?php elseif ($exactTrackingSynced): ?>· Exact bijgewerkt
                         <?php elseif ($glsMode === 'mock'): ?>· Exact wacht op actieve GLS-koppeling
@@ -233,7 +233,7 @@ $addressFields = [
         </div>
         <?php if ($labelsCreated): ?>
             <ol class="parcel-list">
-                <?php foreach ($delivery['parcels'] as $parcel): ?><li>Doos <?= e($parcel['position']) ?><strong><?= e(number_format((float) $parcel['weight_kg'], 1, ',', '.')) ?> kg</strong></li><?php endforeach; ?>
+                <?php foreach ($delivery['parcels'] as $parcel): ?><li>Doos <?= e($parcel['position']) ?><strong><?= e(number_format((float) $parcel['weight_kg'], 0, ',', '.')) ?> kg</strong></li><?php endforeach; ?>
             </ol>
             <?php if (!empty($delivery['label_path'])): ?>
                 <p class="label-print-note">Opnieuw afdrukken gebruikt het opgeslagen PDF-bestand en maakt geen nieuwe GLS-zending aan.</p>
@@ -257,7 +257,7 @@ $addressFields = [
                 <div id="weights">
                     <?php foreach ($parcelRows as $index => $parcel): ?>
                         <div class="weight-row">
-                            <label class="weight-label"><span>Doos <?= $index + 1 ?></span><span class="weight-input"><input type="number" name="weights[]" value="<?= $parcel['weight_kg'] !== '' ? e(number_format((float) $parcel['weight_kg'], 1, '.', '')) : '' ?>" min="0.1" max="<?= $maxWeight ?>" step="0.1" inputmode="decimal" placeholder="0,0"><span>kg</span></span></label>
+                            <label class="weight-label"><span>Doos <?= $index + 1 ?></span><span class="weight-input"><input type="number" name="weights[]" value="<?= $parcel['weight_kg'] !== '' ? e(number_format((float) $parcel['weight_kg'], 0, '.', '')) : '' ?>" min="1" max="<?= $maxWeight ?>" step="1" inputmode="numeric" placeholder="0"><span>kg</span></span></label>
                             <button class="button button-secondary button-small" type="button" onclick="removeParcel(this)">Wissen</button>
                         </div>
                     <?php endforeach; ?>
@@ -272,7 +272,7 @@ $addressFields = [
                 const list = document.getElementById('weights');
                 const row = document.createElement('div');
                 row.className = 'weight-row';
-                row.innerHTML = '<label class="weight-label"><span>Doos</span><span class="weight-input"><input type="number" name="weights[]" min="0.1" max="<?= $maxWeight ?>" step="0.1" inputmode="decimal" placeholder="0,0"><span>kg</span></span></label><button class="button button-secondary button-small" type="button" onclick="removeParcel(this)">Wissen</button>';
+                row.innerHTML = '<label class="weight-label"><span>Doos</span><span class="weight-input"><input type="number" name="weights[]" min="1" max="<?= $maxWeight ?>" step="1" inputmode="numeric" placeholder="0"><span>kg</span></span></label><button class="button button-secondary button-small" type="button" onclick="removeParcel(this)">Wissen</button>';
                 list.appendChild(row);
                 renumberParcels();
             }

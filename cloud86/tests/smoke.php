@@ -205,7 +205,7 @@ assert(str_contains($mockPdf, 'DirectDeliveryPlus'));
 assert(str_contains($mockPdf, 'REFERENTIE / ORDER'));
 assert(str_contains($mockPdf, 'Voorbeeld BV'));
 assert(str_contains($mockPdf, 'Nieuwe straat 12A'));
-assert(str_contains($mockPdf, '7,2 kg'));
+assert(str_contains($mockPdf, '7 kg'));
 unlink($mockLabel);
 
 $redactedFreight = $gls->redact($freight);
@@ -254,7 +254,7 @@ assert(str_contains($html, 'Notitie 1'));
 assert(str_contains($html, 'Notitie 2'));
 assert(str_contains($html, 'maxlength="30"'));
 assert(str_contains($html, 'maxlength="20"'));
-assert(str_contains($html, 'step="0.1"'));
+assert(str_contains($html, 'step="1"'));
 assert(str_contains($html, 'Levering DEL-9'));
 assert(!str_contains($html, 'Openen →'));
 
@@ -276,6 +276,20 @@ $db->exec("UPDATE deliveries SET status = 'labels_created' WHERE exact_entry_id 
 $repository->updateShippingDetails('test-delivery', 'P', 'GEWIJZIGD');
 assert($repository->find('test-delivery')['shipment_reference'] === 'ANDERS');
 assert(!$repository->discard('test-delivery'));
+$deliveries = [$repository->find('test-delivery')];
+$selectedDelivery = $deliveries[0];
+ob_start();
+require dirname(__DIR__) . '/views/deliveries/index.php';
+$completedHtml = (string) ob_get_clean();
+assert(str_contains($completedHtml, 'Zending klaar ✓'));
+assert(str_contains($completedHtml, 'shipment-ready-row'));
+assert(str_contains($completedHtml, 'shipment-ready-panel'));
+
+$css = file_get_contents(dirname(__DIR__) . '/public/assets/app.css');
+assert(is_string($css));
+assert(str_contains($css, '.detail-stack>.address-panel { order:1; }'));
+assert(str_contains($css, '.detail-stack>.shipping-panel { order:2; }'));
+assert(str_contains($css, '.detail-stack>.units-panel { order:3; }'));
 
 $repository->save([
     'exact_entry_id' => 'second', 'delivery_number' => 'DEL-10',
@@ -295,7 +309,8 @@ require dirname(__DIR__) . '/views/deliveries/index.php';
 $emptyParcelHtml = (string) ob_get_clean();
 assert(str_contains($emptyParcelHtml, '<span>Doos 1</span>'));
 assert(str_contains($emptyParcelHtml, 'name="weights[]" value=""'));
-assert(!str_contains($emptyParcelHtml, 'name="weights[]" value="" min="0.1" max="32" step="0.1" inputmode="decimal" placeholder="0,0" required'));
+assert(!str_contains($emptyParcelHtml, 'name="weights[]" value="" min="1" max="32" step="1" inputmode="numeric" placeholder="0" required'));
+assert(str_contains($emptyParcelHtml, 'name="weights[]" value="" min="1" max="32" step="1" inputmode="numeric" placeholder="0"'));
 assert($repository->discard('second'));
 assert(count($repository->all()) === 1);
 assert($repository->find('second')['status'] === 'discarded');

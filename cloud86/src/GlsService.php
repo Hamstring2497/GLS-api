@@ -468,7 +468,7 @@ final class GlsService
         $postalLine = trim((string) ($address['zipCode'] ?? '') . '  ' . (string) ($address['city'] ?? ''));
         $country = strtoupper((string) ($address['countryCode'] ?? ''));
         $unitNo = (string) ($unit['unitNo'] ?? 'MOCK');
-        $weight = number_format((float) ($unit['weight'] ?? 0), 1, ',', '.') . ' kg';
+        $weight = number_format((float) ($unit['weight'] ?? 0), 0, ',', '.') . ' kg';
         $reference = (string) ($payload['reference'] ?? $deliveryId);
         $shipType = strtoupper((string) ($payload['shiptype'] ?? 'P'));
         $customerNo = (string) ($payload['customerNo'] ?? 'TEST');

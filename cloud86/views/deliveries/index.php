@@ -77,7 +77,7 @@
                     $tableStatus = 'Samenvoegen?';
                     $tableStatusClass = 'merge-question';
                 } elseif ($delivery['status'] === 'labels_created') {
-                    $tableStatus = 'Labels gemaakt';
+                    $tableStatus = 'Zending klaar ✓';
                     $tableStatusClass = 'labels_created';
                 } elseif ($delivery['status'] === 'gls_processing') {
                     $tableStatus = 'Bezig met GLS';
@@ -93,7 +93,7 @@
                     $tableStatusClass = 'ready';
                 }
                 ?>
-                <tr class="delivery-row <?= $selectedDelivery && $selectedDelivery['exact_entry_id'] === $delivery['exact_entry_id'] ? 'selected-row' : '' ?> <?= in_array($delivery['status'], ['ready', 'labels_created'], true) ? 'completed-row' : '' ?> <?= in_array($delivery['status'], ['gls_processing', 'gls_unknown'], true) ? 'gls-pending-row' : '' ?> <?= $isQuickMergeCandidate ? 'merge-candidate-row' : '' ?>" data-delivery-url="<?= e($deliveryUrl) ?>" data-merge-candidate="<?= $isQuickMergeCandidate ? '1' : '0' ?>" data-delivery-id="<?= e($delivery['exact_entry_id']) ?>" data-delivery-number="<?= e($delivery['delivery_number']) ?>" data-order-number="<?= e($delivery['order_number']) ?>" data-sort-order="<?= e($delivery['order_number']) ?>" data-sort-date="<?= e($delivery['shipping_date'] ?? '') ?>" data-sort-added="<?= e($delivery['created_at'] ?? '') ?>" data-sort-recipient="<?= e($delivery['address']['name']) ?>" data-sort-street="<?= e($delivery['address']['street']) ?>" data-sort-postcode="<?= e($delivery['address']['zip_code']) ?>" tabindex="0" aria-label="Selecteer levering <?= e($delivery['delivery_number']) ?>" aria-selected="<?= $selectedDelivery && $selectedDelivery['exact_entry_id'] === $delivery['exact_entry_id'] ? 'true' : 'false' ?>">
+                <tr class="delivery-row <?= $selectedDelivery && $selectedDelivery['exact_entry_id'] === $delivery['exact_entry_id'] ? 'selected-row' : '' ?> <?= in_array($delivery['status'], ['ready', 'labels_created'], true) ? 'completed-row' : '' ?> <?= $delivery['status'] === 'labels_created' ? 'shipment-ready-row' : '' ?> <?= in_array($delivery['status'], ['gls_processing', 'gls_unknown'], true) ? 'gls-pending-row' : '' ?> <?= $isQuickMergeCandidate ? 'merge-candidate-row' : '' ?>" data-delivery-url="<?= e($deliveryUrl) ?>" data-merge-candidate="<?= $isQuickMergeCandidate ? '1' : '0' ?>" data-delivery-id="<?= e($delivery['exact_entry_id']) ?>" data-delivery-number="<?= e($delivery['delivery_number']) ?>" data-order-number="<?= e($delivery['order_number']) ?>" data-sort-order="<?= e($delivery['order_number']) ?>" data-sort-date="<?= e($delivery['shipping_date'] ?? '') ?>" data-sort-added="<?= e($delivery['created_at'] ?? '') ?>" data-sort-recipient="<?= e($delivery['address']['name']) ?>" data-sort-street="<?= e($delivery['address']['street']) ?>" data-sort-postcode="<?= e($delivery['address']['zip_code']) ?>" tabindex="0" aria-label="Selecteer levering <?= e($delivery['delivery_number']) ?>" aria-selected="<?= $selectedDelivery && $selectedDelivery['exact_entry_id'] === $delivery['exact_entry_id'] ? 'true' : 'false' ?>">
                     <td><strong><?= e($delivery['delivery_number']) ?></strong></td>
                     <td><?= e($delivery['order_number']) ?></td>
                     <td><?= e($delivery['shipping_date'] ?: '—') ?></td>
@@ -108,7 +108,7 @@
                     <td><?= $delivery['ship_type'] === 'F' ? e($delivery['freight_unit_type']) : '—' ?></td>
                     <td><?= e($delivery['effective_reference'] ?: '—') ?></td>
                     <td><?= count($delivery['parcels']) ?></td>
-                    <td><?= e(number_format(array_sum(array_map(static fn ($parcel): float => (float) $parcel['weight_kg'], $delivery['parcels'])), 1, ',', '.')) ?> kg</td>
+                    <td><?= e(number_format(array_sum(array_map(static fn ($parcel): float => (float) $parcel['weight_kg'], $delivery['parcels'])), 0, ',', '.')) ?> kg</td>
                     <td><?= e(implode(', ', $delivery['tracking_numbers']) ?: '—') ?></td>
                     <td><span class="badge badge-<?= e($tableStatusClass) ?>"><?= e($tableStatus) ?></span></td>
                 </tr>
