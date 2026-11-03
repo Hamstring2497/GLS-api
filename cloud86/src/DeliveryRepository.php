@@ -372,6 +372,18 @@ final class DeliveryRepository
         ]);
     }
 
+    public function markExactTrackingSynced(string $id): void
+    {
+        $statement = $this->db->prepare(
+            'UPDATE deliveries SET exact_tracking_synced_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP '
+            . 'WHERE exact_entry_id = ?'
+        );
+        $statement->execute([$id]);
+        if ($statement->rowCount() !== 1) {
+            throw new \RuntimeException('De lokale Exact-terugkoppeling kon niet worden bevestigd.');
+        }
+    }
+
     /**
      * Koppelt buiten deze werkplek aangemaakte GLS-zendingen aan bestaande Exact-leveringen.
      *

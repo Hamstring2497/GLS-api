@@ -3,6 +3,11 @@ $glsMode = strtolower((string) ($glsMode ?? 'mock'));
 $labelsCreated = $delivery['status'] === 'labels_created';
 $glsPending = in_array($delivery['status'], ['gls_processing', 'gls_unknown'], true);
 $locked = $labelsCreated || $glsPending;
+$mockTracking = \App\ExactService::isMockTracking($delivery);
+$exactTrackingSynced = !empty($delivery['exact_tracking_synced_at']);
+foreach (($delivery['merged_deliveries'] ?? []) as $mergedDelivery) {
+    $exactTrackingSynced = $exactTrackingSynced && !empty($mergedDelivery['exact_tracking_synced_at']);
+}
 $freightUnits = ['CO' => 'Collo (max. 32 kg)', 'LG' => 'Lang collo (25 kg)', 'MP' => 'Minipallet (300 kg)', 'PL' => 'Pallet (675 kg)', 'BP' => 'Blokpallet (850 kg)', 'RL' => 'Rolcontainer (350 kg)', 'XL' => 'XL-pallet (1000 kg)'];
 $maxWeight = $delivery['ship_type'] === 'F' ? (\App\GlsService::FREIGHT_UNITS[$delivery['freight_unit_type']] ?? 32) : 32;
 $missingData = delivery_missing_data($delivery);
@@ -197,8 +202,20 @@ $addressFields = [
             <h2><?= $delivery['ship_type'] === 'F' ? 'Vrachteenheden en gewicht' : 'Dozen en gewicht' ?></h2>
             <div class="units-status">
                 <?php if ($labelsCreated): ?>
-                    <span><strong>GLS gereed</strong> · <?= count($delivery['tracking_numbers']) ?> track-en-tracecode(s)</span>
+                    <span>
+                        <strong>GLS gereed</strong> · <?= count($delivery['tracking_numbers']) ?> track-en-tracecode(s)
+                        <?php if ($mockTracking): ?>· test, niet naar Exact
+                        <?php elseif ($exactTrackingSynced): ?>· Exact bijgewerkt
+                        <?php elseif ($glsMode === 'mock'): ?>· Exact wacht op actieve GLS-koppeling
+                        <?php else: ?>· Exact nog niet bijgewerkt<?php endif; ?>
+                    </span>
                     <?php if (!empty($delivery['label_path'])): ?><a class="button button-small" target="_blank" href="/deliveries/<?= rawurlencode((string) $delivery['exact_entry_id']) ?>/label">Label openen / opnieuw afdrukken</a><?php endif; ?>
+                    <?php if ($glsMode !== 'mock' && !$mockTracking && !$exactTrackingSynced): ?>
+                        <form method="post" action="/deliveries/<?= rawurlencode((string) $delivery['exact_entry_id']) ?>/tracking/exact">
+                            <input type="hidden" name="_token" value="<?= e(\App\Security::csrfToken()) ?>">
+                            <button class="button button-secondary button-small" type="submit">Opnieuw naar Exact</button>
+                        </form>
+                    <?php endif; ?>
                 <?php elseif ($glsPending): ?>
                     <span class="gls-uncertain-status"><strong><?= $delivery['status'] === 'gls_unknown' ? 'Eerst GLS controleren' : 'Aanvraag wordt verwerkt' ?></strong> · niet opnieuw versturen</span>
                 <?php elseif ($missingData === []): ?>

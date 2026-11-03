@@ -125,6 +125,13 @@ geteste referentie voor de GLS-contracten. Nieuwe productiewerkzaamheden horen i
 - Een onduidelijke timeout of serverrespons zet de levering op `gls_unknown`. Maak dan niet opnieuw
   aan: controleer eerst in GLS en laat alleen een beheerder de levering daarna vrijgeven.
 - Base64-PDF-labels worden in `cloud86/storage/labels/` opgeslagen.
+- Na een succesvolle echte GLS-labelaanvraag schrijft de app de GLS-track-en-tracecode naar
+  `GoodsDeliveries.TrackingNumber` in Exact. Bij een samengevoegde zending wordt iedere
+  onderliggende Exact-levering bijgewerkt. Meerdere pakketnummers worden uniek en komma-gescheiden
+  opgeslagen, binnen de Exact-limiet van 100 tekens.
+- Een storing bij dit terugschrijven maakt geen nieuwe GLS-zending: het label en trackingnummer
+  blijven lokaal bewaard en de medewerker kan uitsluitend de Exact-update gecontroleerd herhalen.
+- Mocktracking wordt nooit naar Exact geschreven, ook niet via de handmatige herhaalactie.
 - Na status `labels_created` kunnen de dozen niet meer worden gewijzigd en kan niet nogmaals een
   labelaanvraag worden gedaan. Herafdrukken opent alleen de opgeslagen PDF.
 
@@ -133,7 +140,8 @@ geteste referentie voor de GLS-contracten. Nieuwe productiewerkzaamheden horen i
 - GLS kan statusupdates sturen naar `POST /webhooks/gls` met een Bearer-token.
 - Webhookberichten worden gededupliceerd en krijgen snel HTTP 200 terug, ook bij een GLS-retry.
 - Trackingnummers en de laatste GLS-status worden lokaal opgeslagen.
-- Terugschrijven naar Exact en `ConfirmLabel` zijn nog niet afgebouwd.
+- Terugschrijven naar Exact is geïmplementeerd voor echte GLS-labelresultaten; `ConfirmLabel` is nog
+  niet afgebouwd.
 
 ## 5. Belangrijkste routes
 
@@ -149,6 +157,7 @@ geteste referentie voor de GLS-contracten. Nieuwe productiewerkzaamheden horen i
 | `POST /deliveries/{id}/shipping` | Parcel/Freight, referentie en GLS-product/services vóór labelaanmaak opslaan |
 | `POST /deliveries/{id}/parcels` | gewichten opslaan |
 | `POST /deliveries/{id}/labels` | GLS-labels maken |
+| `POST /deliveries/{id}/tracking/exact` | opgeslagen echte GLS-tracking opnieuw naar Exact schrijven |
 | `POST /deliveries/{id}/labels/release` | onzekere aanvraag na handmatige GLS-controle vrijgeven (beheerder) |
 | `GET /deliveries/{id}/label` | opgeslagen label beschermd openen of opnieuw afdrukken |
 | `GET /oauth/exact/start` | Exact OAuth starten |
@@ -225,6 +234,16 @@ gecontroleerd worden toegepast.
 - Gebruik HTTPS en houd `src`, `views`, `database`, `storage` en `.env` buiten de document root.
 
 ## 10. Actuele stand — 3 november 2026
+
+- 3 november 2026, lokaal nog niet gepubliceerd: na een succesvolle echte GLS-labelaanvraag schrijft
+  de PHP-app de tracking automatisch terug naar `GoodsDeliveries.TrackingNumber` in Exact. Een
+  samengevoegde zending werkt alle onderliggende Exact-leveringen bij; meerdere pakketnummers worden
+  uniek en komma-gescheiden opgeslagen. Iedere geslaagde Exact-update krijgt lokaal een tijdstempel,
+  zodat de herhaalactie idempotent alleen de nog niet bevestigde leveringen verwerkt. Bij een
+  Exact-storing blijven GLS-label en tracking veilig opgeslagen en verschijnt **Opnieuw naar Exact**;
+  er wordt nadrukkelijk geen tweede GLS-zending gemaakt. Mockresultaten en `MOCK-`-codes zijn zowel
+  in de service als de interface geblokkeerd. De al aanwezige kolom
+  `exact_tracking_synced_at` wordt gebruikt; er is geen nieuwe databasemigratie nodig.
 
 - 3 november 2026, applicatiecommits `fcd084f` en `82f6d5d` lokaal, op GitHub en Cloud86: via de
   nieuwe trackingimport zijn tien eerder rechtstreeks in GLS Print & Ship aangemaakte leveringen
@@ -533,7 +552,10 @@ Werk deze lijst in deze volgorde af:
     unit later via `ConfirmLabel` wordt bevestigd. Maak daarna van de magazijnactie één duidelijke,
     idempotente stap **Zending opslaan en labels maken**; open het opgeslagen label voor afdrukken.
 12. Voer een GLS-acceptatietest uit met een expliciete testlevering en controleer PDF/labelprinter.
-13. Spreek af naar welk Exact-veld de track-en-tracecode wordt teruggeschreven en implementeer dit.
+13. Controleer tijdens de eerste afgesproken echte GLS-acceptatietest dat
+    `GoodsDeliveries.TrackingNumber` in Exact direct na labelaanmaak is gevuld. Simuleer daarna één
+    mislukte Exact-update en controleer dat **Opnieuw naar Exact** werkt zonder een tweede
+    GLS-zending te maken.
 14. Activeer en test de GLS-webhook met een nieuw sterk Bearer-token.
 15. Voeg pas daarna geplande automatische Exact-import toe.
 

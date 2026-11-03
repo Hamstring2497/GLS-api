@@ -512,7 +512,74 @@ try {
             $result['tracking_numbers'],
             $result['label_path']
         );
-        flash('success', count($result['tracking_numbers']) . ' GLS-label(s) aangemaakt.');
+        if ($glsMode === 'mock') {
+            flash('success', count($result['tracking_numbers']) . ' ongeldig(e) GLS-testlabel(s) aangemaakt; Exact is niet bijgewerkt.');
+        } else {
+            try {
+                $deliveryWithTracking = $repository->find($id);
+                if ($deliveryWithTracking === null) {
+                    throw new ExactException('De opgeslagen levering kon niet opnieuw worden geladen.');
+                }
+                $exactResult = (new ExactService(Database::connect()))->syncDeliveryTracking(
+                    $deliveryWithTracking,
+                    $repository
+                );
+                if ($exactResult['errors'] !== []) {
+                    flash(
+                        'warning',
+                        count($result['tracking_numbers']) . ' GLS-label(s) aangemaakt, maar niet alle trackingnummers zijn naar Exact geschreven. '
+                        . implode(' | ', array_slice($exactResult['errors'], 0, 3))
+                        . ' Gebruik de knop “Opnieuw naar Exact” en maak géén nieuwe GLS-zending.'
+                    );
+                } else {
+                    flash(
+                        'success',
+                        count($result['tracking_numbers']) . ' GLS-label(s) aangemaakt en tracking naar '
+                        . $exactResult['synced'] . ' Exact-levering(en) geschreven.'
+                    );
+                }
+            } catch (Throwable $error) {
+                error_log('Exact tracking terugschrijven na GLS-succes: ' . $error->getMessage());
+                flash(
+                    'warning',
+                    count($result['tracking_numbers']) . ' GLS-label(s) zijn veilig opgeslagen, maar Exact kon niet worden bijgewerkt: '
+                    . $error->getMessage() . ' Gebruik “Opnieuw naar Exact” en maak géén nieuwe GLS-zending.'
+                );
+            }
+        }
+        redirect('/?delivery=' . rawurlencode($id));
+    }
+
+    if ($method === 'POST' && preg_match('#^/deliveries/([^/]+)/tracking/exact$#', $path, $matches)) {
+        Security::verifyCsrf();
+        if (strtolower((string) Env::get('GLS_MODE', 'mock')) === 'mock') {
+            abort(409, 'Tracking naar Exact schrijven is uitgeschakeld zolang de applicatie in GLS-mockmodus staat.');
+        }
+        $id = rawurldecode($matches[1]);
+        $delivery = $repository->find($id);
+        if ($delivery === null) {
+            abort(404, 'Levering niet gevonden.');
+        }
+        if ($delivery['status'] !== 'labels_created' || $delivery['tracking_numbers'] === []) {
+            abort(409, 'Deze levering heeft nog geen GLS-trackingnummer om naar Exact te schrijven.');
+        }
+        try {
+            $result = (new ExactService(Database::connect()))->syncDeliveryTracking($delivery, $repository);
+        } catch (Throwable $error) {
+            error_log('Exact tracking handmatig terugschrijven: ' . $error->getMessage());
+            flash('warning', 'Exact kon niet worden bijgewerkt: ' . $error->getMessage());
+            redirect('/?delivery=' . rawurlencode($id));
+        }
+        if ($result['errors'] !== []) {
+            flash('warning', 'Niet alle leveringen zijn naar Exact geschreven: ' . implode(' | ', array_slice($result['errors'], 0, 3)));
+        } else {
+            flash(
+                'success',
+                $result['synced'] > 0
+                    ? $result['synced'] . ' Exact-levering(en) bijgewerkt met GLS-tracking.'
+                    : 'De GLS-tracking stond al in Exact.'
+            );
+        }
         redirect('/?delivery=' . rawurlencode($id));
     }
 

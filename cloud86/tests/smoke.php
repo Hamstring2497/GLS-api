@@ -19,7 +19,8 @@ $db->exec('CREATE TABLE deliveries (
     ship_type TEXT, freight_unit_type TEXT, shipment_reference TEXT, address_json TEXT, shipping_date TEXT,
     gls_product TEXT DEFAULT \'direct_delivery_plus\', gls_options_json TEXT,
     status TEXT, tracking_numbers_json TEXT, gls_request_json TEXT, gls_response_json TEXT,
-    label_path TEXT, last_gls_state TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP, updated_at TEXT
+    label_path TEXT, exact_tracking_synced_at TEXT, last_gls_state TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP, updated_at TEXT
 )');
 $db->exec('CREATE TABLE parcels (exact_entry_id TEXT, position INTEGER, weight_kg REAL)');
 
@@ -34,6 +35,17 @@ assert($contactDisplayName->invoke($exactWithoutConstructor, [
 assert($contactDisplayName->invoke($exactWithoutConstructor, [
     'FirstName' => 'Fred', 'MiddleName' => 'van der', 'LastName' => 'Steen',
 ]) === 'Fred van der Steen');
+assert(App\ExactService::formatTrackingNumber([
+    ' 73220023887426 ', '73220023887419', '73220023887426', '',
+]) === '73220023887426, 73220023887419');
+assert(App\ExactService::isMockTracking([
+    'tracking_numbers' => ['MOCK-ABC123'],
+    'gls_response_json' => '{"mock":true}',
+]));
+assert(!App\ExactService::isMockTracking([
+    'tracking_numbers' => ['73220023887426'],
+    'gls_response_json' => '{"source":"GLS Track & Trace"}',
+]));
 $repository->save([
     'exact_entry_id' => 'test-delivery', 'delivery_number' => 'DEL-9',
     'order_number' => 'ORD-2026-1234', 'shipping_date' => null,
@@ -276,6 +288,25 @@ assert($imported === 2);
 assert($repository->find('merge-primary')['tracking_numbers'] === ['73220023886849']);
 assert($repository->find('merge-child')['status'] === 'labels_created');
 assert($repository->find('merge-child')['last_gls_state'] === 'tracking_imported');
+$deliveries = [$repository->find('merge-primary')];
+$selectedDelivery = $deliveries[0];
+$mergeCandidates = [];
+$glsMode = 'live';
+ob_start();
+require dirname(__DIR__) . '/views/deliveries/index.php';
+$exactPendingHtml = (string) ob_get_clean();
+assert(str_contains($exactPendingHtml, 'Exact nog niet bijgewerkt'));
+assert(str_contains($exactPendingHtml, 'Opnieuw naar Exact'));
+$repository->markExactTrackingSynced('merge-primary');
+$repository->markExactTrackingSynced('merge-child');
+assert(!empty($repository->find('merge-primary')['exact_tracking_synced_at']));
+$deliveries = [$repository->find('merge-primary')];
+$selectedDelivery = $deliveries[0];
+ob_start();
+require dirname(__DIR__) . '/views/deliveries/index.php';
+$exactSyncedHtml = (string) ob_get_clean();
+assert(str_contains($exactSyncedHtml, 'Exact bijgewerkt'));
+assert(!str_contains($exactSyncedHtml, 'Opnieuw naar Exact'));
 $missingMergeEmail = $merged;
 $missingMergeEmail['address']['email'] = '';
 assert(delivery_missing_data($missingMergeEmail)['email'] === 'geldig e-mailadres');

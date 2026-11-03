@@ -233,6 +233,104 @@ final class ExactService
         ];
     }
 
+    /**
+     * Schrijf de GLS-track-en-tracecode terug naar de Exact-goederenlevering.
+     *
+     * Bij een samengevoegde zending wordt iedere onderliggende Exact-levering apart bijgewerkt.
+     * Reeds bevestigde leveringen worden overgeslagen, zodat een veilige herhaalactie mogelijk is
+     * zonder opnieuw een GLS-zending aan te maken.
+     *
+     * @param array<string, mixed> $delivery
+     * @return array{synced: int, skipped: int, errors: list<string>}
+     */
+    public function syncDeliveryTracking(array $delivery, DeliveryRepository $deliveries): array
+    {
+        if (self::isMockTracking($delivery)) {
+            throw new ExactException('Een ongeldig GLS-testtrackingnummer mag niet naar Exact worden geschreven.');
+        }
+
+        $status = $this->status();
+        if (!$status['connected'] || $status['division'] === null) {
+            throw new ExactException('Exact Online is nog niet gekoppeld.');
+        }
+
+        $trackingNumber = self::formatTrackingNumber((array) ($delivery['tracking_numbers'] ?? []));
+        if ($trackingNumber === '') {
+            throw new ExactException('Er is geen GLS-trackingnummer om naar Exact te schrijven.');
+        }
+        if (mb_strlen($trackingNumber) > 100) {
+            throw new ExactException('De gezamenlijke GLS-trackingnummers zijn langer dan de 100 tekens die Exact toestaat.');
+        }
+
+        $members = array_merge([$delivery], (array) ($delivery['merged_deliveries'] ?? []));
+        $synced = 0;
+        $skipped = 0;
+        $errors = [];
+
+        foreach ($members as $member) {
+            $entryId = trim((string) ($member['exact_entry_id'] ?? ''));
+            $deliveryNumber = trim((string) ($member['delivery_number'] ?? $entryId));
+            if (!empty($member['exact_tracking_synced_at'])) {
+                $skipped++;
+                continue;
+            }
+            if (preg_match('/^[a-f0-9-]{36}$/i', $entryId) !== 1) {
+                $errors[] = "Levering {$deliveryNumber}: geen geldig Exact EntryID.";
+                continue;
+            }
+
+            try {
+                $this->apiPut(
+                    sprintf(
+                        "/api/v1/%d/salesorder/GoodsDeliveries(guid'%s')",
+                        $status['division'],
+                        rawurlencode($entryId)
+                    ),
+                    ['TrackingNumber' => $trackingNumber]
+                );
+                $deliveries->markExactTrackingSynced($entryId);
+                $synced++;
+            } catch (\Throwable $error) {
+                error_log("Exact tracking terugschrijven voor {$deliveryNumber}: " . $error->getMessage());
+                $errors[] = "Levering {$deliveryNumber}: " . $error->getMessage();
+            }
+        }
+
+        return ['synced' => $synced, 'skipped' => $skipped, 'errors' => $errors];
+    }
+
+    /** @param list<mixed> $numbers */
+    public static function formatTrackingNumber(array $numbers): string
+    {
+        $numbers = array_values(array_unique(array_filter(array_map(
+            static fn (mixed $number): string => trim((string) $number),
+            $numbers
+        ))));
+        return implode(', ', $numbers);
+    }
+
+    /** @param array<string, mixed> $delivery */
+    public static function isMockTracking(array $delivery): bool
+    {
+        $response = $delivery['gls_response_json'] ?? null;
+        if (is_string($response) && $response !== '') {
+            $decoded = json_decode($response, true);
+            if (is_array($decoded) && ($decoded['mock'] ?? false) === true) {
+                return true;
+            }
+        } elseif (is_array($response) && ($response['mock'] ?? false) === true) {
+            return true;
+        }
+
+        foreach ((array) ($delivery['tracking_numbers'] ?? []) as $trackingNumber) {
+            if (str_starts_with(strtoupper(trim((string) $trackingNumber)), 'MOCK-')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /** @param array<string, string> $query @return array<string, mixed> */
     private function apiGet(string $path, array $query = []): array
     {
@@ -255,6 +353,24 @@ final class ExactService
         return json_decode($response['body'], true, 512, JSON_THROW_ON_ERROR);
     }
 
+    /** @param array<string, mixed> $payload */
+    private function apiPut(string $path, array $payload): void
+    {
+        $url = rtrim(Env::require('EXACT_BASE_URL'), '/') . $path;
+        $accessToken = $this->accessToken();
+        $response = $this->sendPut($url, $accessToken, $payload);
+        if ($response['status'] === 401) {
+            $accessToken = $this->accessToken(true);
+            $response = $this->sendPut($url, $accessToken, $payload);
+        }
+        if ($response['status'] < 200 || $response['status'] >= 300) {
+            throw new ExactException(
+                sprintf('Exact API gaf HTTP %d: %s', $response['status'], $this->apiError($response['body'])),
+                $response['status']
+            );
+        }
+    }
+
     /** @return array{status: int, body: string} */
     private function sendGet(string $url, string $accessToken): array
     {
@@ -265,6 +381,32 @@ final class ExactService
             CURLOPT_TIMEOUT => 30,
             CURLOPT_HTTPHEADER => [
                 'Accept: application/json',
+                'Authorization: Bearer ' . $accessToken,
+            ],
+        ]);
+        $body = curl_exec($handle);
+        $status = (int) curl_getinfo($handle, CURLINFO_RESPONSE_CODE);
+        $error = curl_error($handle);
+        curl_close($handle);
+        if ($body === false) {
+            throw new ExactException('Exact API is niet bereikbaar: ' . $error);
+        }
+        return ['status' => $status, 'body' => $body];
+    }
+
+    /** @param array<string, mixed> $payload @return array{status: int, body: string} */
+    private function sendPut(string $url, string $accessToken, array $payload): array
+    {
+        $handle = curl_init($url);
+        curl_setopt_array($handle, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CONNECTTIMEOUT => 10,
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_CUSTOMREQUEST => 'PUT',
+            CURLOPT_POSTFIELDS => json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
+            CURLOPT_HTTPHEADER => [
+                'Accept: application/json',
+                'Content-Type: application/json',
                 'Authorization: Bearer ' . $accessToken,
             ],
         ]);

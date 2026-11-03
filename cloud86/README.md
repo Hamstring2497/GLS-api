@@ -25,11 +25,13 @@ Deze map is bedoeld voor het Cloud86 WooCommerce Power-pakket en heeft geen Comp
 - meerdere nog niet verzonden Exact-leveringen op exact hetzelfde afleveradres samenvoegen tot
   één GLS-zending. De hoofdlevering bevat alle gezamenlijke dozen; de GLS-referentie wordt
   aangevuld met de ordernummers van de gekoppelde leveringen.
+- echte GLS-track-en-tracecodes na labelaanmaak automatisch terugschrijven naar
+  `GoodsDeliveries.TrackingNumber` in Exact, met een veilige herhaalactie die geen nieuwe
+  GLS-zending maakt. Mocktracking wordt altijd geblokkeerd.
 
 ## Nog te activeren
 
 - periodieke automatische import van verwerkte goederenleveringen; handmatig ophalen is beschikbaar;
-- terugschrijven van de GLS-code naar het overeengekomen Exact-veld;
 - `ConfirmLabel` aan het einde van de verzendhandeling of dag;
 - productiekeuring met de echte GLS-testomgeving.
 

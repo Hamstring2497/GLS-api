@@ -18,8 +18,9 @@ Eerste MVP-basis voor een magazijnwerkplek tussen Exact Online en GLS Netherland
 5. Dubbele labelaanvragen voor dezelfde levering blokkeren.
 
 De actuele `CreateLabel`-responsemapping, `ConfirmLabel`- en Track & Trace-requestcontracten zijn
-aanwezig. De Exact OAuth/webhook-adapter, labelbestanden, het uitvoeren van `ConfirmLabel` en het
-terugschrijven van `TrackingNumber` worden in de volgende stappen toegevoegd.
+aanwezig. De PHP-productieapp in `cloud86/` bevat Exact OAuth, opgeslagen labelbestanden en het
+veilige terugschrijven van echte GLS-tracking naar `GoodsDeliveries.TrackingNumber`. `ConfirmLabel`
+is nog een volgende stap.
 
 ## Lokaal starten
 
