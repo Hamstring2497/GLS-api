@@ -235,6 +235,12 @@ gecontroleerd worden toegepast.
 
 ## 10. Actuele stand — 3 november 2026
 
+- Echte numerieke GLS-trackingnummers zijn in zowel de leveringstabel als het detailblok klikbaar.
+  De link opent de officiële Nederlandse GLS Track & Trace-pagina in een nieuw tabblad. Mockcodes
+  en onverwachte waarden blijven bewust gewone tekst. De linkbediening onderschept de bestaande
+  rijklik voor het openen van leveringsdetails niet. Geen databasemigratie nodig; publicatie en
+  ingelogde browsercontrole zijn nog uit te voeren.
+
 - De detailvolgorde in de magazijnwerkplek is aangepast naar **Afleveradres → Zending → Dozen en
   gewicht**. Het zendingblok staat daardoor direct boven de dozen. Gewicht wordt voortaan in hele
   kilo's ingevoerd en getoond; de browser én server weigeren decimalen en blijven de bestaande
@@ -598,6 +604,9 @@ gecontroleerd worden toegepast.
 ## 11. Volgende stappen
 
 Werk deze lijst in deze volgorde af:
+
+- Publiceer de klikbare GLS Track & Trace-links en controleer met een bestaande echte zending dat
+  de link in een nieuw tabblad opent, terwijl klikken naast de link nog steeds de levering selecteert.
 
 - Test ingelogd één nog niet verzonden levering en één reeds gemaakte zending zonder een nieuwe
   GLS-aanvraag te doen. Controleer daarbij de nieuwe detailvolgorde, hele-kilo-invoer en groene

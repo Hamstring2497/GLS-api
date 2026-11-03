@@ -9,6 +9,20 @@ function e(mixed $value): string
     return htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+/**
+ * Geeft alleen voor een echt, numeriek GLS-pakketnummer een veilige Track & Trace-URL terug.
+ * Mockcodes en andere onverwachte waarden blijven gewone tekst.
+ */
+function gls_tracking_url(mixed $trackingNumber): ?string
+{
+    $trackingNumber = trim((string) $trackingNumber);
+    if (preg_match('/^\d{8,32}$/', $trackingNumber) !== 1) {
+        return null;
+    }
+
+    return 'https://tracking.gls.nl/customer-track-and-trace/parcels/' . rawurlencode($trackingNumber);
+}
+
 /** @param array<string, mixed> $data */
 function view(string $name, array $data = []): never
 {

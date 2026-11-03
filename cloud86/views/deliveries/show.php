@@ -208,6 +208,10 @@ $addressFields = [
                         <?php elseif ($exactTrackingSynced): ?>· Exact bijgewerkt
                         <?php elseif ($glsMode === 'mock'): ?>· Exact wacht op actieve GLS-koppeling
                         <?php else: ?>· Exact nog niet bijgewerkt<?php endif; ?>
+                        <?php foreach ($delivery['tracking_numbers'] as $trackingNumber): ?>
+                            <?php $trackingUrl = gls_tracking_url($trackingNumber); ?>
+                            <?php if ($trackingUrl !== null): ?> · <a class="tracking-link" href="<?= e($trackingUrl) ?>" target="_blank" rel="noopener noreferrer" title="Open GLS Track & Trace voor <?= e($trackingNumber) ?>"><?= e($trackingNumber) ?></a><?php endif; ?>
+                        <?php endforeach; ?>
                     </span>
                     <?php if (!empty($delivery['label_path'])): ?><a class="button button-small" href="/deliveries/<?= rawurlencode((string) $delivery['exact_entry_id']) ?>/label" onclick="return openLabelAndPrint(this.href)">Label openen en afdrukken</a><?php endif; ?>
                     <?php if ($glsMode === 'live' && !$mockTracking && !$exactTrackingSynced): ?>

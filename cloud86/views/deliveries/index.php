@@ -109,7 +109,17 @@
                     <td><?= e($delivery['effective_reference'] ?: '—') ?></td>
                     <td><?= count($delivery['parcels']) ?></td>
                     <td><?= e(number_format(array_sum(array_map(static fn ($parcel): float => (float) $parcel['weight_kg'], $delivery['parcels'])), 0, ',', '.')) ?> kg</td>
-                    <td><?= e(implode(', ', $delivery['tracking_numbers']) ?: '—') ?></td>
+                    <td class="tracking-cell">
+                        <?php if ($delivery['tracking_numbers'] === []): ?>—<?php else: ?>
+                            <?php foreach ($delivery['tracking_numbers'] as $trackingIndex => $trackingNumber): ?>
+                                <?php $trackingUrl = gls_tracking_url($trackingNumber); ?>
+                                <?php if ($trackingIndex > 0): ?>, <?php endif; ?>
+                                <?php if ($trackingUrl !== null): ?>
+                                    <a class="tracking-link" href="<?= e($trackingUrl) ?>" target="_blank" rel="noopener noreferrer" title="Open GLS Track & Trace voor <?= e($trackingNumber) ?>"><?= e($trackingNumber) ?></a>
+                                <?php else: ?><?= e($trackingNumber) ?><?php endif; ?>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </td>
                     <td><span class="badge badge-<?= e($tableStatusClass) ?>"><?= e($tableStatus) ?></span></td>
                 </tr>
             <?php endforeach; ?>
@@ -243,11 +253,12 @@
 
         document.querySelectorAll('.delivery-row').forEach(row => {
             row.addEventListener('click', event => {
-                if (event.target.closest('button, input, select, textarea')) return;
+                if (event.target.closest('a, button, input, select, textarea')) return;
                 event.preventDefault();
                 openDelivery(row, event);
             });
             row.addEventListener('keydown', event => {
+                if (event.target.closest('a, button, input, select, textarea')) return;
                 if (event.key === 'Enter' || event.key === ' ') {
                     event.preventDefault();
                     openDelivery(row, event);

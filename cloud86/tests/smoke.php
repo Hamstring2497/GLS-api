@@ -53,6 +53,9 @@ assert(!App\ExactService::isMockTracking([
     'tracking_numbers' => ['73220023887426'],
     'gls_response_json' => '{"source":"GLS Track & Trace"}',
 ]));
+assert(gls_tracking_url('73220023887426') === 'https://tracking.gls.nl/customer-track-and-trace/parcels/73220023887426');
+assert(gls_tracking_url('MOCK-ABC123') === null);
+assert(gls_tracking_url('7322/0023') === null);
 $repository->save([
     'exact_entry_id' => 'test-delivery', 'delivery_number' => 'DEL-9',
     'order_number' => 'ORD-2026-1234', 'shipping_date' => null,
@@ -367,6 +370,8 @@ require dirname(__DIR__) . '/views/deliveries/index.php';
 $exactPendingHtml = (string) ob_get_clean();
 assert(str_contains($exactPendingHtml, 'Exact nog niet bijgewerkt'));
 assert(str_contains($exactPendingHtml, 'Opnieuw naar Exact'));
+assert(str_contains($exactPendingHtml, 'href="https://tracking.gls.nl/customer-track-and-trace/parcels/73220023886849"'));
+assert(str_contains($exactPendingHtml, 'target="_blank"'));
 $repository->markExactTrackingSynced('merge-primary');
 $repository->markExactTrackingSynced('merge-child');
 assert(!empty($repository->find('merge-primary')['exact_tracking_synced_at']));
