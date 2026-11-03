@@ -12,7 +12,7 @@
         <span>Geen nieuw labelbestand · alleen tracking en status worden vastgelegd</span>
     </div>
     <div class="tracking-import-content">
-        <p>Gebruik per regel: <strong>leverings-ID('s) = trackingnummer(s)</strong>. Scheid meerdere waarden met een komma.</p>
+        <p>Gebruik per regel: <strong>leveringsnummer(s) = trackingnummer(s)</strong>. Scheid meerdere waarden met een komma.</p>
         <form method="post" action="/maintenance/tracking-import" onsubmit="return confirmTrackingImport(this)">
             <input type="hidden" name="_token" value="<?= e(\App\Security::csrfToken()) ?>">
             <input type="hidden" name="confirm_import" value="no">

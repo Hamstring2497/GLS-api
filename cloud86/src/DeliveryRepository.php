@@ -383,7 +383,8 @@ final class DeliveryRepository
         try {
             $lock = $this->db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql' ? ' FOR UPDATE' : '';
             $select = $this->db->prepare(
-                'SELECT status, tracking_numbers_json FROM deliveries WHERE exact_entry_id = ?' . $lock
+                'SELECT exact_entry_id, status, tracking_numbers_json FROM deliveries '
+                . 'WHERE exact_entry_id = ? OR delivery_number = ?' . $lock
             );
             $update = $this->db->prepare(
                 "UPDATE deliveries SET status = 'labels_created', tracking_numbers_json = ?, "
@@ -407,7 +408,7 @@ final class DeliveryRepository
                 }
 
                 foreach (array_values(array_unique($assignment['delivery_ids'])) as $deliveryId) {
-                    $select->execute([$deliveryId]);
+                    $select->execute([$deliveryId, $deliveryId]);
                     $row = $select->fetch();
                     if (!$row) {
                         throw new \InvalidArgumentException("Levering {$deliveryId} bestaat niet.");
@@ -433,7 +434,7 @@ final class DeliveryRepository
                         json_encode($numbers, JSON_THROW_ON_ERROR),
                         json_encode($response, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
                         'tracking_imported',
-                        $deliveryId,
+                        (string) $row['exact_entry_id'],
                     ]);
                     $updated += $update->rowCount();
                 }

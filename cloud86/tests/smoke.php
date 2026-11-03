@@ -269,7 +269,7 @@ assert($repository->find('merge-child')['merged_into_exact_entry_id'] === 'merge
 assert($gls->buildPayload($merged)['reference'] === '2000 / ORD-2001');
 assert(delivery_missing_data($merged) === []);
 $imported = $repository->importExistingTracking([[
-    'delivery_ids' => ['merge-primary', 'merge-child'],
+    'delivery_ids' => ['DEL-20', 'DEL-21'],
     'tracking_numbers' => ['73220023886849'],
 ]]);
 assert($imported === 2);
