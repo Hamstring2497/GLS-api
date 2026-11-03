@@ -240,7 +240,8 @@ gecontroleerd worden toegepast.
   kilo's ingevoerd en getoond; de browser én server weigeren decimalen en blijven de bestaande
   maximumgewichten per vrachttype bewaken. Na succesvolle labelaanmaak krijgt de levering in tabel
   en details een groene markering met **Zending klaar ✓**. Geen databasemigratie nodig. Deze
-  wijziging is lokaal gereed maar nog niet naar GitHub of Cloud86 gepubliceerd.
+  applicatiecommit `386f30b` staat lokaal en op GitHub. Cloud86/Plesk is nog niet bijgewerkt,
+  omdat de bestaande Plesk-browsersessie bij het openen van de Git-pagina opnieuw om inloggen vroeg.
 
 - Contactpersonen uit Exact gebruiken voor de zichtbare aanspreektitel nu
   `TitleAbbreviation` (bijvoorbeeld `dhr.`) en nooit meer de interne `Title`-code. Als Exact geen
