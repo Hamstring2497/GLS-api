@@ -53,6 +53,7 @@ assert(!App\ExactService::isMockTracking([
     'tracking_numbers' => ['73220023887426'],
     'gls_response_json' => '{"source":"GLS Track & Trace"}',
 ]));
+assert(App\ExactService::DELIVERY_SYNC_START_DATE === '2026-11-01');
 assert(gls_tracking_url('73220023887426') === 'https://tracking.gls.nl/customer-track-and-trace/parcels/73220023887426');
 assert(gls_tracking_url('MOCK-ABC123') === null);
 assert(gls_tracking_url('7322/0023') === null);
@@ -395,7 +396,17 @@ try {
     assert(str_contains($error->getMessage(), 'e-mailadres'));
 }
 
-assert($repository->clearAll() === 4);
+assert(count($repository->withoutTracking()) === 2);
+$withoutTrackingIds = array_map(
+    static fn (array $row): string => (string) $row['exact_entry_id'],
+    $repository->withoutTracking()
+);
+assert($repository->deleteWithoutTracking($withoutTrackingIds) === 2);
+assert($repository->find('test-delivery') === null);
+assert($repository->find('second') === null);
+assert($repository->find('merge-primary') !== null);
+assert($repository->find('merge-child') !== null);
+assert($repository->clearAll() === 2);
 assert($repository->all() === []);
 assert($db->query('SELECT COUNT(*) FROM parcels')->fetchColumn() == 0);
 

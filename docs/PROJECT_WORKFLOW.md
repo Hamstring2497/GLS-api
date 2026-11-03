@@ -90,6 +90,9 @@ geteste referentie voor de GLS-contracten. Nieuwe productiewerkzaamheden horen i
 ### B. Leveringen ophalen
 
 - Een beheerder klikt op **Leveringen ophalen**; dit verstuurt `POST /exact/sync` met CSRF-controle.
+- **1 november 2026 is het vaste startpunt van ParcelPilot.** De Exact-query vraagt alleen
+  leveringen vanaf die datum op en de app controleert de leverdatum daarnaast lokaal. Leveringen
+  van vóór 1 november 2026 worden daardoor nooit meer aan de lokale werkvoorraad toegevoegd.
 - De app vraagt de recentste Exact `GoodsDeliveries` op, standaard maximaal 50.
 - Reeds lokaal aanwezige leveringen worden overgeslagen.
 - Leveringen die in Exact al een `TrackingNumber` hebben worden overgeslagen.
@@ -234,6 +237,13 @@ gecontroleerd worden toegepast.
 - Gebruik HTTPS en houd `src`, `views`, `database`, `storage` en `.env` buiten de document root.
 
 ## 10. Actuele stand — 3 november 2026
+
+- De Exact-import heeft een harde begindatum van **1 november 2026**. De grens staat zowel in de
+  OData-query als in een lokale veiligheidscontrole, inclusief terugval voor Exact-omgevingen die
+  de queryfilter niet accepteren. `bin/delete-untracked-deliveries.php` biedt een controlemodus en
+  verwijdert met `--execute` uitsluitend de vooraf getoonde leveringen die nog steeds geen
+  trackingnummer hebben; leveringen met tracking blijven altijd bewaard. Geen databasemigratie
+  nodig. Productie-opschoning en publicatiestatus worden na uitvoering hieronder vastgelegd.
 
 - De zichtbare applicatienaam is **ParcelPilot**. De kop toont een compact technisch `PP`-beeldmerk
   met de woordnaam ParcelPilot in de bestaande blauwe BETEC-stijl; ook de browsertitel is aangepast.
@@ -614,6 +624,10 @@ gecontroleerd worden toegepast.
 ## 11. Volgende stappen
 
 Werk deze lijst in deze volgorde af:
+
+- Controleer na iedere toekomstige wijziging aan de Exact-import dat 1 november 2026 de vaste
+  ondergrens blijft. Gebruik het opschoonscript altijd eerst zonder `--execute` en vergelijk de
+  getoonde leveringnummers voordat de uitvoeroptie wordt gebruikt.
 
 - Test ingelogd één nog niet verzonden levering en één reeds gemaakte zending zonder een nieuwe
   GLS-aanvraag te doen. Controleer daarbij de nieuwe detailvolgorde, hele-kilo-invoer en groene

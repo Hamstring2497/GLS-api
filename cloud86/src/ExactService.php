@@ -8,6 +8,8 @@ use PDO;
 
 final class ExactService
 {
+    public const DELIVERY_SYNC_START_DATE = '2026-11-01';
+
     public function __construct(private readonly PDO $db)
     {
     }
@@ -75,14 +77,15 @@ final class ExactService
             'DeliveryContactPersonFullName',
             'TrackingNumber',
         ]);
+        $baseQuery = [
+            '$select' => $select,
+            '$top' => (string) $limit,
+            '$filter' => "DeliveryDate ge datetime'" . self::DELIVERY_SYNC_START_DATE . "T00:00:00'",
+        ];
         try {
             $payload = $this->apiGet(
                 $path,
-                [
-                    '$select' => $select,
-                    '$top' => (string) $limit,
-                    '$orderby' => 'DeliveryDate desc',
-                ]
+                $baseQuery + ['$orderby' => 'DeliveryDate desc']
             );
         } catch (ExactException $error) {
             // Niet iedere Exact-administratie accepteert DeliveryDate als OData-sorteerveld.
@@ -90,10 +93,19 @@ final class ExactService
             if ($error->httpStatus !== 400) {
                 throw $error;
             }
-            $payload = $this->apiGet($path, [
-                '$select' => $select,
-                '$top' => (string) $limit,
-            ]);
+            try {
+                $payload = $this->apiGet($path, $baseQuery);
+            } catch (ExactException $filterError) {
+                // Een oudere Exact-omgeving kan ook de datumfilter afwijzen. De lokale controle
+                // hieronder blijft dan de harde grens en voorkomt import van oudere leveringen.
+                if ($filterError->httpStatus !== 400) {
+                    throw $filterError;
+                }
+                $payload = $this->apiGet($path, [
+                    '$select' => $select,
+                    '$top' => (string) $limit,
+                ]);
+            }
         }
         $rows = $this->results($payload);
         usort($rows, static function (array $left, array $right): int {
@@ -109,6 +121,15 @@ final class ExactService
             $entryId = trim((string) ($row['EntryID'] ?? $row['ID'] ?? ''));
             if ($entryId === '') {
                 $errors[] = 'Exact-levering zonder EntryID overgeslagen.';
+                continue;
+            }
+            $date = $this->exactDate($row['DeliveryDate'] ?? null);
+            if ($date === null) {
+                $errors[] = 'Exact-levering zonder geldige leverdatum overgeslagen.';
+                continue;
+            }
+            if ($date < self::DELIVERY_SYNC_START_DATE) {
+                $skipped++;
                 continue;
             }
             if ($deliveries->find($entryId) !== null) {
@@ -148,7 +169,6 @@ final class ExactService
                 if ($orderNumber === '') {
                     $orderNumber = $deliveryNumber;
                 }
-                $date = $this->exactDate($row['DeliveryDate'] ?? null);
                 $name = trim((string) (
                     $row['DeliveryAccountName']
                     ?? $row['DeliverToName']

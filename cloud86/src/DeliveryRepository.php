@@ -300,6 +300,66 @@ final class DeliveryRepository
         }
     }
 
+    /** @return list<array<string, mixed>> */
+    public function withoutTracking(): array
+    {
+        $rows = $this->db->query(
+            'SELECT * FROM deliveries ORDER BY shipping_date, created_at, delivery_number'
+        )->fetchAll();
+
+        $deliveries = array_map(fn (array $row): array => $this->hydrate($row, false), $rows);
+        return array_values(array_filter(
+            $deliveries,
+            static fn (array $delivery): bool => $delivery['tracking_numbers'] === []
+        ));
+    }
+
+    /**
+     * Verwijder uitsluitend de vooraf geselecteerde leveringen die op het moment van verwijderen
+     * nog steeds geen trackingnummer hebben. Zo kan een intussen afgeronde zending nooit worden
+     * geraakt door een oudere opschoonselectie.
+     *
+     * @param list<string> $ids
+     */
+    public function deleteWithoutTracking(array $ids): int
+    {
+        $ids = array_values(array_unique(array_filter(
+            array_map('trim', $ids),
+            static fn (string $id): bool => $id !== ''
+        )));
+        if ($ids === []) {
+            return 0;
+        }
+
+        $this->db->beginTransaction();
+        try {
+            $deleteParcels = $this->db->prepare('DELETE FROM parcels WHERE exact_entry_id = ?');
+            $detachChildren = $this->db->prepare(
+                'UPDATE deliveries SET merged_into_exact_entry_id = NULL, updated_at = CURRENT_TIMESTAMP '
+                . 'WHERE merged_into_exact_entry_id = ?'
+            );
+            $deleteDelivery = $this->db->prepare('DELETE FROM deliveries WHERE exact_entry_id = ?');
+            $deleted = 0;
+
+            foreach ($ids as $id) {
+                $delivery = $this->find($id);
+                if ($delivery === null || $delivery['tracking_numbers'] !== []) {
+                    continue;
+                }
+                $detachChildren->execute([$id]);
+                $deleteParcels->execute([$id]);
+                $deleteDelivery->execute([$id]);
+                $deleted += $deleteDelivery->rowCount();
+            }
+
+            $this->db->commit();
+            return $deleted;
+        } catch (\Throwable $error) {
+            $this->db->rollBack();
+            throw $error;
+        }
+    }
+
     /** @param array<string, mixed> $request */
     public function beginGlsRequest(string $id, array $request): bool
     {
