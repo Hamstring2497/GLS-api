@@ -238,8 +238,13 @@ gecontroleerd worden toegepast.
 - Echte numerieke GLS-trackingnummers zijn in zowel de leveringstabel als het detailblok klikbaar.
   De link opent de officiële Nederlandse GLS Track & Trace-pagina in een nieuw tabblad. Mockcodes
   en onverwachte waarden blijven bewust gewone tekst. De linkbediening onderschept de bestaande
-  rijklik voor het openen van leveringsdetails niet. Geen databasemigratie nodig; publicatie en
-  ingelogde browsercontrole zijn nog uit te voeren.
+  rijklik voor het openen van leveringsdetails niet. Geen databasemigratie nodig. Applicatiecommit
+  `11e00ee` staat lokaal, op GitHub en via Plesk op Cloud86. De uitgebreide lokale regressietest
+  slaagt met negen tests. Op Cloud86 zijn de PHP-syntaxcontrole, PHP-smoketest, live-gereedheidscheck
+  en productie-logincontrole geslaagd zonder een GLS-zending te maken of Exact te wijzigen.
+  In de ingelogde productie-app zijn links in tabel en detail bevestigd; een klik op pakketnummer
+  `73220023887075` opende een apart GLS Track & Trace-tabblad met precies dat pakketnummer.
+  `/health` meldt na publicatie `status: ok` en `gls_mode: live`.
 
 - De detailvolgorde in de magazijnwerkplek is aangepast naar **Afleveradres → Zending → Dozen en
   gewicht**. Het zendingblok staat daardoor direct boven de dozen. Gewicht wordt voortaan in hele
@@ -604,9 +609,6 @@ gecontroleerd worden toegepast.
 ## 11. Volgende stappen
 
 Werk deze lijst in deze volgorde af:
-
-- Publiceer de klikbare GLS Track & Trace-links en controleer met een bestaande echte zending dat
-  de link in een nieuw tabblad opent, terwijl klikken naast de link nog steeds de levering selecteert.
 
 - Test ingelogd één nog niet verzonden levering en één reeds gemaakte zending zonder een nieuwe
   GLS-aanvraag te doen. Controleer daarbij de nieuwe detailvolgorde, hele-kilo-invoer en groene
