@@ -240,8 +240,9 @@ gecontroleerd worden toegepast.
   kilo's ingevoerd en getoond; de browser én server weigeren decimalen en blijven de bestaande
   maximumgewichten per vrachttype bewaken. Na succesvolle labelaanmaak krijgt de levering in tabel
   en details een groene markering met **Zending klaar ✓**. Geen databasemigratie nodig. Deze
-  applicatiecommit `386f30b` staat lokaal en op GitHub. Cloud86/Plesk is nog niet bijgewerkt,
-  omdat de bestaande Plesk-browsersessie bij het openen van de Git-pagina opnieuw om inloggen vroeg.
+  applicatiecommit `386f30b` staat lokaal, op GitHub en via Plesk op Cloud86. De bijbehorende
+  smoketest is in `486e450` aangepast aan de bewust verwijderde extra productiebevestigingen;
+  de verborgen verzenddatum blijft expliciet getest. Er was geen databasemigratie nodig.
 
 - Contactpersonen uit Exact gebruiken voor de zichtbare aanspreektitel nu
   `TitleAbbreviation` (bijvoorbeeld `dhr.`) en nooit meer de interne `Title`-code. Als Exact geen
@@ -598,10 +599,10 @@ gecontroleerd worden toegepast.
 
 Werk deze lijst in deze volgorde af:
 
-- Publiceer de nieuwe detailvolgorde, hele-kilo-invoer en groene gereedmarkering. Controleer in
-  Plesk eerst de PHP-syntax en smoketest; test daarna één nog niet verzonden levering en één reeds
-  gemaakte zending zonder een nieuwe GLS-aanvraag te doen.
-- Test na publicatie ingelogd zoeken, alle zes sorteerkoppen, **Reset**, de standaardselectie en
+- Test ingelogd één nog niet verzonden levering en één reeds gemaakte zending zonder een nieuwe
+  GLS-aanvraag te doen. Controleer daarbij de nieuwe detailvolgorde, hele-kilo-invoer en groene
+  gereedmarkering.
+- Test ingelogd zoeken, alle zes sorteerkoppen, **Reset**, de standaardselectie en
   één samenvoeging met een referentie als `5256 / 5261`. Controleer daarna met een reeds gemaakt
   label dat **Label openen en afdrukken** geen nieuwe GLS-zending maakt. Maak pas daarna één nieuw
   label en controleer dat het PDF-venster en het afdrukscherm direct openen; sta pop-ups voor het
