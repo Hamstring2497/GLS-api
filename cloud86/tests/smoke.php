@@ -140,6 +140,8 @@ assert(str_contains($mockPdf, '/Count 2'));
 assert(substr_count($mockPdf, '/Type /Page ') === 2);
 assert(str_contains($mockPdf, 'GLS TEST'));
 assert(str_contains($mockPdf, 'ONGELDIG - NIET VERZENDEN'));
+assert(str_contains($mockPdf, 'DirectDeliveryPlus'));
+assert(str_contains($mockPdf, 'REFERENTIE / ORDER'));
 assert(str_contains($mockPdf, 'Voorbeeld BV'));
 assert(str_contains($mockPdf, 'Nieuwe straat 12A'));
 assert(str_contains($mockPdf, '7,2 kg'));

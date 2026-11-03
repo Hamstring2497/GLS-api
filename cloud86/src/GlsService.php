@@ -411,51 +411,74 @@ final class GlsService
         $reference = (string) ($payload['reference'] ?? $deliveryId);
         $shipType = strtoupper((string) ($payload['shiptype'] ?? 'P'));
         $customerNo = (string) ($payload['customerNo'] ?? 'TEST');
+        $services = is_array($payload['services'] ?? null) ? $payload['services'] : [];
+        $product = !empty($services['economyParcel']) ? 'DirectDelivery'
+            : (!empty($services['letterBoxParcel']) ? 'LetterboxDelivery'
+                : (!empty($services['shopDeliveryService']) ? 'PointDelivery'
+                    : (!empty($services['expressService']) ? 'ExpressDelivery' : 'DirectDeliveryPlus')));
+        $route = strtoupper(substr((string) preg_replace('/\s+/', '', (string) ($address['zipCode'] ?? 'TEST')), 0, 4));
 
         $commands = [
             '1 1 1 rg 0 0 283.46 425.20 re f',
-            '0 0 0 rg 0 370 283.46 55.20 re f',
-            $this->pdfText(14, 397, 24, 'GLS TEST', true, '1 1 1 rg'),
-            $this->pdfText(14, 380, 9, 'ONGELDIG - NIET VERZENDEN', true, '1 1 1 rg'),
-            '1 1 1 RG 1.5 w 231 379 36 31 re S',
-            $this->pdfText(241, 387, 20, $shipType, true, '1 1 1 rg'),
-            '0.82 g 0 354 283.46 16 re f',
-            $this->pdfText(14, 359, 8, 'AFLEVERADRES', true),
+            '0 0 0 RG 1.4 w 6 6 271.46 413.20 re S',
+            '0 0 0 rg 6 366 271.46 53.2 re f',
+            $this->pdfText(14, 397, 22, 'GLS TEST', true, '1 1 1 rg'),
+            $this->pdfText(14, 380, 8, 'ONGELDIG - NIET VERZENDEN', true, '1 1 1 rg'),
+            $this->pdfText(167, 386, 28, $country !== '' ? $country : 'XX', true, '1 1 1 rg'),
+            $this->pdfText(167, 371, 12, $route, true, '1 1 1 rg'),
+            '0 0 0 RG 1 w 6 327 m 277.46 327 l S',
+            $this->pdfText(14, 349, 7, 'PRODUCT', true),
+            $this->pdfText(14, 334, $this->mockFitFontSize($product, 118, 11, 7), $product, true),
+            $this->pdfText(145, 349, 7, 'TYPE', true),
+            $this->pdfText(145, 334, 12, $shipType, true),
+            $this->pdfText(183, 349, 7, 'DOOS', true),
+            $this->pdfText(183, 334, 12, $position . '/' . $total, true),
+            $this->pdfText(228, 349, 7, 'GEWICHT', true),
+            $this->pdfText(222, 334, 11, $weight, true),
+            '0.84 g 6 310 271.46 17 re f',
+            $this->pdfText(14, 315, 8, 'AFLEVERADRES', true),
+            $this->mockMatrix($unitNo, 228, 370, 38),
         ];
 
-        $y = 329.0;
+        $y = 286.0;
         foreach ($nameLines as $lineIndex => $name) {
-            $commands[] = $this->pdfText(14, $y, $this->mockAddressFontSize($name, $lineIndex === 0), $name, true);
-            $y -= $lineIndex === 0 ? 22 : 17;
+            $preferredSize = $this->mockAddressFontSize($name, $lineIndex === 0);
+            $commands[] = $this->pdfText(
+                14,
+                $y,
+                $this->mockFitFontSize($name, 195, $preferredSize, 8),
+                $name,
+                true
+            );
+            $y -= $lineIndex === 0 ? 20 : 15;
         }
         $commands[] = $this->pdfText(
             14,
-            min($y - 3, 282),
-            $this->mockFitFontSize($streetLine, 255, 14, 8),
+            min($y - 3, 245),
+            $this->mockFitFontSize($streetLine, 195, 13, 8),
             $streetLine,
             false
         );
         $commands[] = $this->pdfText(
             14,
-            min($y - 25, 260),
-            $this->mockFitFontSize($postalLine, 255, 16, 9),
+            min($y - 24, 223),
+            $this->mockFitFontSize($postalLine, 195, 15, 9),
             $postalLine,
             true
         );
-        $commands[] = $this->pdfText(14, min($y - 43, 242), 10, $country, true);
-        $commands[] = '0 0 0 RG 1 w 14 218 m 269 218 l S';
-        $commands[] = $this->pdfText(14, 202, 7, 'REFERENTIE', true);
-        $commands[] = $this->pdfText(14, 184, $this->mockFitFontSize($reference, 155, 14, 7), $reference, true);
-        $commands[] = $this->pdfText(184, 202, 7, 'DOOS', true);
-        $commands[] = $this->pdfText(184, 184, 14, $position . ' / ' . $total, true);
-        $commands[] = $this->pdfText(236, 202, 7, 'GEWICHT', true);
-        $commands[] = $this->pdfText(226, 184, 12, $weight, true);
-        $commands[] = '0 0 0 RG 1 w 14 166 m 269 166 l S';
-        $commands[] = $this->pdfText(14, 151, 7, 'TRACKINGNUMMER', true);
-        $commands[] = $this->pdfText(14, 133, $this->mockFitFontSize($unitNo, 255, 13, 8), $unitNo, true);
+        $commands[] = $this->pdfText(14, min($y - 41, 206), 9, $country, true);
+        $commands[] = $this->mockMatrix($reference, 226, 252, 42);
+        $commands[] = '0 0 0 RG 1 w 6 178 m 277.46 178 l S';
+        $commands[] = $this->pdfText(14, 166, 7, 'REFERENTIE / ORDER', true);
+        $commands[] = $this->pdfText(14, 150, $this->mockFitFontSize($reference, 180, 12, 7), $reference, true);
+        $commands[] = $this->pdfText(210, 166, 7, 'ROUTE', true);
+        $commands[] = $this->pdfText(210, 149, 14, $route, true);
+        $commands[] = '0 0 0 RG 1 w 6 140 m 277.46 140 l S';
+        $commands[] = $this->pdfText(14, 128, 7, 'TRACKINGNUMMER', true);
+        $commands[] = $this->pdfText(14, 113, $this->mockFitFontSize($unitNo, 255, 12, 8), $unitNo, true);
         $commands[] = $this->mockBarcode($unitNo);
-        $commands[] = $this->pdfText(14, 21, 7, 'Klant ' . $customerNo . '  |  Levering ' . $deliveryId, false);
-        $commands[] = $this->pdfText(14, 9, 7, 'TESTLABEL - GEEN GELDIGE GLS-ZENDING', true);
+        $commands[] = $this->pdfText(14, 24, 7, 'Klant ' . $customerNo . ' | Levering ' . $deliveryId, false);
+        $commands[] = $this->pdfText(14, 11, 7, 'TESTLABEL - GEEN GELDIGE GLS-ZENDING', true);
 
         return implode("\n", $commands);
     }
@@ -511,13 +534,41 @@ final class GlsService
         foreach (str_split(substr($hash, 0, 56)) as $index => $digit) {
             $number = hexdec($digit);
             $width = 1.0 + ($number % 3);
-            $height = 55.0 + (($number + $index) % 3) * 4;
+            $height = 60.0 + (($number + $index) % 3) * 4;
             if ($x + $width > 266) {
                 break;
             }
-            $commands[] = $this->pdfNumber($x) . ' 48 ' . $this->pdfNumber($width) . ' '
+            $commands[] = $this->pdfNumber($x) . ' 34 ' . $this->pdfNumber($width) . ' '
                 . $this->pdfNumber($height) . ' re f';
             $x += $width + 1.2 + (($number >> 2) % 2);
+        }
+        return implode("\n", $commands);
+    }
+
+    private function mockMatrix(string $value, float $x, float $y, float $size): string
+    {
+        $cells = 21;
+        $cell = $size / $cells;
+        $bits = '';
+        foreach (str_split(hash('sha256', $value)) as $digit) {
+            $bits .= str_pad(decbin(hexdec($digit)), 4, '0', STR_PAD_LEFT);
+        }
+        $commands = ['1 1 1 rg ' . $this->pdfNumber($x) . ' ' . $this->pdfNumber($y) . ' '
+            . $this->pdfNumber($size) . ' ' . $this->pdfNumber($size) . ' re f', '0 0 0 rg'];
+        for ($row = 0; $row < $cells; $row++) {
+            for ($column = 0; $column < $cells; $column++) {
+                $finder = ($row < 5 && $column < 5)
+                    || ($row < 5 && $column >= $cells - 5)
+                    || ($row >= $cells - 5 && $column < 5);
+                $finderFill = $finder && ($row % 4 !== 1 || $column % 4 !== 1);
+                $index = (($row * $cells) + $column) % strlen($bits);
+                if (!$finderFill && (!$finder || $bits[$index] !== '1')) {
+                    continue;
+                }
+                $commands[] = $this->pdfNumber($x + ($column * $cell)) . ' '
+                    . $this->pdfNumber($y + (($cells - $row - 1) * $cell)) . ' '
+                    . $this->pdfNumber($cell + 0.05) . ' ' . $this->pdfNumber($cell + 0.05) . ' re f';
+            }
         }
         return implode("\n", $commands);
     }

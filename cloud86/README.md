@@ -20,6 +20,8 @@ Deze map is bedoeld voor het Cloud86 WooCommerce Power-pakket en heeft geen Comp
 - spreadsheetachtig leveringsoverzicht, bewerkbaar afleveradres, Parcel/Freight-keuze en
   bewerkbare GLS-referentie (standaard de laatste vier cijfers van het ordernummer).
 - concrete melding en markering van ontbrekende verplichte verzendgegevens;
+- compacte zendingregel met het standaardproduct DirectDeliveryPlus; aanvullende GLS-producten en
+  services zijn via een ingeklapt keuzepaneel te openen;
 - meerdere nog niet verzonden Exact-leveringen op exact hetzelfde afleveradres samenvoegen tot
   één GLS-zending. De hoofdlevering bevat alle gezamenlijke dozen; de GLS-referentie wordt
   aangevuld met de ordernummers van de gekoppelde leveringen.
@@ -164,9 +166,11 @@ mocklabels; hij maakt geen zending bij GLS en raakt de productie-MySQL-database 
    nieuwe zending aanmaakt.
 8. Controleer dat een tweede labelaanvraag of directe herhaling wordt geblokkeerd.
 
-Mockmodus maakt een labelvormige PDF van 100 × 150 mm, met één A6-pagina per doos. De getoonde
-streepjescode is bewust een niet-scanbare visuele testcode. Dit bestand is uitsluitend bedoeld om de
-opslag- en afdrukroute en de Zebra-printer te testen en is nadrukkelijk geen geldig GLS-label.
+Mockmodus maakt een GLS-achtige zwart-witte PDF van 100 × 150 mm, met één A6-pagina per doos,
+duidelijke vakken, sorteercodes en machinecodes. De getoonde streepjescode en 2D-codes zijn bewust
+niet scanbare visuele testcodes. Dit bestand is uitsluitend bedoeld om de opslag- en afdrukroute en
+de Zebra-printer te testen en is nadrukkelijk geen geldig GLS-label. In test- en productiemodus wordt
+altijd het officiële label-PDF uit de GLS-respons opgeslagen; de app tekent dat label niet zelf.
 
 ## GLS-testomgeving activeren
 

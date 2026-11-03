@@ -226,13 +226,17 @@ gecontroleerd worden toegepast.
 
 ## 10. Actuele stand — 3 november 2026
 
-- 3 november 2026: het mocklabel is opnieuw ontworpen als herkenbaar verzendetiket op exact
-  100 × 150 mm. Iedere doos krijgt een eigen A6-pagina met afleveradres, referentie, doosnummer,
-  gewicht en mocktrackingnummer. Lange adressen en samengestelde orderreferenties worden automatisch
-  verkleind zodat ze binnen hun vak blijven. De streepjescode is bewust alleen een visuele testcode
-  en het label vermeldt prominent **GLS TEST**, **ONGELDIG - NIET VERZENDEN** en
+- 3 november 2026: het mocklabel is opnieuw ontworpen als herkenbaar GLS-achtig verzendetiket op
+  exact 100 × 150 mm. Iedere doos krijgt een eigen A6-pagina met een zwart-witte vakindeling,
+  sorteercodes, afleveradres, referentie, doosnummer, gewicht, mocktrackingnummer, streepjescode en
+  twee 2D-codes. Lange adressen en samengestelde orderreferenties worden automatisch verkleind zodat
+  ze binnen hun vak blijven. De machinecodes zijn bewust niet scanbare visuele testcodes en het
+  label vermeldt prominent **GLS TEST**, **ONGELDIG - NIET VERZENDEN** en
   **TESTLABEL - GEEN GELDIGE GLS-ZENDING**. Er is geen echte GLS-aanvraag nodig en er is geen
-  databasemigratie.
+  databasemigratie. De officiële test- en productielabels blijven ongewijzigd de PDF uit de
+  GLS-respons. In het zendingformulier staat **Aanvullende producten** nu ingeklapt tussen
+  **Vrachttype** en **Referentie**; de samenvatting toont het gekozen product en
+  DirectDeliveryPlus blijft de standaard.
 
 - 2 november 2026, applicatiecommits `59accd9` en `8c7be51` lokaal, op GitHub en Cloud86: de
   labelworkflow is voorbereid op een gecontroleerde

@@ -86,53 +86,59 @@ $addressFields = [
                 <?php endforeach; ?>
             </select>
         </label>
+        <details class="gls-options <?= $delivery['ship_type'] !== 'P' ? 'gls-options-disabled' : '' ?>" id="gls-options">
+            <summary>
+                <span>Aanvullende producten</span>
+                <strong id="gls-product-summary"><?= e($glsProducts[$glsProduct] ?? 'DirectDeliveryPlus') ?></strong>
+            </summary>
+            <div class="gls-options-body">
+                <div class="gls-options-heading">
+                    <strong>Aanvullende producten en services</strong>
+                    <span>Beschikbaar voor Parcel; DirectDeliveryPlus is de standaard.</span>
+                </div>
+                <div class="gls-options-grid">
+                    <fieldset class="gls-choice-group">
+                        <legend>Product</legend>
+                        <?php foreach ($glsProducts as $value => $label): ?>
+                            <label class="choice-item">
+                                <input type="radio" name="gls_product" value="<?= e($value) ?>" data-label="<?= e($label) ?>" <?= $glsProduct === $value ? 'checked' : '' ?> <?= $parcelOptionsDisabled ? 'disabled' : '' ?>>
+                                <span><?= e($label) ?></span>
+                            </label>
+                        <?php endforeach; ?>
+                    </fieldset>
+                    <fieldset class="gls-choice-group">
+                        <legend>Services</legend>
+                        <?php foreach ([
+                            'saturday' => 'Saturday',
+                            'addressee_only' => 'AddresseeOnly',
+                            'point_delivery_flex' => 'PointDeliveryFlex',
+                            'point_return' => 'PointReturn',
+                        ] as $value => $label): ?>
+                            <label class="choice-item">
+                                <input type="checkbox" name="gls_services[]" value="<?= e($value) ?>" <?= !empty($glsOptions[$value]) ? 'checked' : '' ?> <?= $parcelOptionsDisabled || ($value === 'point_delivery_flex' && $glsProduct !== 'point_delivery') ? 'disabled' : '' ?>>
+                                <span><?= e($label) ?></span>
+                            </label>
+                        <?php endforeach; ?>
+                    </fieldset>
+                    <div class="gls-product-details">
+                        <label id="point-delivery-fields" <?= $glsProduct !== 'point_delivery' ? 'hidden' : '' ?>>GLS Point-ID
+                            <input type="text" name="gls_parcel_shop_id" value="<?= e((string) ($glsOptions['parcel_shop_id'] ?? '')) ?>" maxlength="32" placeholder="Bijv. 34310025" <?= $parcelOptionsDisabled ? 'disabled' : '' ?>>
+                        </label>
+                        <label id="express-delivery-fields" <?= $glsProduct !== 'express_delivery' ? 'hidden' : '' ?>>Express tijd
+                            <select name="gls_express_service" <?= $parcelOptionsDisabled ? 'disabled' : '' ?>>
+                                <?php $selectedExpress = (string) ($glsOptions['express_service'] ?? 't17'); ?>
+                                <?php foreach ($expressServices as $value => $label): ?>
+                                    <option value="<?= e($value) ?>" <?= $selectedExpress === $value ? 'selected' : '' ?>><?= e($label) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </details>
         <label>Referentie
             <input class="<?= in_array('shipment_reference', $missingKeys, true) ? 'is-missing' : '' ?>" type="text" name="shipment_reference" value="<?= e($delivery['shipment_reference']) ?>" maxlength="64" required <?= $locked ? 'disabled' : '' ?>>
         </label>
-        <div class="gls-options <?= $delivery['ship_type'] !== 'P' ? 'gls-options-disabled' : '' ?>" id="gls-options">
-            <div class="gls-options-heading">
-                <strong>Aanvullende producten en services</strong>
-                <span>Beschikbaar voor Parcel; DirectDeliveryPlus is de standaard.</span>
-            </div>
-            <div class="gls-options-grid">
-                <fieldset class="gls-choice-group">
-                    <legend>Product</legend>
-                    <?php foreach ($glsProducts as $value => $label): ?>
-                        <label class="choice-item">
-                            <input type="radio" name="gls_product" value="<?= e($value) ?>" <?= $glsProduct === $value ? 'checked' : '' ?> <?= $parcelOptionsDisabled ? 'disabled' : '' ?>>
-                            <span><?= e($label) ?></span>
-                        </label>
-                    <?php endforeach; ?>
-                </fieldset>
-                <fieldset class="gls-choice-group">
-                    <legend>Services</legend>
-                    <?php foreach ([
-                        'saturday' => 'Saturday',
-                        'addressee_only' => 'AddresseeOnly',
-                        'point_delivery_flex' => 'PointDeliveryFlex',
-                        'point_return' => 'PointReturn',
-                    ] as $value => $label): ?>
-                        <label class="choice-item">
-                            <input type="checkbox" name="gls_services[]" value="<?= e($value) ?>" <?= !empty($glsOptions[$value]) ? 'checked' : '' ?> <?= $parcelOptionsDisabled || ($value === 'point_delivery_flex' && $glsProduct !== 'point_delivery') ? 'disabled' : '' ?>>
-                            <span><?= e($label) ?></span>
-                        </label>
-                    <?php endforeach; ?>
-                </fieldset>
-                <div class="gls-product-details">
-                    <label id="point-delivery-fields" <?= $glsProduct !== 'point_delivery' ? 'hidden' : '' ?>>GLS Point-ID
-                        <input type="text" name="gls_parcel_shop_id" value="<?= e((string) ($glsOptions['parcel_shop_id'] ?? '')) ?>" maxlength="32" placeholder="Bijv. 34310025" <?= $parcelOptionsDisabled ? 'disabled' : '' ?>>
-                    </label>
-                    <label id="express-delivery-fields" <?= $glsProduct !== 'express_delivery' ? 'hidden' : '' ?>>Express tijd
-                        <select name="gls_express_service" <?= $parcelOptionsDisabled ? 'disabled' : '' ?>>
-                            <?php $selectedExpress = (string) ($glsOptions['express_service'] ?? 't17'); ?>
-                            <?php foreach ($expressServices as $value => $label): ?>
-                                <option value="<?= e($value) ?>" <?= $selectedExpress === $value ? 'selected' : '' ?>><?= e($label) ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </label>
-                </div>
-            </div>
-        </div>
     </form>
     <?php if (($delivery['merged_deliveries'] ?? []) !== []): ?>
         <div class="effective-reference">
@@ -269,6 +275,9 @@ $addressFields = [
                 const parcel = document.getElementById('ship-type').value === 'P';
                 const options = document.getElementById('gls-options');
                 const selected = document.querySelector('input[name="gls_product"]:checked')?.value || 'direct_delivery_plus';
+                const selectedProduct = document.querySelector('input[name="gls_product"]:checked');
+                const summary = document.getElementById('gls-product-summary');
+                if (summary) summary.textContent = selectedProduct?.dataset.label || 'DirectDeliveryPlus';
                 options.classList.toggle('gls-options-disabled', !parcel);
                 options.querySelectorAll('input[name="gls_product"], input[name="gls_services[]"], input[name="gls_parcel_shop_id"], select[name="gls_express_service"]').forEach((field) => {
                     field.disabled = !parcel;
