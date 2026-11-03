@@ -226,6 +226,12 @@ gecontroleerd worden toegepast.
 
 ## 10. Actuele stand — 3 november 2026
 
+- 3 november 2026: de ingeklapte keuze **Aanvullende producten** gebruikt nu dezelfde veldopbouw
+  als **Type**, **Vrachttype** en **Referentie**: een los label boven een invoervak van dezelfde
+  hoogte, rand, tekstgrootte en focusmarkering. DirectDeliveryPlus blijft de standaard. Het mocklabel
+  blijft nadrukkelijk ongeldig; alleen een ongewijzigd PDF-label uit de officiële GLS Label API kan
+  als geautoriseerd verzendlabel worden gebruikt. Hiervoor is geen databasemigratie nodig.
+
 - 3 november 2026: het mocklabel is opnieuw ontworpen als herkenbaar GLS-achtig verzendetiket op
   exact 100 × 150 mm. Iedere doos krijgt een eigen A6-pagina met een zwart-witte vakindeling,
   sorteercodes, afleveradres, referentie, doosnummer, gewicht, mocktrackingnummer, streepjescode en

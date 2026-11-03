@@ -86,12 +86,13 @@ $addressFields = [
                 <?php endforeach; ?>
             </select>
         </label>
-        <details class="gls-options <?= $delivery['ship_type'] !== 'P' ? 'gls-options-disabled' : '' ?>" id="gls-options">
-            <summary>
-                <span>Aanvullende producten</span>
-                <strong id="gls-product-summary"><?= e($glsProducts[$glsProduct] ?? 'DirectDeliveryPlus') ?></strong>
-            </summary>
-            <div class="gls-options-body">
+        <div class="gls-options-field">
+            <span class="gls-options-label">Aanvullende producten</span>
+            <details class="gls-options <?= $delivery['ship_type'] !== 'P' ? 'gls-options-disabled' : '' ?>" id="gls-options">
+                <summary>
+                    <strong id="gls-product-summary"><?= e($glsProducts[$glsProduct] ?? 'DirectDeliveryPlus') ?></strong>
+                </summary>
+                <div class="gls-options-body">
                 <div class="gls-options-heading">
                     <strong>Aanvullende producten en services</strong>
                     <span>Beschikbaar voor Parcel; DirectDeliveryPlus is de standaard.</span>
@@ -134,8 +135,9 @@ $addressFields = [
                         </label>
                     </div>
                 </div>
-            </div>
-        </details>
+                </div>
+            </details>
+        </div>
         <label>Referentie
             <input class="<?= in_array('shipment_reference', $missingKeys, true) ? 'is-missing' : '' ?>" type="text" name="shipment_reference" value="<?= e($delivery['shipment_reference']) ?>" maxlength="64" required <?= $locked ? 'disabled' : '' ?>>
         </label>
