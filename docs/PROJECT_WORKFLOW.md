@@ -235,6 +235,20 @@ gecontroleerd worden toegepast.
 
 ## 10. Actuele stand — 3 november 2026
 
+- Eerste echte labelcontrole: de gebruiker heeft een productielabel gemaakt. De ingelogde app
+  meldt een geslaagde GLS-aanvraag en tracking naar één Exact-levering geschreven; er is bij deze
+  controle geen nieuwe GLS-aanvraag of Exact-mutatie uitgevoerd. De opgeslagen officiële PDF is
+  ongewijzigd, exact 100 × 150 mm en bevat de onderste referentie- en trackingregel volledig.
+  Beide Data Matrix-codes en de onderste ITF-streepjescode zijn lokaal uit zowel de PDF als de
+  aangeleverde afdrukafbeelding gedecodeerd. Pakketnummer, ontvangeradres en referentie komen
+  overeen met de zichtbare appgegevens. Dit is een leesbaarheidscontrole, geen formele
+  barcodekwaliteitscertificering of bevestiging van GLS-contract/services.
+  Het lege routevak linksboven is ook leeg in de originele GLS-PDF; de betekenis moet zo nodig
+  door GLS worden bevestigd. De onderste regel is alleen in de aangeleverde afbeelding afgesneden:
+  eerst fysieke afdruk en printerinstellingen controleren, geen eigen GLS-labelindeling maken.
+  Klantgegevens, barcode-inhoud en de originele PDF zijn niet in Git opgenomen. Applicatiecode
+  blijft `28ad6a2` (laatst bevestigd op Cloud86); voorgaande documentatiecommit is `732f009`.
+
 - Live-activatie 3 november 2026: applicatiecommits `95efab7` en `28ad6a2` staan lokaal,
   op GitHub en op Cloud86. De serverhash van `src/GlsService.php` komt overeen met de lokale
   versie. Alle PHP-bestanden slagen voor de syntaxcontrole en de uitgebreide PHP-smoketest is
@@ -554,6 +568,14 @@ gecontroleerd worden toegepast.
 ## 11. Volgende stappen
 
 Werk deze lijst in deze volgorde af:
+
+- Eerste echte label is gecontroleerd: de drie codes zijn leesbaar en de oorspronkelijke PDF is
+  volledig. Controleer nu of de onderste regel op het fysieke etiket wegvalt. Controleer dan
+  printerpapier 100 × 150 mm, schaal/afdrukpositie en labelkalibratie. Herdruk uitsluitend de
+  bestaande PDF. Vraag GLS zo nodig naar het lege routevak linksboven en verifieer de ontvangen
+  productieaanmelding/productkeuze; leid dit niet uitsluitend af uit scanbare barcodes.
+- Controleer het trackingveld desgewenst rechtstreeks in Exact: de app meldt dat de update is
+  geslaagd, maar het Exact-scherm is bij de labelcontrole niet opnieuw geopend.
 
 - De webapp is na geslaagde servercontroles en GLS-authenticatie op `GLS_MODE=live` gezet voor de
   door de gebruiker gevraagde eerste echte levering. De gebruiker maakt die levering zelf.
