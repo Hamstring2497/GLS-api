@@ -60,13 +60,13 @@ $canDeleteSelectedDelivery = isset($selectedDelivery)
     <?php endif; ?>
 </header>
 <main class="container">
+    <?= $content ?>
     <?php if ($flashMessage): ?>
         <div class="flash flash-<?= e($flashMessage['type']) ?>" role="status">
             <span class="flash-message"><?= e($flashMessage['message']) ?></span>
             <button class="button button-small flash-dismiss" type="button" onclick="this.closest('.flash').remove()">Gezien</button>
         </div>
     <?php endif; ?>
-    <?= $content ?>
 </main>
 <script>
 function confirmShipmentDelete(form) {
@@ -88,21 +88,58 @@ function confirmTrackingImport(form) {
     form.elements.confirm_import.value = 'yes';
     return true;
 }
-function confirmGlsLabelRequest(form) {
-    const mode = form.dataset.glsMode || 'mock';
-    const delivery = form.dataset.deliveryNumber || '';
-    const parcels = form.dataset.parcelCount || '0';
-    const button = form.querySelector('button[type="submit"]');
-    if (mode === 'mock') {
-        if (button) button.disabled = true;
-        return true;
+function openLabelAndPrint(url) {
+    const printWindow = window.open('', 'gls-label-print');
+    if (!printWindow) {
+        alert('Sta pop-ups toe om het GLS-label direct te kunnen afdrukken.');
+        return false;
     }
-    const environment = mode === 'live' ? 'de GLS-productieomgeving' : 'de GLS-testomgeving';
-    if (!confirm(`U gaat levering ${delivery} met ${parcels} doos/dozen naar ${environment} versturen. Wilt u doorgaan?`)) return false;
-    if (mode === 'live' && !confirm(`Dit maakt een echte betaalde GLS-zending voor verzending op ${form.elements.shipping_date_confirmed.value}. Alleen doorgaan als deze dozen op die datum meegaan. Definitief versturen?`)) return false;
+    printWindow.document.write('<p style="font:16px sans-serif;padding:24px">GLS-label wordt geopend…</p>');
+    printWindow.location.href = url;
+    window.setTimeout(() => {
+        try { printWindow.focus(); printWindow.print(); } catch (error) { /* Het PDF-venster blijft beschikbaar. */ }
+    }, 1200);
+    return false;
+}
+function createAndPrintGlsLabel(form) {
+    const button = form.querySelector('button[type="submit"]');
     form.elements.confirm_gls_request.value = 'yes';
     if (button) button.disabled = true;
-    return true;
+    const printWindow = window.open('', 'gls-label-print');
+    if (!printWindow) {
+        if (button) button.disabled = false;
+        alert('Sta pop-ups toe om het GLS-label direct te kunnen afdrukken.');
+        return false;
+    }
+    printWindow.document.write('<p style="font:16px sans-serif;padding:24px">GLS-label wordt aangemaakt…</p>');
+    fetch(form.action, {
+        method: 'POST',
+        body: new FormData(form),
+        credentials: 'same-origin',
+        redirect: 'follow'
+    }).then(async response => {
+        const contentType = response.headers.get('content-type') || '';
+        if (!response.ok || !contentType.includes('application/pdf')) {
+            const html = await response.text();
+            printWindow.document.open();
+            printWindow.document.write(html);
+            printWindow.document.close();
+            if (button) button.disabled = false;
+            return;
+        }
+        const pdfUrl = URL.createObjectURL(await response.blob());
+        printWindow.location.href = pdfUrl;
+        window.setTimeout(() => {
+            try { printWindow.focus(); printWindow.print(); } catch (error) { /* Het PDF-venster blijft beschikbaar. */ }
+        }, 1200);
+        window.setTimeout(() => { window.location.reload(); }, 1800);
+    }).catch(() => {
+        printWindow.document.open();
+        printWindow.document.write('<p style="font:16px sans-serif;padding:24px">Het label kon niet worden geopend. Sluit dit venster en probeer het opnieuw.</p>');
+        printWindow.document.close();
+        if (button) button.disabled = false;
+    });
+    return false;
 }
 function confirmGlsRelease(form) {
     if (!confirm('Heeft u in GLS gecontroleerd dat deze aanvraag géén zending heeft aangemaakt?')) return false;

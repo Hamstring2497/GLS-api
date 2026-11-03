@@ -62,6 +62,7 @@ assert($delivery !== null);
 assert($delivery['ship_type'] === 'P');
 assert($delivery['shipment_reference'] === '1234');
 assert($delivery['gls_product'] === 'direct_delivery_plus');
+assert($repository->firstAddedWithoutTracking()['exact_entry_id'] === 'test-delivery');
 
 $address = $delivery['address'];
 $address['street'] = 'Nieuwe straat';
@@ -94,6 +95,23 @@ assert(!isset($parcel['services']));
 $redactedParcel = $gls->redact($parcel);
 assert($redactedParcel['username'] === '***');
 assert($redactedParcel['password'] === '***');
+
+$tooLongAddress = $delivery;
+$tooLongAddress['address']['name'] = str_repeat('A', 31);
+try {
+    $gls->buildPayload($tooLongAddress);
+    assert(false, 'GLS-naam langer dan 30 tekens mocht niet worden geaccepteerd.');
+} catch (InvalidArgumentException $error) {
+    assert(str_contains($error->getMessage(), 'maximaal 30'));
+}
+$tooLongReference = $delivery;
+$tooLongReference['effective_reference'] = str_repeat('1', 21);
+try {
+    $gls->buildPayload($tooLongReference);
+    assert(false, 'GLS-referentie langer dan 20 tekens mocht niet worden geaccepteerd.');
+} catch (InvalidArgumentException $error) {
+    assert(str_contains($error->getMessage(), 'maximaal 20'));
+}
 
 $datedDelivery = $delivery;
 $datedDelivery['shipping_date'] = '2026-10-30';
@@ -221,8 +239,8 @@ assert(str_contains($html, 'selected-row'));
 assert(str_contains($html, 'E-mailadres *'));
 assert(str_contains($html, 'Toegevoegd'));
 assert(str_contains($html, 'Dozen opslaan'));
-assert(str_contains($html, 'Maak afdrukbaar testlabel'));
-assert(str_contains($html, 'confirmGlsLabelRequest'));
+assert(str_contains($html, 'Testlabel maken en afdrukken'));
+assert(str_contains($html, 'createAndPrintGlsLabel'));
 assert(str_contains($html, 'form="address-details-form">Adres opslaan'));
 assert(str_contains($html, 'niet-opgeslagen wijzigingen'));
 assert(str_contains($html, 'Naam 2'));
@@ -230,6 +248,8 @@ assert(str_contains($html, 'Naam 3'));
 assert(str_contains($html, 'Toevoeging'));
 assert(str_contains($html, 'Notitie 1'));
 assert(str_contains($html, 'Notitie 2'));
+assert(str_contains($html, 'maxlength="30"'));
+assert(str_contains($html, 'maxlength="20"'));
 assert(str_contains($html, 'step="0.1"'));
 assert(str_contains($html, 'Levering DEL-9'));
 assert(!str_contains($html, 'Openen →'));
@@ -301,12 +321,15 @@ $mergeCandidateHtml = (string) ob_get_clean();
 assert(str_contains($mergeCandidateHtml, 'merge-candidate-row'));
 assert(str_contains($mergeCandidateHtml, 'Samenvoegen?'));
 assert(str_contains($mergeCandidateHtml, 'quick-merge-form'));
+assert(str_contains($mergeCandidateHtml, 'id="delivery-search"'));
+assert(str_contains($mergeCandidateHtml, 'id="delivery-reset"'));
+assert(str_contains($mergeCandidateHtml, 'data-sort-key="order"'));
 $repository->setMergedDeliveries('merge-primary', ['merge-child']);
 $merged = $repository->find('merge-primary');
 assert(count($merged['merged_deliveries']) === 1);
-assert($merged['effective_reference'] === '2000 / ORD-2001');
+assert($merged['effective_reference'] === '2000 / 2001');
 assert($repository->find('merge-child')['merged_into_exact_entry_id'] === 'merge-primary');
-assert($gls->buildPayload($merged)['reference'] === '2000 / ORD-2001');
+assert($gls->buildPayload($merged)['reference'] === '2000 / 2001');
 assert(delivery_missing_data($merged) === []);
 $imported = $repository->importExistingTracking([[
     'delivery_ids' => ['DEL-20', 'DEL-21'],

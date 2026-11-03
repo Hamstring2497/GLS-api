@@ -16,10 +16,27 @@ final class DeliveryRepository
     public function all(): array
     {
         $rows = $this->db->query(
-            "SELECT * FROM deliveries WHERE status <> 'discarded' ORDER BY created_at DESC LIMIT 250"
+            "SELECT * FROM deliveries WHERE status <> 'discarded' "
+            . 'ORDER BY shipping_date DESC, created_at DESC, delivery_number DESC LIMIT 250'
         )->fetchAll();
 
         return array_map(fn (array $row): array => $this->hydrate($row), $rows);
+    }
+
+    /** @return array<string, mixed>|null */
+    public function firstAddedWithoutTracking(): ?array
+    {
+        $rows = $this->db->query(
+            "SELECT * FROM deliveries WHERE status <> 'discarded' "
+            . 'AND merged_into_exact_entry_id IS NULL ORDER BY created_at ASC, delivery_number ASC'
+        )->fetchAll();
+        foreach ($rows as $row) {
+            $delivery = $this->hydrate($row);
+            if ($delivery['tracking_numbers'] === []) {
+                return $delivery;
+            }
+        }
+        return null;
     }
 
     /** @return array<string, mixed>|null */
@@ -98,10 +115,10 @@ final class DeliveryRepository
 
         $referenceParts = [trim((string) $primary['shipment_reference'])];
         foreach ($members as $member) {
-            $referenceParts[] = trim((string) $member['order_number']);
+            $referenceParts[] = $this->referenceFromOrder((string) $member['order_number']);
         }
-        if (strlen(implode(' / ', array_values(array_unique(array_filter($referenceParts))))) > 64) {
-            throw new \InvalidArgumentException('De gezamenlijke GLS-referentie is langer dan 64 tekens.');
+        if (mb_strlen(implode(' / ', array_values(array_unique(array_filter($referenceParts))))) > GlsService::REFERENCE_MAX_LENGTH) {
+            throw new \InvalidArgumentException('De gezamenlijke GLS-referentie is langer dan 20 tekens.');
         }
 
         $this->db->beginTransaction();
@@ -129,8 +146,7 @@ final class DeliveryRepository
     public function save(array $data): void
     {
         $existing = $this->find((string) $data['exact_entry_id']);
-        $digits = preg_replace('/\D/', '', (string) $data['order_number']);
-        $defaultReference = substr((string) $digits, -4);
+        $defaultReference = $this->referenceFromOrder((string) $data['order_number']);
         $address = json_encode([
             'name' => trim((string) $data['name']),
             'name_2' => trim((string) ($data['name_2'] ?? '')),
@@ -544,10 +560,10 @@ final class DeliveryRepository
         $referenceParts = [
             ($row['shipment_reference'] ?? '') !== ''
                 ? (string) $row['shipment_reference']
-                : substr((string) preg_replace('/\D/', '', (string) $row['order_number']), -4),
+                : $this->referenceFromOrder((string) $row['order_number']),
         ];
         foreach ($mergedDeliveries as $mergedDelivery) {
-            $referenceParts[] = (string) $mergedDelivery['order_number'];
+            $referenceParts[] = $this->referenceFromOrder((string) $mergedDelivery['order_number']);
         }
 
         return array_merge($row, [
@@ -557,7 +573,7 @@ final class DeliveryRepository
             'gls_options' => is_array($glsOptions) ? $glsOptions : [],
             'shipment_reference' => ($row['shipment_reference'] ?? '') !== ''
                 ? $row['shipment_reference']
-                : substr((string) preg_replace('/\D/', '', (string) $row['order_number']), -4),
+                : $this->referenceFromOrder((string) $row['order_number']),
             'address' => $address,
             'tracking_numbers' => $numbers,
             'parcels' => $statement->fetchAll(),
@@ -583,6 +599,12 @@ final class DeliveryRepository
             }
         }
         return true;
+    }
+
+    private function referenceFromOrder(string $orderNumber): string
+    {
+        $digits = preg_replace('/\D/', '', $orderNumber) ?? '';
+        return substr($digits, -4);
     }
 }
 

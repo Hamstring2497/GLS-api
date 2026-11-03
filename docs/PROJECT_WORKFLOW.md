@@ -235,6 +235,21 @@ gecontroleerd worden toegepast.
 
 ## 10. Actuele stand — 3 november 2026
 
+- Werkvoorraadoverzicht verbeterd: de server en tabel sorteren standaard op leverdatum met de
+  nieuwste datum bovenaan. Bij openen selecteert de app de vroegst toegevoegde levering zonder
+  trackingnummer. Order, datum, toegevoegd, ontvanger, straat en postcode zijn via de kolomkoppen
+  oplopend/aflopend sorteerbaar. Bovenaan staan zoeken en **Reset** naast de twee hoofdacties;
+  Reset herstelt het ongefilterde overzicht met datum aflopend. Meldingen met **Gezien** staan
+  voortaan pas onder de volledige werkplek.
+- Labelbediening vereenvoudigd: **Label maken en afdrukken** maakt de zending zonder extra
+  bevestigingsvensters, opent direct de opgeslagen officiële GLS-PDF en probeert het afdrukvenster
+  te starten. Een bestaand label gebruikt **Label openen en afdrukken** en doet geen nieuwe
+  GLS-aanvraag. De bestaande serververgrendeling tegen dubbele of onzekere aanvragen blijft actief.
+- Samenvoegen gebruikt per toegevoegde order uitsluitend de laatste vier cijfers, gescheiden door
+  ` / `. De maximale gezamenlijke GLS-referentie is 20 tekens. De invoer en servervalidatie volgen
+  nu ook de GLS-schemawaarden: naamregels 30, straat 40, huisnummer en toevoeging 5, postcode 8,
+  plaats/contact 30, landcode 2, telefoon 25, e-mail 320 en notities 30 tekens. Geen migratie nodig.
+
 - Eerste echte labelcontrole: de gebruiker heeft een productielabel gemaakt. De ingelogde app
   meldt een geslaagde GLS-aanvraag en tracking naar één Exact-levering geschreven; er is bij deze
   controle geen nieuwe GLS-aanvraag of Exact-mutatie uitgevoerd. De opgeslagen officiële PDF is
@@ -570,6 +585,11 @@ gecontroleerd worden toegepast.
 
 Werk deze lijst in deze volgorde af:
 
+- Test na publicatie ingelogd zoeken, alle zes sorteerkoppen, **Reset**, de standaardselectie en
+  één samenvoeging met een referentie als `5256 / 5261`. Controleer daarna met een reeds gemaakt
+  label dat **Label openen en afdrukken** geen nieuwe GLS-zending maakt. Maak pas daarna één nieuw
+  label en controleer dat het PDF-venster en het afdrukscherm direct openen; sta pop-ups voor het
+  domein toe als de browser dit blokkeert.
 - Eerste echte label is gecontroleerd: de drie codes zijn leesbaar en de oorspronkelijke PDF is
   volledig. De onderste regel valt volgens de gebruiker ook op het fysieke etiket weg. Controleer
   printerpapier 100 × 150 mm, schaal/afdrukpositie en labelkalibratie. Herdruk uitsluitend de
@@ -594,9 +614,7 @@ Werk deze lijst in deze volgorde af:
    is reeds veilig met `ValidateLogin` bevestigd; de testomgeving accepteert deze login niet.
 3. Controleer met een nieuw opgehaalde levering of Exact `Title`,
    `FirstName`, `MiddleName` en `LastName` levert zoals verwacht.
-4. Voeg na akkoord een zoekveld boven de tabel toe voor minimaal leveringsnummer, ordernummer,
-   ontvanger, straat, postcode en plaats; bepaal of Naam 2/3 en notities ook doorzoekbaar moeten zijn.
-5. Beoordeel de nieuwe vormgeving ook op een kleiner scherm.
+4. Beoordeel de nieuwe zoek-, sorteer- en afdrukbediening ook op een kleiner scherm.
 6. Test de volledige magazijnflow in `mock`-modus met een bestaande levering, inclusief het
    aanvullen van een ontbrekend e-mailadres en het opnieuw opslaan van dozen.
 7. Controleer de uitgebreide Exact-mapping met een echte nieuwe levering: leveringsnummer,

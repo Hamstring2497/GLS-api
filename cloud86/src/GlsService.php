@@ -6,6 +6,23 @@ namespace App;
 
 final class GlsService
 {
+    public const REFERENCE_MAX_LENGTH = 20;
+    public const ADDRESS_FIELD_LIMITS = [
+        'name' => 30,
+        'name_2' => 30,
+        'name_3' => 30,
+        'street' => 40,
+        'house_no' => 5,
+        'house_no_addition' => 5,
+        'zip_code' => 8,
+        'city' => 30,
+        'country_code' => 2,
+        'contact' => 30,
+        'phone' => 25,
+        'email' => 320,
+        'note_1' => 30,
+        'note_2' => 30,
+    ];
     public const FREIGHT_UNITS = ['CO' => 32, 'LG' => 25, 'MP' => 300, 'PL' => 675, 'BP' => 850, 'RL' => 350, 'XL' => 1000];
     public const PRODUCTS = [
         'direct_delivery_plus',
@@ -42,6 +59,13 @@ final class GlsService
         if (filter_var(trim((string) ($address['email'] ?? '')), FILTER_VALIDATE_EMAIL) === false) {
             throw new \InvalidArgumentException('Vul eerst een geldig e-mailadres in bij het afleveradres.');
         }
+        foreach (self::ADDRESS_FIELD_LIMITS as $field => $maxLength) {
+            if (mb_strlen(trim((string) ($address[$field] ?? ''))) > $maxLength) {
+                throw new \InvalidArgumentException(
+                    sprintf('Adresveld %s mag maximaal %d tekens bevatten.', $field, $maxLength)
+                );
+            }
+        }
         if ($delivery['parcels'] === []) {
             throw new \InvalidArgumentException('Voeg minimaal één doos toe.');
         }
@@ -49,6 +73,9 @@ final class GlsService
         $reference = trim((string) ($delivery['effective_reference'] ?? $delivery['shipment_reference'] ?? ''));
         if (!in_array($shipType, ['P', 'F'], true) || $reference === '') {
             throw new \InvalidArgumentException('Controleer het verzendtype en de referentie.');
+        }
+        if (mb_strlen($reference) > self::REFERENCE_MAX_LENGTH) {
+            throw new \InvalidArgumentException('De gezamenlijke GLS-referentie mag maximaal 20 tekens bevatten.');
         }
         $freightUnitType = (string) ($delivery['freight_unit_type'] ?? 'CO');
         if ($shipType === 'F' && !isset(self::FREIGHT_UNITS[$freightUnitType])) {
@@ -63,12 +90,6 @@ final class GlsService
             throw new \InvalidArgumentException('Aanvullende GLS-producten en services zijn alleen beschikbaar voor Parcel.');
         }
         $maxWeight = $shipType === 'F' ? self::FREIGHT_UNITS[$freightUnitType] : 32;
-        foreach (['note_1', 'note_2'] as $noteField) {
-            if (mb_strlen(trim((string) ($address[$noteField] ?? ''))) > 50) {
-                throw new \InvalidArgumentException('Notitie 1 en Notitie 2 mogen maximaal 50 tekens bevatten.');
-            }
-        }
-
         $units = [];
         foreach ($delivery['parcels'] as $index => $parcel) {
             $weight = (float) $parcel['weight_kg'];

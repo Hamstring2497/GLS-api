@@ -46,20 +46,20 @@ $expressServices = [
     's17' => 'Zaterdag vóór 17:00',
 ];
 $addressFields = [
-    ['name', 'Naam', 'field-name', true, null],
-    ['name_2', 'Naam 2', 'field-name-2', false, null],
-    ['name_3', 'Naam 3', 'field-name-3', false, null],
-    ['street', 'Straat', 'field-street', true, null],
-    ['house_no', 'Huisnummer', 'field-house-no', true, null],
-    ['house_no_addition', 'Toevoeging', 'field-house-addition', false, null],
-    ['zip_code', 'Postcode', 'field-zip', true, null],
-    ['city', 'Plaats', 'field-city', true, null],
+    ['name', 'Naam', 'field-name', true, 30],
+    ['name_2', 'Naam 2', 'field-name-2', false, 30],
+    ['name_3', 'Naam 3', 'field-name-3', false, 30],
+    ['street', 'Straat', 'field-street', true, 40],
+    ['house_no', 'Huisnummer', 'field-house-no', true, 5],
+    ['house_no_addition', 'Toevoeging', 'field-house-addition', false, 5],
+    ['zip_code', 'Postcode', 'field-zip', true, 8],
+    ['city', 'Plaats', 'field-city', true, 30],
     ['country_code', 'Landcode', 'field-country', true, 2],
-    ['contact', 'Contactpersoon', 'field-contact', false, null],
-    ['phone', 'Telefoonnummer', 'field-phone', false, null],
-    ['email', 'E-mailadres', 'field-email', true, null],
-    ['note_1', 'Notitie 1', 'field-note-1', false, 50],
-    ['note_2', 'Notitie 2', 'field-note-2', false, 50],
+    ['contact', 'Contactpersoon', 'field-contact', false, 30],
+    ['phone', 'Telefoonnummer', 'field-phone', false, 25],
+    ['email', 'E-mailadres', 'field-email', true, 320],
+    ['note_1', 'Notitie 1', 'field-note-1', false, 30],
+    ['note_2', 'Notitie 2', 'field-note-2', false, 30],
 ];
 ?>
 
@@ -144,7 +144,7 @@ $addressFields = [
             </details>
         </div>
         <label>Referentie
-            <input class="<?= in_array('shipment_reference', $missingKeys, true) ? 'is-missing' : '' ?>" type="text" name="shipment_reference" value="<?= e($delivery['shipment_reference']) ?>" maxlength="64" required <?= $locked ? 'disabled' : '' ?>>
+            <input class="<?= in_array('shipment_reference', $missingKeys, true) ? 'is-missing' : '' ?>" type="text" name="shipment_reference" value="<?= e($delivery['shipment_reference']) ?>" maxlength="20" required <?= $locked ? 'disabled' : '' ?>>
         </label>
     </form>
     <?php if (($delivery['merged_deliveries'] ?? []) !== []): ?>
@@ -209,7 +209,7 @@ $addressFields = [
                         <?php elseif ($glsMode === 'mock'): ?>· Exact wacht op actieve GLS-koppeling
                         <?php else: ?>· Exact nog niet bijgewerkt<?php endif; ?>
                     </span>
-                    <?php if (!empty($delivery['label_path'])): ?><a class="button button-small" target="_blank" href="/deliveries/<?= rawurlencode((string) $delivery['exact_entry_id']) ?>/label">Label openen / opnieuw afdrukken</a><?php endif; ?>
+                    <?php if (!empty($delivery['label_path'])): ?><a class="button button-small" href="/deliveries/<?= rawurlencode((string) $delivery['exact_entry_id']) ?>/label" onclick="return openLabelAndPrint(this.href)">Label openen en afdrukken</a><?php endif; ?>
                     <?php if ($glsMode === 'live' && !$mockTracking && !$exactTrackingSynced): ?>
                         <form method="post" action="/deliveries/<?= rawurlencode((string) $delivery['exact_entry_id']) ?>/tracking/exact">
                             <input type="hidden" name="_token" value="<?= e(\App\Security::csrfToken()) ?>">
@@ -220,11 +220,11 @@ $addressFields = [
                     <span class="gls-uncertain-status"><strong><?= $delivery['status'] === 'gls_unknown' ? 'Eerst GLS controleren' : 'Aanvraag wordt verwerkt' ?></strong> · niet opnieuw versturen</span>
                 <?php elseif ($missingData === []): ?>
                     <span><strong><?= $glsMode === 'mock' ? 'Klaar voor afdrukbare testlabels' : 'Klaar om naar GLS te versturen' ?></strong><?php if ($glsMode === 'live'): ?> · Verzenden op <?= e(date('d-m-Y')) ?><?php endif; ?></span>
-                    <form method="post" action="/deliveries/<?= rawurlencode((string) $delivery['exact_entry_id']) ?>/labels" data-gls-mode="<?= e($glsMode) ?>" data-delivery-number="<?= e($delivery['delivery_number']) ?>" data-parcel-count="<?= count($delivery['parcels']) ?>" onsubmit="return confirmGlsLabelRequest(this)">
+                    <form method="post" action="/deliveries/<?= rawurlencode((string) $delivery['exact_entry_id']) ?>/labels" data-gls-mode="<?= e($glsMode) ?>" data-delivery-number="<?= e($delivery['delivery_number']) ?>" data-parcel-count="<?= count($delivery['parcels']) ?>" onsubmit="return createAndPrintGlsLabel(this)">
                         <input type="hidden" name="_token" value="<?= e(\App\Security::csrfToken()) ?>">
                         <input type="hidden" name="confirm_gls_request" value="no">
                         <input type="hidden" name="shipping_date_confirmed" value="<?= e(date('Y-m-d')) ?>">
-                        <button class="button button-small" type="submit"><?= $glsMode === 'mock' ? 'Maak afdrukbaar testlabel' : 'Maak ' . count($delivery['parcels']) . ' GLS-label(s)' ?></button>
+                        <button class="button button-small" type="submit"><?= $glsMode === 'mock' ? 'Testlabel maken en afdrukken' : 'Label maken en afdrukken' ?></button>
                     </form>
                 <?php else: ?>
                     <span class="missing-summary"><strong>Ontbreekt</strong> · <?= e(implode(', ', $missingData)) ?></span>

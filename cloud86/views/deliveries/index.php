@@ -5,7 +5,11 @@
         <h1>Leveringen</h1>
         <p class="muted">Selecteer een regel, controleer het adres en voer de dozen in.</p>
     </div>
-    <div class="overview-actions">
+    <div class="overview-toolbar">
+        <label class="delivery-search">Zoeken
+            <input id="delivery-search" type="search" placeholder="Order, ontvanger, adres…" autocomplete="off">
+        </label>
+        <button class="button button-secondary" id="delivery-reset" type="button">Reset</button>
         <a class="button" href="/deliveries/new">Nieuwe levering</a>
         <?php if ((\App\Security::user()['role'] ?? '') === 'admin'): ?>
             <?php if (!$exactStatus['connected']): ?>
@@ -47,8 +51,18 @@
     <section class="delivery-list-pane" aria-label="Leveringen">
       <div class="table-wrap delivery-sheet">
         <table>
-            <thead><tr><th>Levering</th><th>Order</th><th>Datum</th><th>Toegevoegd</th><th>Ontvanger</th><th>Straat</th><th>Huisnr.</th><th>Postcode</th><th>Plaats</th><th>Land</th><th>Type</th><th>Vrachttype</th><th>Referentie</th><th>Dozen</th><th>Gewicht</th><th>Tracking</th><th>Status</th></tr></thead>
-            <tbody>
+            <thead><tr>
+                <th>Levering</th>
+                <th><button class="table-sort" type="button" data-sort-key="order">Order</button></th>
+                <th aria-sort="descending"><button class="table-sort active" type="button" data-sort-key="date">Datum</button></th>
+                <th><button class="table-sort" type="button" data-sort-key="added">Toegevoegd</button></th>
+                <th><button class="table-sort" type="button" data-sort-key="recipient">Ontvanger</button></th>
+                <th><button class="table-sort" type="button" data-sort-key="street">Straat</button></th>
+                <th>Huisnr.</th>
+                <th><button class="table-sort" type="button" data-sort-key="postcode">Postcode</button></th>
+                <th>Plaats</th><th>Land</th><th>Type</th><th>Vrachttype</th><th>Referentie</th><th>Dozen</th><th>Gewicht</th><th>Tracking</th><th>Status</th>
+            </tr></thead>
+            <tbody id="delivery-table-body">
             <?php foreach ($deliveries as $delivery): ?>
                 <?php
                 $mergedIntoId = (string) ($delivery['merged_into_exact_entry_id'] ?? '');
@@ -79,7 +93,7 @@
                     $tableStatusClass = 'ready';
                 }
                 ?>
-                <tr class="delivery-row <?= $selectedDelivery && $selectedDelivery['exact_entry_id'] === $delivery['exact_entry_id'] ? 'selected-row' : '' ?> <?= in_array($delivery['status'], ['ready', 'labels_created'], true) ? 'completed-row' : '' ?> <?= in_array($delivery['status'], ['gls_processing', 'gls_unknown'], true) ? 'gls-pending-row' : '' ?> <?= $isQuickMergeCandidate ? 'merge-candidate-row' : '' ?>" data-delivery-url="<?= e($deliveryUrl) ?>" data-merge-candidate="<?= $isQuickMergeCandidate ? '1' : '0' ?>" data-delivery-id="<?= e($delivery['exact_entry_id']) ?>" data-delivery-number="<?= e($delivery['delivery_number']) ?>" data-order-number="<?= e($delivery['order_number']) ?>" tabindex="0" aria-label="Selecteer levering <?= e($delivery['delivery_number']) ?>" aria-selected="<?= $selectedDelivery && $selectedDelivery['exact_entry_id'] === $delivery['exact_entry_id'] ? 'true' : 'false' ?>">
+                <tr class="delivery-row <?= $selectedDelivery && $selectedDelivery['exact_entry_id'] === $delivery['exact_entry_id'] ? 'selected-row' : '' ?> <?= in_array($delivery['status'], ['ready', 'labels_created'], true) ? 'completed-row' : '' ?> <?= in_array($delivery['status'], ['gls_processing', 'gls_unknown'], true) ? 'gls-pending-row' : '' ?> <?= $isQuickMergeCandidate ? 'merge-candidate-row' : '' ?>" data-delivery-url="<?= e($deliveryUrl) ?>" data-merge-candidate="<?= $isQuickMergeCandidate ? '1' : '0' ?>" data-delivery-id="<?= e($delivery['exact_entry_id']) ?>" data-delivery-number="<?= e($delivery['delivery_number']) ?>" data-order-number="<?= e($delivery['order_number']) ?>" data-sort-order="<?= e($delivery['order_number']) ?>" data-sort-date="<?= e($delivery['shipping_date'] ?? '') ?>" data-sort-added="<?= e($delivery['created_at'] ?? '') ?>" data-sort-recipient="<?= e($delivery['address']['name']) ?>" data-sort-street="<?= e($delivery['address']['street']) ?>" data-sort-postcode="<?= e($delivery['address']['zip_code']) ?>" tabindex="0" aria-label="Selecteer levering <?= e($delivery['delivery_number']) ?>" aria-selected="<?= $selectedDelivery && $selectedDelivery['exact_entry_id'] === $delivery['exact_entry_id'] ? 'true' : 'false' ?>">
                     <td><strong><?= e($delivery['delivery_number']) ?></strong></td>
                     <td><?= e($delivery['order_number']) ?></td>
                     <td><?= e($delivery['shipping_date'] ?: '—') ?></td>
@@ -122,6 +136,65 @@
     (() => {
         let detailsDirty = false;
         const detailsPane = document.querySelector('.delivery-detail-pane');
+        const tableBody = document.getElementById('delivery-table-body');
+        const tableRows = tableBody ? Array.from(tableBody.querySelectorAll('.delivery-row')) : [];
+        const searchInput = document.getElementById('delivery-search');
+        const resetButton = document.getElementById('delivery-reset');
+        const sortButtons = Array.from(document.querySelectorAll('.table-sort'));
+        let sortKey = 'date';
+        let sortDirection = 'desc';
+
+        const normalized = value => String(value || '').toLocaleLowerCase('nl-NL').trim();
+        const filterRows = () => {
+            const query = normalized(searchInput?.value);
+            tableRows.forEach(row => {
+                row.hidden = query !== '' && !normalized(row.textContent).includes(query);
+            });
+        };
+        const updateSortState = () => {
+            sortButtons.forEach(button => {
+                const active = button.dataset.sortKey === sortKey;
+                button.classList.toggle('active', active);
+                button.dataset.sortDirection = active ? sortDirection : '';
+                const heading = button.closest('th');
+                if (heading) heading.setAttribute('aria-sort', active ? (sortDirection === 'desc' ? 'descending' : 'ascending') : 'none');
+            });
+        };
+        const sortRows = () => {
+            if (!tableBody) return;
+            const attribute = `data-sort-${sortKey}`;
+            tableRows.sort((left, right) => {
+                const leftValue = normalized(left.getAttribute(attribute));
+                const rightValue = normalized(right.getAttribute(attribute));
+                if (leftValue === '' && rightValue !== '') return 1;
+                if (leftValue !== '' && rightValue === '') return -1;
+                const result = leftValue.localeCompare(rightValue, 'nl-NL', { numeric: true, sensitivity: 'base' });
+                return sortDirection === 'desc' ? -result : result;
+            });
+            tableRows.forEach(row => tableBody.appendChild(row));
+            updateSortState();
+            filterRows();
+        };
+
+        sortButtons.forEach(button => button.addEventListener('click', () => {
+            const nextKey = button.dataset.sortKey || 'date';
+            if (nextKey === sortKey) {
+                sortDirection = sortDirection === 'desc' ? 'asc' : 'desc';
+            } else {
+                sortKey = nextKey;
+                sortDirection = ['date', 'added'].includes(nextKey) ? 'desc' : 'asc';
+            }
+            sortRows();
+        }));
+        searchInput?.addEventListener('input', filterRows);
+        resetButton?.addEventListener('click', () => {
+            if (searchInput) searchInput.value = '';
+            sortKey = 'date';
+            sortDirection = 'desc';
+            sortRows();
+            searchInput?.focus();
+        });
+        sortRows();
 
         if (detailsPane) {
             detailsPane.addEventListener('input', event => {

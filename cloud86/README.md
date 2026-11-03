@@ -160,11 +160,11 @@ mocklabels; hij maakt geen zending bij GLS en raakt de productie-MySQL-database 
 1. Log in.
 2. Voeg een levering toe met een fictief adres.
 3. Voeg twee dozen toe, bijvoorbeeld 4,5 en 7,2 kg.
-4. Klik op **Maak afdrukbaar testlabel**.
+4. Klik op **Testlabel maken en afdrukken**.
 5. Controleer dat er twee `MOCK-...` codes ontstaan.
 6. Open de opgeslagen A6-PDF en controleer dat iedere doos een eigen pagina heeft met afleveradres,
    referentie, doosnummer, gewicht, testtrackingnummer en een duidelijke ongeldigheidsmarkering.
-7. Controleer dat **Label openen / opnieuw afdrukken** hetzelfde opgeslagen bestand opent en geen
+7. Controleer dat **Label openen en afdrukken** hetzelfde opgeslagen bestand opent en geen
    nieuwe zending aanmaakt.
 8. Controleer dat een tweede labelaanvraag of directe herhaling wordt geblokkeerd.
 

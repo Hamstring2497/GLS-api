@@ -16,20 +16,20 @@
     <fieldset>
         <legend>Afleveradres</legend>
         <div class="grid-2">
-            <label>Naam<input name="name" required></label>
-            <label>Naam 2<input name="name_2"></label>
-            <label>Naam 3<input name="name_3"></label>
-            <label>Straat<input name="street" required></label>
-            <label>Huisnummer<input name="house_no" required></label>
-            <label>Toevoeging<input name="house_no_addition"></label>
-            <label>Postcode<input name="zip_code" required></label>
-            <label>Plaats<input name="city" required></label>
+            <label>Naam<input name="name" maxlength="30" required></label>
+            <label>Naam 2<input name="name_2" maxlength="30"></label>
+            <label>Naam 3<input name="name_3" maxlength="30"></label>
+            <label>Straat<input name="street" maxlength="40" required></label>
+            <label>Huisnummer<input name="house_no" maxlength="5" required></label>
+            <label>Toevoeging<input name="house_no_addition" maxlength="5"></label>
+            <label>Postcode<input name="zip_code" maxlength="8" required></label>
+            <label>Plaats<input name="city" maxlength="30" required></label>
             <label>Landcode<input name="country_code" maxlength="2" value="NL" required></label>
-            <label>Contactpersoon<input name="contact"></label>
-            <label>Telefoon<input name="phone"></label>
-            <label>E-mailadres *<input type="email" name="email" required></label>
-            <label>Notitie 1<input name="note_1" maxlength="50"></label>
-            <label>Notitie 2<input name="note_2" maxlength="50"></label>
+            <label>Contactpersoon<input name="contact" maxlength="30"></label>
+            <label>Telefoon<input name="phone" maxlength="25"></label>
+            <label>E-mailadres *<input type="email" name="email" maxlength="320" required></label>
+            <label>Notitie 1<input name="note_1" maxlength="30"></label>
+            <label>Notitie 2<input name="note_2" maxlength="30"></label>
         </div>
     </fieldset>
     <button class="button" type="submit">Levering opslaan</button>

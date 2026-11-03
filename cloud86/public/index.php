@@ -78,7 +78,9 @@ try {
         $exactStatus = (new ExactService(Database::connect()))->status();
         $deliveries = $repository->all();
         $selectedId = (string) ($_GET['delivery'] ?? '');
-        $selected = $selectedId !== '' ? $repository->find($selectedId) : ($deliveries[0] ?? null);
+        $selected = $selectedId !== ''
+            ? $repository->find($selectedId)
+            : ($repository->firstAddedWithoutTracking() ?? ($deliveries[0] ?? null));
         if ($selectedId !== '' && ($selected === null || $selected['status'] === 'discarded')) {
             abort(404, 'Levering niet gevonden.');
         }
@@ -254,6 +256,11 @@ try {
         if (filter_var(trim((string) $_POST['email']), FILTER_VALIDATE_EMAIL) === false) {
             abort(422, 'Vul een geldig e-mailadres in.');
         }
+        foreach (GlsService::ADDRESS_FIELD_LIMITS as $field => $maxLength) {
+            if (mb_strlen(trim((string) ($_POST[$field] ?? ''))) > $maxLength) {
+                abort(422, sprintf('Adresveld %s mag maximaal %d tekens bevatten.', $field, $maxLength));
+            }
+        }
         $repository->save(array_map(
             static fn ($value): string => trim((string) $value),
             $_POST
@@ -301,9 +308,9 @@ try {
         if (filter_var($address['email'], FILTER_VALIDATE_EMAIL) === false) {
             abort(422, 'Vul een geldig e-mailadres in.');
         }
-        foreach (['note_1', 'note_2'] as $field) {
-            if (mb_strlen($address[$field]) > 50) {
-                abort(422, 'Notitie 1 en Notitie 2 mogen maximaal 50 tekens bevatten.');
+        foreach (GlsService::ADDRESS_FIELD_LIMITS as $field => $maxLength) {
+            if (mb_strlen($address[$field]) > $maxLength) {
+                abort(422, sprintf('Adresveld %s mag maximaal %d tekens bevatten.', $field, $maxLength));
             }
         }
         $address['addressee_type'] = (string) ($delivery['address']['addressee_type'] ?? 'B');
@@ -334,8 +341,8 @@ try {
         if (!isset(GlsService::FREIGHT_UNITS[$freightUnitType])) {
             abort(422, 'Kies een geldig vrachttype.');
         }
-        if ($reference === '' || strlen($reference) > 64) {
-            abort(422, 'Vul een referentie van maximaal 64 tekens in.');
+        if ($reference === '' || mb_strlen($reference) > GlsService::REFERENCE_MAX_LENGTH) {
+            abort(422, 'Vul een referentie van maximaal 20 tekens in.');
         }
         $glsProduct = (string) ($_POST['gls_product'] ?? 'direct_delivery_plus');
         $selectedServices = is_array($_POST['gls_services'] ?? null)
@@ -552,6 +559,9 @@ try {
                     . $error->getMessage() . ' Gebruik “Opnieuw naar Exact” en maak géén nieuwe GLS-zending.'
                 );
             }
+        }
+        if (!empty($result['label_path'])) {
+            redirect('/deliveries/' . rawurlencode($id) . '/label');
         }
         redirect('/?delivery=' . rawurlencode($id));
     }
