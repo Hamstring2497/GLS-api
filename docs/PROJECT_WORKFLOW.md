@@ -235,6 +235,21 @@ gecontroleerd worden toegepast.
 
 ## 10. Actuele stand — 3 november 2026
 
+- Live-activatie 3 november 2026: applicatiecommits `95efab7` en `28ad6a2` staan lokaal,
+  op GitHub en op Cloud86. De serverhash van `src/GlsService.php` komt overeen met de lokale
+  versie. Alle PHP-bestanden slagen voor de syntaxcontrole en de uitgebreide PHP-smoketest is
+  geslaagd; negen Python-regressietests slagen lokaal. De Cloud86-`.env` gebruikt nu `GLS_MODE=live`,
+  de officiële productie-endpoints en `GLS_SEND_SHIPPING_DATE=true`; `pdfa6s` is behouden.
+  De oude configuratie is uitsluitend op de server afgeschermd bewaard als
+  `.env.before-live-20261103`. De echte GLS-productielogin is opnieuw bevestigd zonder labelaanmaak.
+  De gereedheidscontrole bevestigt labelopslag, benodigde databasekolommen en de opgeslagen
+  Exact-koppeling. `/health` geeft `status: ok` en `gls_mode: live`.
+  Er is geen nieuwe GLS-zending aangemaakt en geen tracking naar Exact geschreven tijdens deze
+  voorbereiding. De gebruiker voert nu zelf één echte Parcel/DirectDeliveryPlus-levering uit.
+  De officiële PDF, printerafdruk en daadwerkelijke Exact-writeback moeten daarbij nog worden
+  geaccepteerd. De huidige werkvoorraad bevat al gekoppelde bestaande GLS-zendingen: gebruik voor
+  de proef een nieuw, nog niet elders verzonden Exact-document.
+
 - Voorbereiding eerste echte verzending: de magazijnflow gebruikt bij ingeschakelde
   `GLS_SEND_SHIPPING_DATE` de datum van labelaanmaak in `APP_TIMEZONE`, niet de historische
   Exact-leverdatum. De datum staat naast de labelknop en in de productiebevestiging; een formulier
@@ -248,7 +263,7 @@ gecontroleerd worden toegepast.
   Het nieuwe `bin/check-live-readiness.php --validate-login` controleert configuratie, aanwezige
   databasekolommen, opgeslagen Exact-koppeling en optioneel uitsluitend GLS-authenticatie. Het
   maakt geen zending aan en bewijst nog geen succesvolle echte labelaanmaak of Exact-writeback.
-  Publicatie en productiecontrole van deze wijziging worden na uitvoering hieronder vastgelegd.
+  Publicatie en productiecontrole van deze wijziging staan in de actuele live-activatie hierboven.
 
 - 3 november 2026, applicatiecommit `3dbe598` lokaal, op GitHub en via Plesk op Cloud86
   gepubliceerd: na een succesvolle echte GLS-labelaanvraag schrijft
@@ -540,10 +555,9 @@ gecontroleerd worden toegepast.
 
 Werk deze lijst in deze volgorde af:
 
-- Eerst de nieuwe PHP-controles op Cloud86 uitvoeren in mockmodus. Daarna de productie-endpoints
-  en `GLS_SEND_SHIPPING_DATE=true` instellen, veilig met tijdelijke CLI-modus `live` controleren en
-  pas bij succes de webapp op `GLS_MODE=live` zetten voor de door de gebruiker gevraagde eerste echte
-  levering. De gebruiker maakt die levering zelf. Gebruik standaard Parcel/DirectDeliveryPlus.
+- De webapp is na geslaagde servercontroles en GLS-authenticatie op `GLS_MODE=live` gezet voor de
+  door de gebruiker gevraagde eerste echte levering. De gebruiker maakt die levering zelf.
+  Gebruik standaard Parcel/DirectDeliveryPlus en alleen dozen die op de getoonde verzenddatum meegaan.
 - Bij die eerste levering: officiële GLS-PDF, aantal labels, 100 × 150 mm afdruk en
   `GoodsDeliveries.TrackingNumber` in Exact controleren. Bij een onzekere aanvraag nooit opnieuw
   aanmaken. Alleen dezelfde opgeslagen PDF opnieuw openen/afdrukken.
