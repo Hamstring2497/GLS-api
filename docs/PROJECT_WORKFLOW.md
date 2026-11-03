@@ -243,7 +243,12 @@ gecontroleerd worden toegepast.
   de queryfilter niet accepteren. `bin/delete-untracked-deliveries.php` biedt een controlemodus en
   verwijdert met `--execute` uitsluitend de vooraf getoonde leveringen die nog steeds geen
   trackingnummer hebben; leveringen met tracking blijven altijd bewaard. Geen databasemigratie
-  nodig. Productie-opschoning en publicatiestatus worden na uitvoering hieronder vastgelegd.
+  nodig. Applicatiecommit `4d9effe` staat lokaal, op GitHub en via Plesk op Cloud86. Op Cloud86
+  zijn de PHP-syntaxcontrole en de uitgebreide smoketest geslaagd. De controlemodus toonde tien
+  leveringen zonder trackingnummer (`9080432`, `9080442`, `9080440`, `9080436`, `9080443`,
+  `9080439`, `9080438`, `9080435`, `9080437` en `9080441`). Na expliciete bevestiging zijn exact
+  deze tien productierijen verwijderd. De aansluitende nacontrole meldt: **Geen leveringen zonder
+  trackingnummer gevonden**. Leveringen met trackingnummer zijn niet verwijderd.
 
 - De zichtbare applicatienaam is **ParcelPilot**. De kop toont een compact technisch `PP`-beeldmerk
   met de woordnaam ParcelPilot in de bestaande blauwe BETEC-stijl; ook de browsertitel is aangepast.
@@ -627,7 +632,8 @@ Werk deze lijst in deze volgorde af:
 
 - Controleer na iedere toekomstige wijziging aan de Exact-import dat 1 november 2026 de vaste
   ondergrens blijft. Gebruik het opschoonscript altijd eerst zonder `--execute` en vergelijk de
-  getoonde leveringnummers voordat de uitvoeroptie wordt gebruikt.
+  getoonde leveringnummers voordat de uitvoeroptie wordt gebruikt. De eenmalige productieopschoning
+  van 3 november 2026 is voltooid en hoeft niet te worden herhaald.
 
 - Test ingelogd één nog niet verzonden levering en één reeds gemaakte zending zonder een nieuwe
   GLS-aanvraag te doen. Controleer daarbij de nieuwe detailvolgorde, hele-kilo-invoer en groene
