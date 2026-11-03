@@ -10,14 +10,17 @@ $canDeleteSelectedDelivery = isset($selectedDelivery)
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex,nofollow">
-    <title>Exact GLS Werkplek</title>
+    <title>ParcelPilot</title>
     <?php $cssVersion = (string) (filemtime(__DIR__ . '/../public/assets/app.css') ?: '1'); ?>
     <link rel="stylesheet" href="/assets/app.css?v=<?= e($cssVersion) ?>">
 </head>
 <body>
 <header class="topbar">
     <div class="topbar-left">
-        <a class="brand" href="/">Exact <span>→</span> GLS</a>
+        <a class="brand" href="/" aria-label="ParcelPilot – naar leveringen">
+            <span class="brand-mark" aria-hidden="true">PP</span>
+            <span class="brand-wordmark">Parcel<span>Pilot</span></span>
+        </a>
         <?php if (isset($exactStatus) && (\App\Security::user()['role'] ?? '') === 'admin'): ?>
             <span class="exact-info">
                 <strong>Exact Online</strong>

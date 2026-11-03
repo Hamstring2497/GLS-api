@@ -235,6 +235,11 @@ gecontroleerd worden toegepast.
 
 ## 10. Actuele stand — 3 november 2026
 
+- De zichtbare applicatienaam is **ParcelPilot**. De kop toont een compact technisch `PP`-beeldmerk
+  met de woordnaam ParcelPilot in de bestaande blauwe BETEC-stijl; ook de browsertitel is aangepast.
+  De interne `shippingSystemName` voor GLS blijft bewust ongewijzigd, omdat de naamswijziging alleen
+  de gebruikersinterface betreft. Geen databasemigratie nodig.
+
 - Echte numerieke GLS-trackingnummers zijn in zowel de leveringstabel als het detailblok klikbaar.
   De link opent de officiële Nederlandse GLS Track & Trace-pagina in een nieuw tabblad. Mockcodes
   en onverwachte waarden blijven bewust gewone tekst. De linkbediening onderschept de bestaande
