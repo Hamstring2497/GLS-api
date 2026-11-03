@@ -244,8 +244,9 @@ gecontroleerd worden toegepast.
   overeen met de zichtbare appgegevens. Dit is een leesbaarheidscontrole, geen formele
   barcodekwaliteitscertificering of bevestiging van GLS-contract/services.
   Het lege routevak linksboven is ook leeg in de originele GLS-PDF; de betekenis moet zo nodig
-  door GLS worden bevestigd. De onderste regel is alleen in de aangeleverde afbeelding afgesneden:
-  eerst fysieke afdruk en printerinstellingen controleren, geen eigen GLS-labelindeling maken.
+  door GLS worden bevestigd. De gebruiker bevestigt dat de onderste regel ook op het fysieke
+  etiket is afgesneden: printerformaat, schaal en afdrukpositie controleren; geen eigen
+  GLS-labelindeling maken. De originele PDF is volledig.
   Klantgegevens, barcode-inhoud en de originele PDF zijn niet in Git opgenomen. Applicatiecode
   blijft `28ad6a2` (laatst bevestigd op Cloud86); voorgaande documentatiecommit is `732f009`.
 
@@ -570,7 +571,7 @@ gecontroleerd worden toegepast.
 Werk deze lijst in deze volgorde af:
 
 - Eerste echte label is gecontroleerd: de drie codes zijn leesbaar en de oorspronkelijke PDF is
-  volledig. Controleer nu of de onderste regel op het fysieke etiket wegvalt. Controleer dan
+  volledig. De onderste regel valt volgens de gebruiker ook op het fysieke etiket weg. Controleer
   printerpapier 100 × 150 mm, schaal/afdrukpositie en labelkalibratie. Herdruk uitsluitend de
   bestaande PDF. Vraag GLS zo nodig naar het lege routevak linksboven en verifieer de ontvangen
   productieaanmelding/productkeuze; leid dit niet uitsluitend af uit scanbare barcodes.
