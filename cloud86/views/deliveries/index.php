@@ -26,7 +26,7 @@
 
 <div id="exact-sync-progress" class="sync-progress" role="status" aria-live="assertive" hidden>
     <span class="sync-spinner" aria-hidden="true"></span>
-    <span><strong>ParcelPilot haalt leveringen op…</strong><small>Even geduld; gegevens en afleveradressen worden gecontroleerd.</small></span>
+    <span><strong>PietPakket haalt leveringen op…</strong><small>Even geduld; gegevens en afleveradressen worden gecontroleerd.</small></span>
 </div>
 
 <?php if ($deliveries === []): ?>
@@ -81,6 +81,9 @@
                 } elseif ($isQuickMergeCandidate) {
                     $tableStatus = 'Samenvoegen?';
                     $tableStatusClass = 'merge-question';
+                } elseif ($delivery['status'] === 'collected') {
+                    $tableStatus = 'Afgehaald ✓';
+                    $tableStatusClass = 'collected';
                 } elseif ($delivery['status'] === 'labels_created') {
                     $tableStatus = 'Zending klaar ✓';
                     $tableStatusClass = 'labels_created';
@@ -98,7 +101,7 @@
                     $tableStatusClass = 'ready';
                 }
                 ?>
-                <tr class="delivery-row <?= $selectedDelivery && $selectedDelivery['exact_entry_id'] === $delivery['exact_entry_id'] ? 'selected-row' : '' ?> <?= in_array($delivery['status'], ['ready', 'labels_created'], true) ? 'completed-row' : '' ?> <?= $delivery['status'] === 'labels_created' ? 'shipment-ready-row' : '' ?> <?= in_array($delivery['status'], ['gls_processing', 'gls_unknown'], true) ? 'gls-pending-row' : '' ?> <?= $isQuickMergeCandidate ? 'merge-candidate-row' : '' ?>" data-delivery-url="<?= e($deliveryUrl) ?>" data-merge-candidate="<?= $isQuickMergeCandidate ? '1' : '0' ?>" data-delivery-id="<?= e($delivery['exact_entry_id']) ?>" data-delivery-number="<?= e($delivery['delivery_number']) ?>" data-order-number="<?= e($delivery['order_number']) ?>" data-sort-order="<?= e($delivery['order_number']) ?>" data-sort-date="<?= e($delivery['shipping_date'] ?? '') ?>" data-sort-added="<?= e($delivery['created_at'] ?? '') ?>" data-sort-recipient="<?= e($delivery['address']['name']) ?>" data-sort-street="<?= e($delivery['address']['street']) ?>" data-sort-postcode="<?= e($delivery['address']['zip_code']) ?>" tabindex="0" aria-label="Selecteer levering <?= e($delivery['delivery_number']) ?>" aria-selected="<?= $selectedDelivery && $selectedDelivery['exact_entry_id'] === $delivery['exact_entry_id'] ? 'true' : 'false' ?>">
+                <tr class="delivery-row <?= $selectedDelivery && $selectedDelivery['exact_entry_id'] === $delivery['exact_entry_id'] ? 'selected-row' : '' ?> <?= in_array($delivery['status'], ['ready', 'labels_created', 'collected'], true) ? 'completed-row' : '' ?> <?= in_array($delivery['status'], ['labels_created', 'collected'], true) ? 'shipment-ready-row' : '' ?> <?= in_array($delivery['status'], ['gls_processing', 'gls_unknown'], true) ? 'gls-pending-row' : '' ?> <?= $isQuickMergeCandidate ? 'merge-candidate-row' : '' ?>" data-delivery-url="<?= e($deliveryUrl) ?>" data-merge-candidate="<?= $isQuickMergeCandidate ? '1' : '0' ?>" data-delivery-id="<?= e($delivery['exact_entry_id']) ?>" data-delivery-number="<?= e($delivery['delivery_number']) ?>" data-order-number="<?= e($delivery['order_number']) ?>" data-sort-order="<?= e($delivery['order_number']) ?>" data-sort-date="<?= e($delivery['shipping_date'] ?? '') ?>" data-sort-added="<?= e($delivery['created_at'] ?? '') ?>" data-sort-recipient="<?= e($delivery['address']['name']) ?>" data-sort-street="<?= e($delivery['address']['street']) ?>" data-sort-postcode="<?= e($delivery['address']['zip_code']) ?>" tabindex="0" aria-label="Selecteer levering <?= e($delivery['delivery_number']) ?>" aria-selected="<?= $selectedDelivery && $selectedDelivery['exact_entry_id'] === $delivery['exact_entry_id'] ? 'true' : 'false' ?>">
                     <td><strong><?= e($delivery['delivery_number']) ?></strong></td>
                     <td><?= e($delivery['order_number']) ?></td>
                     <td><?= e($delivery['shipping_date'] ?: '—') ?></td>

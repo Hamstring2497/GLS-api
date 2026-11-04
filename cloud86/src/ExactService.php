@@ -239,7 +239,7 @@ final class ExactService
                 // Ook een onvolledig Exact-adres hoort zichtbaar in de werkvoorraad te komen.
                 // Het overzicht markeert ontbrekende velden en blokkeert het GLS-label totdat de
                 // magazijnmedewerker ze heeft aangevuld. Een regel volledig overslaan maakt het
-                // anders onduidelijk waarom een afgedrukte pakbon niet in ParcelPilot staat.
+                // anders onduidelijk waarom een afgedrukte pakbon niet in PietPakket staat.
                 $this->validateImportedDelivery($data, $deliveryNumber);
                 $deliveries->save($data);
                 $imported++;

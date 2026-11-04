@@ -375,6 +375,20 @@ assert($imported === 2);
 assert($repository->find('merge-primary')['tracking_numbers'] === ['73220023886849']);
 assert($repository->find('merge-child')['status'] === 'labels_created');
 assert($repository->find('merge-child')['last_gls_state'] === 'tracking_imported');
+$repository->save([
+    'exact_entry_id' => 'pickup-delivery', 'delivery_number' => '9080999',
+    'order_number' => '40065999', 'shipping_date' => '2026-11-04',
+    'name' => 'Afhaalbedrijf BV', 'street' => 'Magazijnweg', 'house_no' => '1',
+    'zip_code' => '7322 AK', 'city' => 'Apeldoorn', 'country_code' => 'NL',
+    'email' => 'afhalen@example.com',
+]);
+assert($repository->markCollected('pickup-delivery'));
+$pickupDelivery = $repository->find('pickup-delivery');
+assert($pickupDelivery['status'] === 'collected');
+assert($pickupDelivery['tracking_numbers'] === ['AFHALEN-9080999']);
+assert($pickupDelivery['last_gls_state'] === 'collected');
+assert($pickupDelivery['label_path'] === null);
+assert(!$repository->markCollected('pickup-delivery'));
 $deliveries = [$repository->find('merge-primary')];
 $selectedDelivery = $deliveries[0];
 $mergeCandidates = [];
@@ -419,7 +433,7 @@ assert($repository->find('test-delivery') === null);
 assert($repository->find('second') === null);
 assert($repository->find('merge-primary') !== null);
 assert($repository->find('merge-child') !== null);
-assert($repository->clearAll() === 2);
+assert($repository->clearAll() === 3);
 assert($repository->all() === []);
 assert($db->query('SELECT COUNT(*) FROM parcels')->fetchColumn() == 0);
 

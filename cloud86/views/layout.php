@@ -10,16 +10,16 @@ $canDeleteSelectedDelivery = isset($selectedDelivery)
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex,nofollow">
-    <title>ParcelPilot</title>
+    <title>PietPakket</title>
     <?php $cssVersion = (string) (filemtime(__DIR__ . '/../public/assets/app.css') ?: '1'); ?>
     <link rel="stylesheet" href="/assets/app.css?v=<?= e($cssVersion) ?>">
 </head>
 <body>
 <header class="topbar">
     <div class="topbar-left">
-        <a class="brand" href="/" aria-label="ParcelPilot – naar leveringen">
+        <a class="brand" href="/" aria-label="PietPakket – naar leveringen">
             <span class="brand-mark" aria-hidden="true">PP</span>
-            <span class="brand-wordmark">Parcel<span>Pilot</span></span>
+            <span class="brand-wordmark">Piet<span>Pakket</span></span>
         </a>
         <?php if (isset($exactStatus) && (\App\Security::user()['role'] ?? '') === 'admin'): ?>
             <span class="exact-info">
@@ -90,6 +90,10 @@ function confirmTrackingImport(form) {
     if (!confirm('Bevestig dat deze zendingen al in GLS zijn aangemaakt. De werkplek maakt hiervoor geen nieuw labelbestand aan.')) return false;
     form.elements.confirm_import.value = 'yes';
     return true;
+}
+function confirmCollectedDelivery(form) {
+    if (!form.elements.confirm_collected.checked) return false;
+    return confirm('Deze levering wordt als afgehaald afgehandeld en niet naar GLS verzonden. Doorgaan?');
 }
 const exactSyncForm = document.getElementById('exact-sync-form');
 if (exactSyncForm) {

@@ -110,6 +110,7 @@ address { font-style:normal; }
 .badge { display:inline-block; border-radius:999px; padding:6px 10px; background:#e7ece9; color:#42574e; font-size:.72rem; font-weight:850; text-transform:uppercase; }
 .badge-ready { color:#6a5200; background:#fff0b9; }
 .badge-labels_created { color:#fff; background:var(--success); }
+.badge-collected { color:#fff; background:#336b85; }
 .badge-missing { color:#724d00; background:#fff0b9; }
 .badge-processing { color:#174f6e; background:#dceef8; }
 .badge-unknown { color:#765000; background:#fff0b9; border:1px solid #d2a62d; }
@@ -249,6 +250,9 @@ code { display:inline-block; margin:4px 5px 0 0; padding:6px 9px; border-radius:
 .units-panel .stack { margin-top:0; gap:10px; }
 .heading-actions { display:flex; align-items:center; gap:12px; }
 .heading-actions form,.units-status form { margin:0; }
+.collected-form { display:flex; align-items:center; gap:7px; }
+.collected-check { display:flex; grid-template-columns:none; align-items:center; gap:6px; color:var(--green-dark); font-size:.78rem; font-weight:750; letter-spacing:0; text-transform:none; white-space:nowrap; }
+.collected-check input { width:18px; min-height:18px; margin:0; padding:0; accent-color:var(--green); box-shadow:none; }
 .units-status { display:flex; align-items:center; justify-content:flex-end; gap:10px; color:var(--muted); font-size:.8rem; }
 .units-status strong { color:var(--green-dark); text-transform:uppercase; letter-spacing:.05em; }
 .weight-row { display:flex; align-items:end; gap:8px; padding:7px 8px; border:1px solid var(--line); border-radius:7px; background:#f5f9fc; }

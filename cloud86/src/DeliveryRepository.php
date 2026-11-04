@@ -448,6 +448,44 @@ final class DeliveryRepository
         ]);
     }
 
+    public function markCollected(string $id): bool
+    {
+        $delivery = $this->find($id);
+        if (
+            $delivery === null
+            || !in_array($delivery['status'], ['new', 'ready'], true)
+            || !empty($delivery['merged_into_exact_entry_id'])
+        ) {
+            return false;
+        }
+
+        $trackingNumber = 'AFHALEN-' . preg_replace(
+            '/[^A-Za-z0-9_-]/',
+            '',
+            (string) $delivery['delivery_number']
+        );
+        $response = [
+            'source' => 'PietPakket',
+            'collected' => true,
+            'tracking_number' => $trackingNumber,
+        ];
+
+        $statement = $this->db->prepare(
+            "UPDATE deliveries SET status = 'collected', tracking_numbers_json = ?, "
+            . 'gls_request_json = NULL, gls_response_json = ?, label_path = NULL, '
+            . "last_gls_state = 'collected', exact_tracking_synced_at = NULL, updated_at = CURRENT_TIMESTAMP "
+            . "WHERE (exact_entry_id = ? OR merged_into_exact_entry_id = ?) AND status IN ('new', 'ready')"
+        );
+        $statement->execute([
+            json_encode([$trackingNumber], JSON_THROW_ON_ERROR),
+            json_encode($response, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
+            $id,
+            $id,
+        ]);
+
+        return $statement->rowCount() >= 1;
+    }
+
     public function markExactTrackingSynced(string $id): void
     {
         $statement = $this->db->prepare(

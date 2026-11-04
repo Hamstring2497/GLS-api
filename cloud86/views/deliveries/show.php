@@ -1,8 +1,9 @@
 <?php
 $glsMode = strtolower((string) ($glsMode ?? 'mock'));
 $labelsCreated = $delivery['status'] === 'labels_created';
+$collected = $delivery['status'] === 'collected';
 $glsPending = in_array($delivery['status'], ['gls_processing', 'gls_unknown'], true);
-$locked = $labelsCreated || $glsPending;
+$locked = $labelsCreated || $collected || $glsPending;
 $mockTracking = \App\ExactService::isMockTracking($delivery);
 $exactTrackingSynced = !empty($delivery['exact_tracking_synced_at']);
 foreach (($delivery['merged_deliveries'] ?? []) as $mergedDelivery) {
@@ -14,12 +15,14 @@ $missingData = delivery_missing_data($delivery);
 $missingKeys = array_keys($missingData);
 $statusLabel = match ($delivery['status']) {
     'labels_created' => 'Zending klaar ✓',
+    'collected' => 'Afgehaald ✓',
     'gls_processing' => 'Bezig met GLS',
     'gls_unknown' => 'GLS-controle nodig',
     default => $missingData === [] ? 'Klaar voor labels' : 'Gegevens ontbreken',
 };
 $statusClass = match ($delivery['status']) {
     'labels_created' => 'labels_created',
+    'collected' => 'collected',
     'gls_processing' => 'processing',
     'gls_unknown' => 'unknown',
     default => $missingData === [] ? 'ready' : 'missing',
@@ -74,6 +77,16 @@ $addressFields = [
             </div>
         </div>
         <div class="heading-actions">
+            <?php if (!$locked): ?>
+                <form class="collected-form" method="post" action="/deliveries/<?= rawurlencode((string) $delivery['exact_entry_id']) ?>/collected" onsubmit="return confirmCollectedDelivery(this)">
+                    <input type="hidden" name="_token" value="<?= e(\App\Security::csrfToken()) ?>">
+                    <label class="collected-check">
+                        <input type="checkbox" name="confirm_collected" value="yes">
+                        <span>Afgehaald</span>
+                    </label>
+                    <button class="button button-secondary button-small" type="submit">Afronden</button>
+                </form>
+            <?php endif; ?>
             <span class="badge badge-<?= e($statusClass) ?>"><?= e($statusLabel) ?></span>
         </div>
     </div>
@@ -197,11 +210,23 @@ $addressFields = [
         </form>
     </section>
 
-    <section class="panel units-panel <?= $labelsCreated ? 'shipment-ready-panel' : '' ?>">
+    <section class="panel units-panel <?= ($labelsCreated || $collected) ? 'shipment-ready-panel' : '' ?>">
         <div class="section-bar units-bar">
             <h2><?= $delivery['ship_type'] === 'F' ? 'Vrachteenheden en gewicht' : 'Dozen en gewicht' ?></h2>
             <div class="units-status">
-                <?php if ($labelsCreated): ?>
+                <?php if ($collected): ?>
+                    <span>
+                        <strong>✓ Afgehaald · niet naar GLS</strong>
+                        <?php if ($exactTrackingSynced): ?>· Exact bijgewerkt<?php else: ?>· Exact nog niet bijgewerkt<?php endif; ?>
+                        · <?= e(implode(', ', $delivery['tracking_numbers'])) ?>
+                    </span>
+                    <?php if (!$exactTrackingSynced): ?>
+                        <form method="post" action="/deliveries/<?= rawurlencode((string) $delivery['exact_entry_id']) ?>/tracking/exact">
+                            <input type="hidden" name="_token" value="<?= e(\App\Security::csrfToken()) ?>">
+                            <button class="button button-secondary button-small" type="submit">Opnieuw naar Exact</button>
+                        </form>
+                    <?php endif; ?>
+                <?php elseif ($labelsCreated): ?>
                     <span>
                         <strong>✓ Zending klaar · GLS gereed</strong> · <?= count($delivery['tracking_numbers']) ?> track-en-tracecode(s)
                         <?php if ($mockTracking): ?>· test, niet naar Exact
@@ -235,7 +260,9 @@ $addressFields = [
                 <?php endif; ?>
             </div>
         </div>
-        <?php if ($labelsCreated): ?>
+        <?php if ($collected): ?>
+            <p class="label-print-note">Deze levering is afgehaald. Er is geen GLS-zending of label aangemaakt.</p>
+        <?php elseif ($labelsCreated): ?>
             <ol class="parcel-list">
                 <?php foreach ($delivery['parcels'] as $parcel): ?><li>Doos <?= e($parcel['position']) ?><strong><?= e(number_format((float) $parcel['weight_kg'], 0, ',', '.')) ?> kg</strong></li><?php endforeach; ?>
             </ol>

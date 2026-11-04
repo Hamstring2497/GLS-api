@@ -443,6 +443,34 @@ try {
         redirect('/deliveries/' . rawurlencode($id));
     }
 
+    if ($method === 'POST' && preg_match('#^/deliveries/([^/]+)/collected$#', $path, $matches)) {
+        Security::verifyCsrf();
+        if (($_POST['confirm_collected'] ?? '') !== 'yes') {
+            abort(422, 'Vink eerst aan dat deze levering is afgehaald.');
+        }
+        $id = rawurldecode($matches[1]);
+        if (!$repository->markCollected($id)) {
+            abort(409, 'Deze levering kan niet meer als afgehaald worden gemarkeerd.');
+        }
+
+        try {
+            $delivery = $repository->find($id);
+            if ($delivery === null) {
+                throw new ExactException('De afgehaalde levering kon niet opnieuw worden geladen.');
+            }
+            $result = (new ExactService(Database::connect()))->syncDeliveryTracking($delivery, $repository);
+            if ($result['errors'] !== []) {
+                flash('warning', 'Afgehaald en niet naar GLS verzonden. Exact is nog niet volledig bijgewerkt: ' . implode(' | ', array_slice($result['errors'], 0, 3)));
+            } else {
+                flash('success', 'Levering afgehandeld als afgehaald. Er is geen GLS-zending aangemaakt; Exact is bijgewerkt.');
+            }
+        } catch (Throwable $error) {
+            error_log('Afhaalnummer naar Exact schrijven: ' . $error->getMessage());
+            flash('warning', 'Levering is afgehaald en niet naar GLS verzonden. Exact kon nog niet worden bijgewerkt: ' . $error->getMessage());
+        }
+        redirect('/?delivery=' . rawurlencode($id));
+    }
+
     if ($method === 'POST' && preg_match('#^/deliveries/([^/]+)/merge$#', $path, $matches)) {
         Security::verifyCsrf();
         $id = rawurldecode($matches[1]);
@@ -586,16 +614,16 @@ try {
 
     if ($method === 'POST' && preg_match('#^/deliveries/([^/]+)/tracking/exact$#', $path, $matches)) {
         Security::verifyCsrf();
-        if (strtolower((string) Env::get('GLS_MODE', 'mock')) !== 'live') {
-            abort(409, 'Tracking naar Exact schrijven is alleen beschikbaar in GLS-livemodus.');
-        }
         $id = rawurldecode($matches[1]);
         $delivery = $repository->find($id);
         if ($delivery === null) {
             abort(404, 'Levering niet gevonden.');
         }
-        if ($delivery['status'] !== 'labels_created' || $delivery['tracking_numbers'] === []) {
-            abort(409, 'Deze levering heeft nog geen GLS-trackingnummer om naar Exact te schrijven.');
+        if ($delivery['status'] === 'labels_created' && strtolower((string) Env::get('GLS_MODE', 'mock')) !== 'live') {
+            abort(409, 'Tracking naar Exact schrijven is alleen beschikbaar in GLS-livemodus.');
+        }
+        if (!in_array($delivery['status'], ['labels_created', 'collected'], true) || $delivery['tracking_numbers'] === []) {
+            abort(409, 'Deze levering heeft nog geen tracking- of afhaalnummer om naar Exact te schrijven.');
         }
         try {
             $result = (new ExactService(Database::connect()))->syncDeliveryTracking($delivery, $repository);
@@ -610,8 +638,8 @@ try {
             flash(
                 'success',
                 $result['synced'] > 0
-                    ? $result['synced'] . ' Exact-levering(en) bijgewerkt met GLS-tracking.'
-                    : 'De GLS-tracking stond al in Exact.'
+                    ? $result['synced'] . ' Exact-levering(en) bijgewerkt met het tracking- of afhaalnummer.'
+                    : 'Het tracking- of afhaalnummer stond al in Exact.'
             );
         }
         redirect('/?delivery=' . rawurlencode($id));

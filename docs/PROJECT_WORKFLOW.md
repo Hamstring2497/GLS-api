@@ -1,4 +1,4 @@
-# Exact → GLS Werkplek: workflow en projectoverdracht
+# PietPakket: workflow en projectoverdracht
 
 Dit is het centrale overdrachtsdocument voor mensen en nieuwe Codex-sessies. Lees dit document
 voordat je verder bouwt. Werk de projectstand bij na iedere betekenisvolle wijziging.
@@ -15,6 +15,8 @@ De webapp ondersteunt het magazijn bij het verzenden van Exact Online-goederenle
 6. De GLS-track-en-tracecode wordt lokaal opgeslagen.
 7. De app schrijft echte GLS-tracking terug naar `GoodsDeliveries.TrackingNumber` in Exact.
 8. GLS-statusupdates kunnen via de Track & Trace-webhook binnenkomen.
+9. Een medewerker kan een levering als **afgehaald** afronden; er wordt dan geen GLS-zending
+   aangemaakt en Exact krijgt een herkenbaar intern afhaalnummer.
 
 De app is een zelfstandige magazijnwerkplek en wordt niet in Exact of WordPress geïnstalleerd.
 
@@ -90,7 +92,7 @@ geteste referentie voor de GLS-contracten. Nieuwe productiewerkzaamheden horen i
 ### B. Leveringen ophalen
 
 - Een beheerder klikt op **Leveringen ophalen**; dit verstuurt `POST /exact/sync` met CSRF-controle.
-- **1 november 2026 is het vaste startpunt van ParcelPilot.** Iedere synchronisatie vraagt de
+- **1 november 2026 is het vaste startpunt van PietPakket.** Iedere synchronisatie vraagt de
   `GoodsDeliveries` op die vanaf die datum in Exact zijn aangemaakt. `Created` is het moment waarop
   de goederenlevering/pakbon ontstaat; `DeliveryDate` blijft alleen de geplande leverdatum.
 - Nieuwe pakbonnen van vandaag komen zo direct binnen. Eerdere pakbonnen zonder trackingnummer
@@ -107,7 +109,7 @@ geteste referentie voor de GLS-contracten. Nieuwe productiewerkzaamheden horen i
   zo nodig aangevuld vanuit het hoofdadres van **Besteld door**.
 - Ook leveringen met een onvolledig afleveradres worden lokaal opgeslagen. Het overzicht markeert
   de ontbrekende velden en blokkeert het GLS-label totdat een medewerker ze heeft aangevuld. Zo
-  verdwijnt een in Exact afgedrukte pakbon niet stilzwijgend uit de ParcelPilot-werkvoorraad.
+  verdwijnt een in Exact afgedrukte pakbon niet stilzwijgend uit de PietPakket-werkvoorraad.
 - Deze stap maakt nadrukkelijk nog geen GLS-zending aan.
 
 ### C. Dozen en labels
@@ -143,7 +145,17 @@ geteste referentie voor de GLS-contracten. Nieuwe productiewerkzaamheden horen i
 - Na status `labels_created` kunnen de dozen niet meer worden gewijzigd en kan niet nogmaals een
   labelaanvraag worden gedaan. Herafdrukken opent alleen de opgeslagen PDF.
 
-### D. Track & Trace
+### D. Afhalen zonder GLS
+
+- In de balk **Zending** kan een medewerker **Afgehaald** aanvinken en de levering afronden.
+- De app maakt geen GLS-aanvraag en geen label aan.
+- Hoofdlevering en eventuele samengevoegde leveringen krijgen status `collected` en het stabiele
+  interne nummer `AFHALEN-<leveringsnummer>`.
+- Dit afhaalnummer wordt naar `GoodsDeliveries.TrackingNumber` in Exact geschreven. Bij een
+  Exact-storing blijft de afhaalstatus lokaal bewaard en kan uitsluitend de Exact-update worden
+  herhaald.
+
+### E. Track & Trace
 
 - GLS kan statusupdates sturen naar `POST /webhooks/gls` met een Bearer-token.
 - Webhookberichten worden gededupliceerd en krijgen snel HTTP 200 terug, ook bij een GLS-retry.
@@ -164,6 +176,7 @@ geteste referentie voor de GLS-contracten. Nieuwe productiewerkzaamheden horen i
 | `POST /deliveries/{id}/address` | lokaal afleveradres vóór labelaanmaak aanpassen |
 | `POST /deliveries/{id}/shipping` | Parcel/Freight, referentie en GLS-product/services vóór labelaanmaak opslaan |
 | `POST /deliveries/{id}/parcels` | gewichten opslaan |
+| `POST /deliveries/{id}/collected` | levering zonder GLS als afgehaald afronden en Exact bijwerken |
 | `POST /deliveries/{id}/labels` | GLS-labels maken |
 | `POST /deliveries/{id}/tracking/exact` | opgeslagen echte GLS-tracking opnieuw naar Exact schrijven |
 | `POST /deliveries/{id}/labels/release` | onzekere aanvraag na handmatige GLS-controle vrijgeven (beheerder) |
@@ -243,9 +256,18 @@ gecontroleerd worden toegepast.
 
 ## 10. Actuele stand — 4 november 2026
 
+- De zichtbare applicatienaam is gewijzigd van **ParcelPilot** naar **PietPakket**. Het bestaande
+  `PP`-beeldmerk blijft ongewijzigd. In de balk **Zending** kan een nog open levering voortaan met
+  een expliciet vinkje als **Afgehaald** worden afgerond. PietPakket maakt dan geen GLS-zending en
+  geen label aan, zet de levering (en eventuele samengevoegde leveringen) op `collected`, gebruikt
+  het herkenbare fictieve nummer `AFHALEN-<leveringsnummer>` en probeert dit nummer naar Exact te
+  schrijven. Bij een Exact-fout blijft de afhaalstatus bewaard en is **Opnieuw naar Exact**
+  beschikbaar. Geen databasemigratie nodig. De applicatiecommit staat lokaal; publicatie naar
+  GitHub en Cloud86/Plesk moet nog worden uitgevoerd en gecontroleerd.
+
 - Adrescorrecties met een uit Exact geïmporteerde ontvangernaam van meer dan 30 tekens liepen nog
   vast op HTTP 422, ook als de medewerker het ontbrekende huisnummer en de straat correct had
-  ingevuld. ParcelPilot begrenst iedere naamregel voortaan afzonderlijk tot maximaal 30 tekens,
+  ingevuld. PietPakket begrenst iedere naamregel voortaan afzonderlijk tot maximaal 30 tekens,
   bij voorkeur op een woordgrens. Tekst uit **Naam** wordt niet naar **Naam 2** of **Naam 3**
   doorgeschoven. Dit gebeurt zowel bij nieuwe Exact-imports als bij het opslaan van bestaande
   adressen, zodat een vooraf ingevulde te lange waarde een andere adrescorrectie niet meer kan
@@ -253,7 +275,7 @@ gecontroleerd worden toegepast.
 
 - Exact-leveringen met een ontbrekend adresdeel worden niet meer volledig overgeslagen. Aanleiding
   waren leveringen `9080478` (Heijmans) en `9080477` (IBK): Exact leverde voor beide geen apart
-  huisnummer, waardoor de oude importvalidatie ze weigerde. ParcelPilot importeert zulke regels nu
+  huisnummer, waardoor de oude importvalidatie ze weigerde. PietPakket importeert zulke regels nu
   wel en toont **Ontbreekt: huisnummer**; labelaanmaak blijft geblokkeerd totdat het veld is
   aangevuld. Tijdens **Leveringen ophalen** verschijnt bovendien direct een schermvullende melding
   met spinner en wordt de knop uitgeschakeld. Geen databasemigratie nodig.
@@ -276,10 +298,8 @@ gecontroleerd worden toegepast.
   deze tien productierijen verwijderd. De aansluitende nacontrole meldt: **Geen leveringen zonder
   trackingnummer gevonden**. Leveringen met trackingnummer zijn niet verwijderd.
 
-- De zichtbare applicatienaam is **ParcelPilot**. De kop toont een compact technisch `PP`-beeldmerk
-  met de woordnaam ParcelPilot in de bestaande blauwe BETEC-stijl; ook de browsertitel is aangepast.
-  De interne `shippingSystemName` voor GLS blijft bewust ongewijzigd, omdat de naamswijziging alleen
-  de gebruikersinterface betreft. Geen databasemigratie nodig.
+- De interne `shippingSystemName` voor GLS blijft bewust ongewijzigd, omdat de naamswijziging alleen
+  de gebruikersinterface betreft.
 
 - Echte numerieke GLS-trackingnummers zijn in zowel de leveringstabel als het detailblok klikbaar.
   De link opent de officiële Nederlandse GLS Track & Trace-pagina in een nieuw tabblad. Mockcodes
@@ -655,6 +675,11 @@ gecontroleerd worden toegepast.
 ## 11. Volgende stappen
 
 Werk deze lijst in deze volgorde af:
+
+- Publiceer en test de PietPakket-naamswijziging en de afhaalroute met één open testlevering.
+  Controleer dat geen GLS-aanvraag of label ontstaat, de status **Afgehaald** wordt, Exact het nummer
+  `AFHALEN-<leveringsnummer>` ontvangt en een mislukte Exact-update veilig opnieuw kan worden
+  aangeboden.
 
 - Publiceer de naamregelcorrectie en open levering `9080478` (Heijmans). Sla het gecorrigeerde adres
   met `Laan van Westenenk` en huisnummer `490` opnieuw op. Controleer dat geen HTTP 422 meer volgt,
