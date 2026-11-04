@@ -231,16 +231,11 @@ final class ExactService
                     'note_1' => '',
                     'note_2' => '',
                 ];
-                try {
-                    [$data['name'], $data['name_2'], $data['name_3']] = GlsService::normalizeAddressNameLines([
-                        $data['name'],
-                        $data['name_2'],
-                        $data['name_3'],
-                    ]);
-                } catch (\InvalidArgumentException) {
-                    // Een uitzonderlijk lange ontvanger blijft zichtbaar in de werkvoorraad.
-                    // De medewerker kan de drie naamregels dan handmatig inkorten voordat GLS wordt aangeroepen.
-                }
+                [$data['name'], $data['name_2'], $data['name_3']] = GlsService::fitAddressNameLines([
+                    $data['name'],
+                    $data['name_2'],
+                    $data['name_3'],
+                ]);
                 // Ook een onvolledig Exact-adres hoort zichtbaar in de werkvoorraad te komen.
                 // Het overzicht markeert ontbrekende velden en blokkeert het GLS-label totdat de
                 // magazijnmedewerker ze heeft aangevuld. Een regel volledig overslaan maakt het

@@ -251,15 +251,11 @@ try {
             static fn ($value): string => trim((string) $value),
             $_POST
         );
-        try {
-            [$data['name'], $data['name_2'], $data['name_3']] = GlsService::normalizeAddressNameLines([
-                $data['name'] ?? '',
-                $data['name_2'] ?? '',
-                $data['name_3'] ?? '',
-            ]);
-        } catch (InvalidArgumentException $error) {
-            abort(422, $error->getMessage());
-        }
+        [$data['name'], $data['name_2'], $data['name_3']] = GlsService::fitAddressNameLines([
+            $data['name'] ?? '',
+            $data['name_2'] ?? '',
+            $data['name_3'] ?? '',
+        ]);
         $required = ['exact_entry_id', 'delivery_number', 'order_number', 'name', 'street', 'house_no', 'zip_code', 'city', 'country_code', 'email'];
         foreach ($required as $field) {
             if (($data[$field] ?? '') === '') {
@@ -311,15 +307,11 @@ try {
                 abort(422, "Adresveld {$field} is verplicht.");
             }
         }
-        try {
-            [$address['name'], $address['name_2'], $address['name_3']] = GlsService::normalizeAddressNameLines([
-                $address['name'],
-                $address['name_2'],
-                $address['name_3'],
-            ]);
-        } catch (InvalidArgumentException $error) {
-            abort(422, $error->getMessage());
-        }
+        [$address['name'], $address['name_2'], $address['name_3']] = GlsService::fitAddressNameLines([
+            $address['name'],
+            $address['name_2'],
+            $address['name_3'],
+        ]);
         $address['country_code'] = strtoupper($address['country_code']);
         if (preg_match('/^[A-Z]{2}$/', $address['country_code']) !== 1) {
             abort(422, 'Landcode moet uit twee letters bestaan.');

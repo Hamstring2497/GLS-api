@@ -61,20 +61,15 @@ assert(App\ExactService::DELIVERY_SYNC_START_DATE === '2026-11-01');
 assert(gls_tracking_url('73220023887426') === 'https://tracking.gls.nl/customer-track-and-trace/parcels/73220023887426');
 assert(gls_tracking_url('MOCK-ABC123') === null);
 assert(gls_tracking_url('7322/0023') === null);
-assert(App\GlsService::normalizeAddressNameLines([
+assert(App\GlsService::fitAddressNameLines([
     'Heijmans Utiliteit B.V. - Rosmalen', '', '',
-]) === ['Heijmans Utiliteit B.V. -', 'Rosmalen', '']);
-assert(App\GlsService::normalizeAddressNameLines([
+]) === ['Heijmans Utiliteit B.V. -', '', '']);
+assert(App\GlsService::fitAddressNameLines([
     'Korte bedrijfsnaam', 'Afdeling Technische Dienst', '',
 ]) === ['Korte bedrijfsnaam', 'Afdeling Technische Dienst', '']);
-try {
-    App\GlsService::normalizeAddressNameLines([
-        str_repeat('Naam ', 25), '', '',
-    ]);
-    assert(false, 'Meer dan drie GLS-naamregels mocht niet stilzwijgend worden ingekort.');
-} catch (InvalidArgumentException $error) {
-    assert(str_contains($error->getMessage(), 'drie GLS-naamregels'));
-}
+assert(App\GlsService::fitAddressNameLines([
+    'Eerste naamregel', str_repeat('Afdeling ', 10), 'Derde naamregel',
+]) === ['Eerste naamregel', 'Afdeling Afdeling Afdeling', 'Derde naamregel']);
 $repository->save([
     'exact_entry_id' => 'test-delivery', 'delivery_number' => 'DEL-9',
     'order_number' => 'ORD-2026-1234', 'shipping_date' => null,

@@ -38,67 +38,34 @@ final class GlsService
     }
 
     /**
-     * Verdeelt de drie GLS-naamregels opnieuw zonder tekst te verliezen.
+     * Laat iedere GLS-naamregel in zijn eigen invoerveld en begrenst die tot 30 tekens.
      *
-     * Exact levert geregeld een bedrijfsnaam van meer dan 30 tekens aan. Zo'n bestaande waarde
-     * kan door een HTML maxlength niet worden hersteld: bij het opslaan van een ander adresveld
-     * blijft de oorspronkelijke te lange waarde namelijk gewoon meegaan. Door alle naamregels
-     * woord voor woord over de drie beschikbare GLS-regels te verdelen, blijft de naam leesbaar
-     * en kan de magazijnmedewerker het gecorrigeerde adres wel opslaan.
+     * Een vooraf ingevulde waarde kan langer zijn dan het HTML-attribuut `maxlength`. Bij het
+     * opslaan van een ander adresveld zou die oude waarde dan alsnog een 422-fout veroorzaken.
+     * We korten daarom iedere naamregel afzonderlijk en bij voorkeur op een woordgrens in. Tekst
+     * uit Naam wordt nadrukkelijk niet naar Naam 2 of Naam 3 doorgeschoven.
      *
      * @param list<mixed> $nameLines
      * @return array{0: string, 1: string, 2: string}
      */
-    public static function normalizeAddressNameLines(array $nameLines): array
+    public static function fitAddressNameLines(array $nameLines): array
     {
         $maxLength = self::ADDRESS_FIELD_LIMITS['name'];
-        $normalized = [];
+        $fitted = [];
 
-        foreach ($nameLines as $sourceLine) {
-            $sourceLine = trim((string) $sourceLine);
-            if ($sourceLine === '') {
-                continue;
-            }
-
-            $words = preg_split('/\s+/u', $sourceLine) ?: [];
-            $line = '';
-            foreach ($words as $word) {
-                while (mb_strlen($word) > $maxLength) {
-                    if ($line !== '') {
-                        $normalized[] = $line;
-                        $line = '';
-                    }
-                    $normalized[] = mb_substr($word, 0, $maxLength);
-                    $word = mb_substr($word, $maxLength);
+        foreach (array_slice(array_pad($nameLines, 3, ''), 0, 3) as $sourceLine) {
+            $line = trim((string) $sourceLine);
+            if (mb_strlen($line) > $maxLength) {
+                $line = mb_substr($line, 0, $maxLength);
+                $lastSpace = mb_strrpos($line, ' ');
+                if ($lastSpace !== false && $lastSpace > (int) floor($maxLength * 0.6)) {
+                    $line = rtrim(mb_substr($line, 0, $lastSpace));
                 }
-
-                if ($word === '') {
-                    continue;
-                }
-                $candidate = $line === '' ? $word : $line . ' ' . $word;
-                if (mb_strlen($candidate) <= $maxLength) {
-                    $line = $candidate;
-                    continue;
-                }
-                $normalized[] = $line;
-                $line = $word;
             }
-            if ($line !== '') {
-                $normalized[] = $line;
-            }
+            $fitted[] = $line;
         }
 
-        if (count($normalized) > 3) {
-            throw new \InvalidArgumentException(
-                'De ontvangernaam is te lang voor de drie GLS-naamregels van maximaal 30 tekens. Kort de naam in.'
-            );
-        }
-
-        return [
-            (string) ($normalized[0] ?? ''),
-            (string) ($normalized[1] ?? ''),
-            (string) ($normalized[2] ?? ''),
-        ];
+        return [$fitted[0], $fitted[1], $fitted[2]];
     }
 
     /** @param array<string, mixed> $delivery @return array<string, mixed> */

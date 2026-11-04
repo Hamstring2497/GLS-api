@@ -245,11 +245,11 @@ gecontroleerd worden toegepast.
 
 - Adrescorrecties met een uit Exact geïmporteerde ontvangernaam van meer dan 30 tekens liepen nog
   vast op HTTP 422, ook als de medewerker het ontbrekende huisnummer en de straat correct had
-  ingevuld. ParcelPilot verdeelt ontvangers voortaan zonder tekstverlies over de drie beschikbare
-  GLS-naamregels van maximaal 30 tekens. Dit gebeurt zowel bij nieuwe Exact-imports als bij het
-  opslaan van bestaande adressen. Uitzonderlijk lange namen die niet in drie regels passen blijven
-  zichtbaar en krijgen een duidelijke controlemarkering. De formuliervelden tonen hun maximale
-  lengte. Geen databasemigratie nodig.
+  ingevuld. ParcelPilot begrenst iedere naamregel voortaan afzonderlijk tot maximaal 30 tekens,
+  bij voorkeur op een woordgrens. Tekst uit **Naam** wordt niet naar **Naam 2** of **Naam 3**
+  doorgeschoven. Dit gebeurt zowel bij nieuwe Exact-imports als bij het opslaan van bestaande
+  adressen, zodat een vooraf ingevulde te lange waarde een andere adrescorrectie niet meer kan
+  blokkeren. De formuliervelden tonen hun maximale lengte. Geen databasemigratie nodig.
 
 - Exact-leveringen met een ontbrekend adresdeel worden niet meer volledig overgeslagen. Aanleiding
   waren leveringen `9080478` (Heijmans) en `9080477` (IBK): Exact leverde voor beide geen apart
@@ -658,7 +658,8 @@ Werk deze lijst in deze volgorde af:
 
 - Publiceer de naamregelcorrectie en open levering `9080478` (Heijmans). Sla het gecorrigeerde adres
   met `Laan van Westenenk` en huisnummer `490` opnieuw op. Controleer dat geen HTTP 422 meer volgt,
-  dat de volledige bedrijfsnaam over **Naam** en **Naam 2** is verdeeld en dat het adres daarna
+  dat iedere GLS-naamregel binnen zijn eigen invoerveld blijft en zo nodig op maximaal 30 tekens
+  wordt ingekort (zonder doorschuiven naar **Naam 2** of **Naam 3**), en dat het adres daarna
   gereed kan worden gemaakt met minimaal één doos en gewicht. Maak bij deze controle nog geen
   tweede GLS-zending als al een aanvraag is gestart.
 
