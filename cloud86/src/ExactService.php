@@ -63,12 +63,18 @@ final class ExactService
             throw new ExactException('Exact Online is nog niet gekoppeld.');
         }
 
-        $limit = max(1, min(100, (int) Env::get('EXACT_SYNC_LIMIT', '50')));
+        $pageSize = max(1, min(100, (int) Env::get('EXACT_SYNC_LIMIT', '50')));
+        $today = date('Y-m-d');
+        if ($today < self::DELIVERY_SYNC_START_DATE) {
+            return ['imported' => 0, 'skipped' => 0, 'errors' => []];
+        }
+        $tomorrow = date('Y-m-d', strtotime($today . ' +1 day'));
         $path = sprintf('/api/v1/%d/salesorder/GoodsDeliveries', $status['division']);
         $select = implode(',', [
             'EntryID',
             'EntryNumber',
             'DeliveryNumber',
+            'Created',
             'DeliveryDate',
             'DeliveryAccount',
             'DeliveryAccountName',
@@ -79,39 +85,29 @@ final class ExactService
         ]);
         $baseQuery = [
             '$select' => $select,
-            '$top' => (string) $limit,
-            '$filter' => "DeliveryDate ge datetime'" . self::DELIVERY_SYNC_START_DATE . "T00:00:00'",
+            '$top' => (string) $pageSize,
+            '$filter' => "Created ge datetime'" . self::DELIVERY_SYNC_START_DATE
+                . "T00:00:00' and Created lt datetime'{$tomorrow}T00:00:00'",
         ];
         try {
-            $payload = $this->apiGet(
+            $rows = $this->apiGetAll(
                 $path,
-                $baseQuery + ['$orderby' => 'DeliveryDate desc']
+                $baseQuery + ['$orderby' => 'Created desc,DeliveryNumber desc']
             );
         } catch (ExactException $error) {
-            // Niet iedere Exact-administratie accepteert DeliveryDate als OData-sorteerveld.
-            // Probeer bij een ongeldige query één keer zonder server-side sortering.
+            // Sommige Exact-omgevingen accepteren geen samengestelde OData-sortering.
+            // De Created-filter blijft altijd staan: nieuwe pakbonnen van vandaag en openstaande
+            // pakbonnen vanaf de vaste startdatum horen in de magazijnwerkvoorraad.
             if ($error->httpStatus !== 400) {
                 throw $error;
             }
-            try {
-                $payload = $this->apiGet($path, $baseQuery);
-            } catch (ExactException $filterError) {
-                // Een oudere Exact-omgeving kan ook de datumfilter afwijzen. De lokale controle
-                // hieronder blijft dan de harde grens en voorkomt import van oudere leveringen.
-                if ($filterError->httpStatus !== 400) {
-                    throw $filterError;
-                }
-                $payload = $this->apiGet($path, [
-                    '$select' => $select,
-                    '$top' => (string) $limit,
-                ]);
-            }
+            $rows = $this->apiGetAll($path, $baseQuery + ['$orderby' => 'Created desc']);
         }
-        $rows = $this->results($payload);
         usort($rows, static function (array $left, array $right): int {
-            $leftDate = strtotime((string) ($left['DeliveryDate'] ?? $left['EntryDate'] ?? '')) ?: 0;
-            $rightDate = strtotime((string) ($right['DeliveryDate'] ?? $right['EntryDate'] ?? '')) ?: 0;
-            return $rightDate <=> $leftDate;
+            $leftCreated = strtotime((string) ($left['Created'] ?? '')) ?: 0;
+            $rightCreated = strtotime((string) ($right['Created'] ?? '')) ?: 0;
+            return ($rightCreated <=> $leftCreated)
+                ?: strnatcasecmp((string) ($right['DeliveryNumber'] ?? ''), (string) ($left['DeliveryNumber'] ?? ''));
         });
         $imported = 0;
         $skipped = 0;
@@ -123,13 +119,18 @@ final class ExactService
                 $errors[] = 'Exact-levering zonder EntryID overgeslagen.';
                 continue;
             }
+            $createdDate = $this->exactDate($row['Created'] ?? null);
+            if ($createdDate === null) {
+                $errors[] = 'Exact-levering zonder geldige aanmaakdatum overgeslagen.';
+                continue;
+            }
+            if ($createdDate < self::DELIVERY_SYNC_START_DATE || $createdDate > $today) {
+                $skipped++;
+                continue;
+            }
             $date = $this->exactDate($row['DeliveryDate'] ?? null);
             if ($date === null) {
                 $errors[] = 'Exact-levering zonder geldige leverdatum overgeslagen.';
-                continue;
-            }
-            if ($date < self::DELIVERY_SYNC_START_DATE) {
-                $skipped++;
                 continue;
             }
             if ($deliveries->find($entryId) !== null) {
@@ -354,7 +355,8 @@ final class ExactService
     /** @param array<string, string> $query @return array<string, mixed> */
     private function apiGet(string $path, array $query = []): array
     {
-        $url = rtrim(Env::require('EXACT_BASE_URL'), '/') . $path;
+        $baseUrl = rtrim(Env::require('EXACT_BASE_URL'), '/');
+        $url = str_starts_with($path, $baseUrl . '/') ? $path : $baseUrl . $path;
         if ($query !== []) {
             $url .= '?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
         }
@@ -371,6 +373,45 @@ final class ExactService
             );
         }
         return json_decode($response['body'], true, 512, JSON_THROW_ON_ERROR);
+    }
+
+    /** @param array<string, string> $query @return list<array<string, mixed>> */
+    private function apiGetAll(string $path, array $query): array
+    {
+        $rows = [];
+        $next = $path;
+        $nextQuery = $query;
+        $baseUrl = rtrim(Env::require('EXACT_BASE_URL'), '/');
+
+        for ($page = 0; $page < 100 && $next !== ''; $page++) {
+            $payload = $this->apiGet($next, $nextQuery);
+            array_push($rows, ...$this->results($payload));
+            $nextQuery = [];
+            $nextLink = trim((string) (
+                $payload['d']['__next']
+                ?? $payload['@odata.nextLink']
+                ?? $payload['odata.nextLink']
+                ?? ''
+            ));
+            if ($nextLink === '') {
+                $next = '';
+                continue;
+            }
+            if (str_starts_with($nextLink, '/')) {
+                $next = $nextLink;
+                continue;
+            }
+            if (!str_starts_with($nextLink, $baseUrl . '/')) {
+                throw new ExactException('Exact gaf een ongeldige verwijzing naar de volgende resultatenpagina.');
+            }
+            $next = $nextLink;
+        }
+
+        if ($next !== '') {
+            throw new ExactException('Exact gaf meer dan 100 pagina\'s met pakbonnen vanaf de startdatum; synchronisatie afgebroken.');
+        }
+
+        return $rows;
     }
 
     /** @param array<string, mixed> $payload */

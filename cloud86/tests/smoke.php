@@ -29,6 +29,10 @@ $exactReflection = new ReflectionClass(App\ExactService::class);
 $exactWithoutConstructor = $exactReflection->newInstanceWithoutConstructor();
 $contactDisplayName = $exactReflection->getMethod('contactDisplayName');
 $contactDisplayName->setAccessible(true);
+$exactDate = $exactReflection->getMethod('exactDate');
+$exactDate->setAccessible(true);
+assert($exactDate->invoke($exactWithoutConstructor, '2026-11-04T09:15:00') === '2026-11-04');
+assert($exactDate->invoke($exactWithoutConstructor, null) === null);
 assert($contactDisplayName->invoke($exactWithoutConstructor, [
     'Title' => 'MR', 'TitleAbbreviation' => 'dhr.', 'FirstName' => 'Fred',
     'MiddleName' => 'van der', 'LastName' => 'Steen',

@@ -90,10 +90,13 @@ geteste referentie voor de GLS-contracten. Nieuwe productiewerkzaamheden horen i
 ### B. Leveringen ophalen
 
 - Een beheerder klikt op **Leveringen ophalen**; dit verstuurt `POST /exact/sync` met CSRF-controle.
-- **1 november 2026 is het vaste startpunt van ParcelPilot.** De Exact-query vraagt alleen
-  leveringen vanaf die datum op en de app controleert de leverdatum daarnaast lokaal. Leveringen
-  van vóór 1 november 2026 worden daardoor nooit meer aan de lokale werkvoorraad toegevoegd.
-- De app vraagt de recentste Exact `GoodsDeliveries` op, standaard maximaal 50.
+- **1 november 2026 is het vaste startpunt van ParcelPilot.** Iedere synchronisatie vraagt de
+  `GoodsDeliveries` op die vanaf die datum in Exact zijn aangemaakt. `Created` is het moment waarop
+  de goederenlevering/pakbon ontstaat; `DeliveryDate` blijft alleen de geplande leverdatum.
+- Nieuwe pakbonnen van vandaag komen zo direct binnen. Eerdere pakbonnen zonder trackingnummer
+  blijven als openstaande werkvoorraad beschikbaar; leveringen met tracking worden overgeslagen.
+- De app volgt alle resultaatpagina's. `EXACT_SYNC_LIMIT` is alleen de paginagrootte en begrenst
+  niet langer het totale aantal openstaande pakbonnen.
 - Reeds lokaal aanwezige leveringen worden overgeslagen.
 - Leveringen die in Exact al een `TrackingNumber` hebben worden overgeslagen.
 - Het afleveradres wordt uit Exact opgehaald; bij ontbreken wordt het hoofdadres van de relatie
@@ -236,11 +239,17 @@ gecontroleerd worden toegepast.
 - Houd de maximale GLS-doosgrens van 32 kg aan.
 - Gebruik HTTPS en houd `src`, `views`, `database`, `storage` en `.env` buiten de document root.
 
-## 10. Actuele stand — 3 november 2026
+## 10. Actuele stand — 4 november 2026
 
-- De Exact-import heeft een harde begindatum van **1 november 2026**. De grens staat zowel in de
-  OData-query als in een lokale veiligheidscontrole, inclusief terugval voor Exact-omgevingen die
-  de queryfilter niet accepteren. `bin/delete-untracked-deliveries.php` biedt een controlemodus en
+- De Exact-import selecteert voortaan op `GoodsDeliveries.Created`, vanaf 1 november 2026 tot en met
+  vandaag in `APP_TIMEZONE`. Nieuwe pakbonnen van vandaag worden opgehaald; eerdere pakbonnen zonder
+  trackingnummer blijven beschikbaar als achterstand. `DeliveryDate` wordt nog wel als leverdatum
+  opgeslagen, maar bepaalt niet meer of een pakbon in de werkvoorraad komt. De API-paginering wordt
+  volledig gevolgd, waardoor de vroegere grens van 50 geen leveringen meer kan verbergen. Geen
+  databasemigratie nodig.
+
+- De Exact-import heeft een harde begindatum van **1 november 2026**; de actuele dagselectie kan
+  nooit vóór deze grens vallen. `bin/delete-untracked-deliveries.php` biedt een controlemodus en
   verwijdert met `--execute` uitsluitend de vooraf getoonde leveringen die nog steeds geen
   trackingnummer hebben; leveringen met tracking blijven altijd bewaard. Geen databasemigratie
   nodig. Applicatiecommit `4d9effe` staat lokaal, op GitHub en via Plesk op Cloud86. Op Cloud86
