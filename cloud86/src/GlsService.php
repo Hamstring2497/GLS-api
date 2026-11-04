@@ -37,6 +37,70 @@ final class GlsService
     {
     }
 
+    /**
+     * Verdeelt de drie GLS-naamregels opnieuw zonder tekst te verliezen.
+     *
+     * Exact levert geregeld een bedrijfsnaam van meer dan 30 tekens aan. Zo'n bestaande waarde
+     * kan door een HTML maxlength niet worden hersteld: bij het opslaan van een ander adresveld
+     * blijft de oorspronkelijke te lange waarde namelijk gewoon meegaan. Door alle naamregels
+     * woord voor woord over de drie beschikbare GLS-regels te verdelen, blijft de naam leesbaar
+     * en kan de magazijnmedewerker het gecorrigeerde adres wel opslaan.
+     *
+     * @param list<mixed> $nameLines
+     * @return array{0: string, 1: string, 2: string}
+     */
+    public static function normalizeAddressNameLines(array $nameLines): array
+    {
+        $maxLength = self::ADDRESS_FIELD_LIMITS['name'];
+        $normalized = [];
+
+        foreach ($nameLines as $sourceLine) {
+            $sourceLine = trim((string) $sourceLine);
+            if ($sourceLine === '') {
+                continue;
+            }
+
+            $words = preg_split('/\s+/u', $sourceLine) ?: [];
+            $line = '';
+            foreach ($words as $word) {
+                while (mb_strlen($word) > $maxLength) {
+                    if ($line !== '') {
+                        $normalized[] = $line;
+                        $line = '';
+                    }
+                    $normalized[] = mb_substr($word, 0, $maxLength);
+                    $word = mb_substr($word, $maxLength);
+                }
+
+                if ($word === '') {
+                    continue;
+                }
+                $candidate = $line === '' ? $word : $line . ' ' . $word;
+                if (mb_strlen($candidate) <= $maxLength) {
+                    $line = $candidate;
+                    continue;
+                }
+                $normalized[] = $line;
+                $line = $word;
+            }
+            if ($line !== '') {
+                $normalized[] = $line;
+            }
+        }
+
+        if (count($normalized) > 3) {
+            throw new \InvalidArgumentException(
+                'De ontvangernaam is te lang voor de drie GLS-naamregels van maximaal 30 tekens. Kort de naam in.'
+            );
+        }
+
+        return [
+            (string) ($normalized[0] ?? ''),
+            (string) ($normalized[1] ?? ''),
+            (string) ($normalized[2] ?? ''),
+        ];
+    }
+
     /** @param array<string, mixed> $delivery @return array<string, mixed> */
     public function buildPayload(array $delivery): array
     {

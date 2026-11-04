@@ -84,6 +84,28 @@ function delivery_missing_data(array $delivery): array
     if (filter_var(trim((string) ($address['email'] ?? '')), FILTER_VALIDATE_EMAIL) === false) {
         $missing['email'] = 'geldig e-mailadres';
     }
+    foreach (\App\GlsService::ADDRESS_FIELD_LIMITS as $field => $maxLength) {
+        $value = trim((string) ($address[$field] ?? ''));
+        if ($value !== '' && mb_strlen($value) > $maxLength) {
+            $missing[$field] = sprintf('%s (maximaal %d tekens)', match ($field) {
+                'name' => 'naam',
+                'name_2' => 'naam 2',
+                'name_3' => 'naam 3',
+                'street' => 'straat',
+                'house_no' => 'huisnummer',
+                'house_no_addition' => 'toevoeging',
+                'zip_code' => 'postcode',
+                'city' => 'plaats',
+                'country_code' => 'landcode',
+                'contact' => 'contactpersoon',
+                'phone' => 'telefoonnummer',
+                'email' => 'e-mailadres',
+                'note_1' => 'notitie 1',
+                'note_2' => 'notitie 2',
+                default => $field,
+            }, $maxLength);
+        }
+    }
     if (trim((string) ($delivery['effective_reference'] ?? $delivery['shipment_reference'] ?? '')) === '') {
         $missing['shipment_reference'] = 'referentie';
     }

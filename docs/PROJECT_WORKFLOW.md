@@ -243,6 +243,14 @@ gecontroleerd worden toegepast.
 
 ## 10. Actuele stand — 4 november 2026
 
+- Adrescorrecties met een uit Exact geïmporteerde ontvangernaam van meer dan 30 tekens liepen nog
+  vast op HTTP 422, ook als de medewerker het ontbrekende huisnummer en de straat correct had
+  ingevuld. ParcelPilot verdeelt ontvangers voortaan zonder tekstverlies over de drie beschikbare
+  GLS-naamregels van maximaal 30 tekens. Dit gebeurt zowel bij nieuwe Exact-imports als bij het
+  opslaan van bestaande adressen. Uitzonderlijk lange namen die niet in drie regels passen blijven
+  zichtbaar en krijgen een duidelijke controlemarkering. De formuliervelden tonen hun maximale
+  lengte. Geen databasemigratie nodig.
+
 - Exact-leveringen met een ontbrekend adresdeel worden niet meer volledig overgeslagen. Aanleiding
   waren leveringen `9080478` (Heijmans) en `9080477` (IBK): Exact leverde voor beide geen apart
   huisnummer, waardoor de oude importvalidatie ze weigerde. ParcelPilot importeert zulke regels nu
@@ -648,10 +656,11 @@ gecontroleerd worden toegepast.
 
 Werk deze lijst in deze volgorde af:
 
-- Publiceer de importcorrectie en haal de leveringen opnieuw op. Controleer dat `9080478` en
-  `9080477` zichtbaar worden met de ontbrekend-huisnummermarkering, vul de juiste huisnummers in en
-  sla de adressen op voordat een label wordt gemaakt. Controleer ook dat de voortgangsmelding bij
-  het ophalen direct zichtbaar is.
+- Publiceer de naamregelcorrectie en open levering `9080478` (Heijmans). Sla het gecorrigeerde adres
+  met `Laan van Westenenk` en huisnummer `490` opnieuw op. Controleer dat geen HTTP 422 meer volgt,
+  dat de volledige bedrijfsnaam over **Naam** en **Naam 2** is verdeeld en dat het adres daarna
+  gereed kan worden gemaakt met minimaal één doos en gewicht. Maak bij deze controle nog geen
+  tweede GLS-zending als al een aanvraag is gestart.
 
 - Controleer na iedere toekomstige wijziging aan de Exact-import dat 1 november 2026 de vaste
   ondergrens blijft. Gebruik het opschoonscript altijd eerst zonder `--execute` en vergelijk de

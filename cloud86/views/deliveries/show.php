@@ -189,9 +189,9 @@ $addressFields = [
         <form id="address-details-form" method="post" action="/deliveries/<?= rawurlencode((string) $delivery['exact_entry_id']) ?>/address" class="address-form">
             <input type="hidden" name="_token" value="<?= e(\App\Security::csrfToken()) ?>">
             <?php foreach ($addressFields as [$field, $label, $className, $required, $maxLength]): ?>
-                <?php $fieldMissing = in_array($field, $missingKeys, true); ?>
-                <label class="<?= e($className) ?> <?= $fieldMissing ? 'field-missing' : '' ?>"><?= e($label) ?><?= $required ? ' *' : '' ?><?= $fieldMissing ? ' — ontbreekt' : '' ?>
-                    <input class="<?= $fieldMissing ? 'is-missing' : '' ?>" name="<?= e($field) ?>" value="<?= e($delivery['address'][$field] ?? '') ?>" <?= $locked ? 'disabled' : '' ?> <?= $required ? 'required' : '' ?> type="<?= $field === 'email' ? 'email' : 'text' ?>" <?= $maxLength !== null ? 'maxlength="' . e($maxLength) . '"' : '' ?>>
+                <?php $fieldIssue = $missingData[$field] ?? null; ?>
+                <label class="<?= e($className) ?> <?= $fieldIssue !== null ? 'field-missing' : '' ?>"><?= e($label) ?><?= $required ? ' *' : '' ?><?= $fieldIssue !== null ? ' — controleer' : '' ?>
+                    <input class="<?= $fieldIssue !== null ? 'is-missing' : '' ?>" name="<?= e($field) ?>" value="<?= e($delivery['address'][$field] ?? '') ?>" <?= $locked ? 'disabled' : '' ?> <?= $required ? 'required' : '' ?> type="<?= $field === 'email' ? 'email' : 'text' ?>" <?= $maxLength !== null ? 'maxlength="' . e($maxLength) . '"' : '' ?><?= $maxLength !== null ? ' title="Maximaal ' . e($maxLength) . ' tekens"' : '' ?>>
                 </label>
             <?php endforeach; ?>
         </form>
