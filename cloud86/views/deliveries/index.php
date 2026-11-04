@@ -15,13 +15,18 @@
             <?php if (!$exactStatus['connected']): ?>
                 <a class="button button-secondary" href="/oauth/exact/start">Exact koppelen</a>
             <?php else: ?>
-                <form method="post" action="/exact/sync">
+                <form id="exact-sync-form" method="post" action="/exact/sync">
                     <input type="hidden" name="_token" value="<?= e(\App\Security::csrfToken()) ?>">
-                    <button class="button" type="submit">Leveringen ophalen</button>
+                    <button class="button" type="submit" data-idle-label="Leveringen ophalen">Leveringen ophalen</button>
                 </form>
             <?php endif; ?>
         <?php endif; ?>
     </div>
+</div>
+
+<div id="exact-sync-progress" class="sync-progress" role="status" aria-live="assertive" hidden>
+    <span class="sync-spinner" aria-hidden="true"></span>
+    <span><strong>ParcelPilot haalt leveringen op…</strong><small>Even geduld; gegevens en afleveradressen worden gecontroleerd.</small></span>
 </div>
 
 <?php if ($deliveries === []): ?>

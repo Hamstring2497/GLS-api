@@ -105,7 +105,9 @@ geteste referentie voor de GLS-contracten. Nieuwe productiewerkzaamheden horen i
   gekoppelde verkooporder levert waar beschikbaar de contactpersoon van **Besteld door**; de
   contactkaart levert e-mail en telefoon. Adresregel 2 en 3 worden uit het afleveradres gelezen en
   zo nodig aangevuld vanuit het hoofdadres van **Besteld door**.
-- Alleen voldoende complete verzendgegevens worden lokaal als nieuwe levering opgeslagen.
+- Ook leveringen met een onvolledig afleveradres worden lokaal opgeslagen. Het overzicht markeert
+  de ontbrekende velden en blokkeert het GLS-label totdat een medewerker ze heeft aangevuld. Zo
+  verdwijnt een in Exact afgedrukte pakbon niet stilzwijgend uit de ParcelPilot-werkvoorraad.
 - Deze stap maakt nadrukkelijk nog geen GLS-zending aan.
 
 ### C. Dozen en labels
@@ -240,6 +242,13 @@ gecontroleerd worden toegepast.
 - Gebruik HTTPS en houd `src`, `views`, `database`, `storage` en `.env` buiten de document root.
 
 ## 10. Actuele stand — 4 november 2026
+
+- Exact-leveringen met een ontbrekend adresdeel worden niet meer volledig overgeslagen. Aanleiding
+  waren leveringen `9080478` (Heijmans) en `9080477` (IBK): Exact leverde voor beide geen apart
+  huisnummer, waardoor de oude importvalidatie ze weigerde. ParcelPilot importeert zulke regels nu
+  wel en toont **Ontbreekt: huisnummer**; labelaanmaak blijft geblokkeerd totdat het veld is
+  aangevuld. Tijdens **Leveringen ophalen** verschijnt bovendien direct een schermvullende melding
+  met spinner en wordt de knop uitgeschakeld. Geen databasemigratie nodig.
 
 - De Exact-import selecteert voortaan op `GoodsDeliveries.Created`, vanaf 1 november 2026 tot en met
   vandaag in `APP_TIMEZONE`. Nieuwe pakbonnen van vandaag worden opgehaald; eerdere pakbonnen zonder
@@ -638,6 +647,11 @@ gecontroleerd worden toegepast.
 ## 11. Volgende stappen
 
 Werk deze lijst in deze volgorde af:
+
+- Publiceer de importcorrectie en haal de leveringen opnieuw op. Controleer dat `9080478` en
+  `9080477` zichtbaar worden met de ontbrekend-huisnummermarkering, vul de juiste huisnummers in en
+  sla de adressen op voordat een label wordt gemaakt. Controleer ook dat de voortgangsmelding bij
+  het ophalen direct zichtbaar is.
 
 - Controleer na iedere toekomstige wijziging aan de Exact-import dat 1 november 2026 de vaste
   ondergrens blijft. Gebruik het opschoonscript altijd eerst zonder `--execute` en vergelijk de

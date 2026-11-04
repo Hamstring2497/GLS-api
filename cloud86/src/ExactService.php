@@ -231,6 +231,10 @@ final class ExactService
                     'note_1' => '',
                     'note_2' => '',
                 ];
+                // Ook een onvolledig Exact-adres hoort zichtbaar in de werkvoorraad te komen.
+                // Het overzicht markeert ontbrekende velden en blokkeert het GLS-label totdat de
+                // magazijnmedewerker ze heeft aangevuld. Een regel volledig overslaan maakt het
+                // anders onduidelijk waarom een afgedrukte pakbon niet in ParcelPilot staat.
                 $this->validateImportedDelivery($data, $deliveryNumber);
                 $deliveries->save($data);
                 $imported++;
@@ -737,15 +741,8 @@ final class ExactService
     /** @param array<string, string|null> $data */
     private function validateImportedDelivery(array $data, string $reference): void
     {
-        $required = ['name', 'street', 'house_no', 'zip_code', 'city', 'country_code'];
-        $missing = array_values(array_filter(
-            $required,
-            static fn (string $field): bool => trim((string) ($data[$field] ?? '')) === ''
-        ));
-        if ($missing !== []) {
-            throw new \RuntimeException('onvolledig afleveradres (' . implode(', ', $missing) . ')');
-        }
-        if (strlen((string) $data['country_code']) !== 2) {
+        $countryCode = trim((string) ($data['country_code'] ?? ''));
+        if ($countryCode !== '' && preg_match('/^[A-Za-z]{2}$/', $countryCode) !== 1) {
             throw new \RuntimeException("ongeldige landcode bij {$reference}");
         }
     }

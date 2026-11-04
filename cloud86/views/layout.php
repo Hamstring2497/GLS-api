@@ -91,6 +91,19 @@ function confirmTrackingImport(form) {
     form.elements.confirm_import.value = 'yes';
     return true;
 }
+const exactSyncForm = document.getElementById('exact-sync-form');
+if (exactSyncForm) {
+    exactSyncForm.addEventListener('submit', () => {
+        const button = exactSyncForm.querySelector('button[type="submit"]');
+        const progress = document.getElementById('exact-sync-progress');
+        if (button) {
+            button.disabled = true;
+            button.textContent = 'Bezig met ophalen…';
+            button.setAttribute('aria-busy', 'true');
+        }
+        if (progress) progress.hidden = false;
+    });
+}
 function openLabelAndPrint(url) {
     const printWindow = window.open('', 'gls-label-print');
     if (!printWindow) {
