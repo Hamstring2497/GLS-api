@@ -262,8 +262,10 @@ gecontroleerd worden toegepast.
   geen label aan, zet de levering (en eventuele samengevoegde leveringen) op `collected`, gebruikt
   het herkenbare fictieve nummer `AFHALEN-<leveringsnummer>` en probeert dit nummer naar Exact te
   schrijven. Bij een Exact-fout blijft de afhaalstatus bewaard en is **Opnieuw naar Exact**
-  beschikbaar. Geen databasemigratie nodig. De applicatiecommit staat lokaal; publicatie naar
-  GitHub en Cloud86/Plesk moet nog worden uitgevoerd en gecontroleerd.
+  beschikbaar. Geen databasemigratie nodig. Applicatiecommit `5890f1d` staat lokaal, op GitHub en
+  via Plesk op Cloud86. In de ingelogde productie-app zijn de naam **PietPakket** en de afhaaloptie
+  zichtbaar; `/health` meldt `status: ok` en `gls_mode: live`. Er is bij deze controle geen levering
+  als afgehaald gemarkeerd en niets naar Exact of GLS verstuurd.
 
 - Adrescorrecties met een uit Exact geïmporteerde ontvangernaam van meer dan 30 tekens liepen nog
   vast op HTTP 422, ook als de medewerker het ontbrekende huisnummer en de straat correct had
@@ -676,8 +678,8 @@ gecontroleerd worden toegepast.
 
 Werk deze lijst in deze volgorde af:
 
-- Publiceer en test de PietPakket-naamswijziging en de afhaalroute met één open testlevering.
-  Controleer dat geen GLS-aanvraag of label ontstaat, de status **Afgehaald** wordt, Exact het nummer
+- Test de gepubliceerde afhaalroute bij de eerstvolgende echte afhaallevering. Controleer dat geen
+  GLS-aanvraag of label ontstaat, de status **Afgehaald** wordt, Exact het nummer
   `AFHALEN-<leveringsnummer>` ontvangt en een mislukte Exact-update veilig opnieuw kan worden
   aangeboden.
 
