@@ -268,6 +268,7 @@ try {
                 abort(422, "Adresveld {$field} is verplicht.");
             }
         }
+        $address['contact'] = GlsService::cleanContactPerson($address['contact']);
         [$address['name'], $address['name_2'], $address['name_3']] = GlsService::fitAddressNameLines([
             $address['name'],
             $address['name_2'],
@@ -304,6 +305,36 @@ try {
         if (!in_array($delivery['status'], ['new', 'ready'], true)) {
             abort(409, 'De verzendgegevens kunnen na labelaanmaak niet meer worden gewijzigd.');
         }
+        $requiredAddressFields = ['name', 'street', 'house_no', 'zip_code', 'city', 'country_code', 'email'];
+        $address = [];
+        foreach ([
+            'name', 'name_2', 'name_3', 'street', 'house_no', 'house_no_addition',
+            'zip_code', 'city', 'country_code', 'contact', 'phone', 'email', 'note_1', 'note_2',
+        ] as $field) {
+            $address[$field] = trim((string) ($_POST[$field] ?? ''));
+            if (in_array($field, $requiredAddressFields, true) && $address[$field] === '') {
+                abort(422, "Adresveld {$field} is verplicht.");
+            }
+        }
+        [$address['name'], $address['name_2'], $address['name_3']] = GlsService::fitAddressNameLines([
+            $address['name'],
+            $address['name_2'],
+            $address['name_3'],
+        ]);
+        $address['contact'] = GlsService::cleanContactPerson($address['contact']);
+        $address['country_code'] = strtoupper($address['country_code']);
+        if (preg_match('/^[A-Z]{2}$/', $address['country_code']) !== 1) {
+            abort(422, 'Landcode moet uit twee letters bestaan.');
+        }
+        if (filter_var($address['email'], FILTER_VALIDATE_EMAIL) === false) {
+            abort(422, 'Vul een geldig e-mailadres in.');
+        }
+        foreach (GlsService::ADDRESS_FIELD_LIMITS as $field => $maxLength) {
+            if (mb_strlen($address[$field]) > $maxLength) {
+                abort(422, sprintf('Adresveld %s mag maximaal %d tekens bevatten.', $field, $maxLength));
+            }
+        }
+        $address['addressee_type'] = (string) ($delivery['address']['addressee_type'] ?? 'B');
         $shipType = (string) ($_POST['ship_type'] ?? '');
         $reference = trim((string) ($_POST['shipment_reference'] ?? ''));
         if (!in_array($shipType, ['P', 'F'], true)) {
@@ -379,12 +410,13 @@ try {
             $glsProduct,
             $glsOptions
         );
+        $repository->updateAddress($id, $address);
         $repository->replaceParcels($id, $weights);
         flash(
             $weights === [] ? 'info' : 'success',
             $weights === []
-                ? 'Zending opgeslagen. Vul minimaal één doos met gewicht in om een label te kunnen maken.'
-                : 'Zending en dozen opgeslagen.'
+                ? 'Adres en zending opgeslagen. Vul minimaal één doos met gewicht in om een label te kunnen maken.'
+                : 'Adres, zending en dozen opgeslagen.'
         );
         redirect('/?delivery=' . rawurlencode($id));
     }

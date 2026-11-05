@@ -199,20 +199,19 @@ $addressFields = [
             <h2>Afleveradres</h2>
             <span>Overgenomen uit Exact · controleer vóór het maken van labels</span>
         </div>
-        <form id="address-details-form" method="post" action="/deliveries/<?= rawurlencode((string) $delivery['exact_entry_id']) ?>/address" class="address-form">
-            <input type="hidden" name="_token" value="<?= e(\App\Security::csrfToken()) ?>">
+        <div class="address-form">
             <?php foreach ($addressFields as [$field, $label, $className, $required, $maxLength]): ?>
                 <?php $fieldIssue = $missingData[$field] ?? null; ?>
                 <label class="<?= e($className) ?> <?= $fieldIssue !== null ? 'field-missing' : '' ?>"><?= e($label) ?><?= $required ? ' *' : '' ?><?= $fieldIssue !== null ? ' — controleer' : '' ?>
-                    <input class="<?= $fieldIssue !== null ? 'is-missing' : '' ?>" name="<?= e($field) ?>" value="<?= e($delivery['address'][$field] ?? '') ?>" <?= $locked ? 'disabled' : '' ?> <?= $required ? 'required' : '' ?> type="<?= $field === 'email' ? 'email' : 'text' ?>" <?= $maxLength !== null ? 'maxlength="' . e($maxLength) . '"' : '' ?><?= $maxLength !== null ? ' title="Maximaal ' . e($maxLength) . ' tekens"' : '' ?>>
+                    <input form="shipping-details-form" class="<?= $fieldIssue !== null ? 'is-missing' : '' ?>" name="<?= e($field) ?>" value="<?= e($delivery['address'][$field] ?? '') ?>" <?= $locked ? 'disabled' : '' ?> <?= $required ? 'required' : '' ?> type="<?= $field === 'email' ? 'email' : 'text' ?>" <?= $maxLength !== null ? 'maxlength="' . e($maxLength) . '"' : '' ?><?= $maxLength !== null ? ' title="Maximaal ' . e($maxLength) . ' tekens"' : '' ?>>
                 </label>
             <?php endforeach; ?>
             <?php if (!$locked): ?>
                 <div class="address-footer-actions">
-                    <button class="button" type="submit">Adres opslaan</button>
+                    <button class="button" type="submit" form="shipping-details-form">Alles opslaan</button>
                 </div>
             <?php endif; ?>
-        </form>
+        </div>
     </section>
 
     <section class="panel units-panel <?= ($labelsCreated || $collected) ? 'shipment-ready-panel' : '' ?>">
@@ -347,11 +346,6 @@ $addressFields = [
             document.querySelectorAll('input[name="gls_product"]').forEach((field) => field.addEventListener('change', updateGlsOptions));
             updateGlsOptions();
             </script>
-        <?php endif; ?>
-        <?php if (!$locked): ?>
-            <div class="shipment-footer-actions">
-                <button class="button" type="submit" form="shipping-details-form">Zending opslaan</button>
-            </div>
         <?php endif; ?>
     </section>
 </div>

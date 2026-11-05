@@ -236,6 +236,7 @@ final class ExactService
                     $data['name_2'],
                     $data['name_3'],
                 ]);
+                $data['contact'] = GlsService::cleanContactPerson($data['contact']);
                 // Ook een onvolledig Exact-adres hoort zichtbaar in de werkvoorraad te komen.
                 // Het overzicht markeert ontbrekende velden en blokkeert het GLS-label totdat de
                 // magazijnmedewerker ze heeft aangevuld. Een regel volledig overslaan maakt het

@@ -70,6 +70,10 @@ assert(App\GlsService::fitAddressNameLines([
 assert(App\GlsService::fitAddressNameLines([
     'Eerste naamregel', str_repeat('Afdeling ', 10), 'Derde naamregel',
 ]) === ['Eerste naamregel', 'Afdeling Afdeling Afdeling', 'Derde naamregel']);
+assert(App\GlsService::cleanContactPerson('Orderbevestiging') === '');
+assert(App\GlsService::cleanContactPerson('ORDER BEVESTIGING per e-mail') === '');
+assert(App\GlsService::cleanContactPerson('Order confirmation') === '');
+assert(App\GlsService::cleanContactPerson('Mevr. Schut-Aabers') === 'Mevr. Schut-Aabers');
 $repository->save([
     'exact_entry_id' => 'test-delivery', 'delivery_number' => 'DEL-9',
     'order_number' => 'ORD-2026-1234', 'shipping_date' => null,
@@ -265,7 +269,8 @@ assert(str_contains($html, 'form="shipping-details-form" type="number" name="wei
 assert(str_contains($html, 'Testlabel maken en afdrukken'));
 assert(str_contains($html, 'createAndPrintGlsLabel'));
 assert(str_contains($html, 'name="shipping_date_confirmed"'));
-assert(str_contains($html, '>Adres opslaan</button>'));
+assert(str_contains($html, 'form="shipping-details-form">Alles opslaan</button>'));
+assert(!str_contains($html, '>Adres opslaan</button>'));
 assert(str_contains($html, 'niet-opgeslagen wijzigingen'));
 assert(str_contains($html, 'Naam 2'));
 assert(str_contains($html, 'Naam 3'));

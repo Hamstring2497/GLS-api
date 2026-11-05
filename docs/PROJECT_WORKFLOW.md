@@ -267,6 +267,14 @@ gecontroleerd worden toegepast.
   PHP-smoketest kan lokaal niet worden uitgevoerd omdat PHP ontbreekt. De wijziging is lokaal
   voorbereid; GitHub en Cloud86/Plesk zijn nog niet bijgewerkt.
 
+- 5 november 2026: de opslag is verder vereenvoudigd tot één knop **Alles opslaan** rechtsonder in
+  **Afleveradres**. Deze bewaart in één keer het afleveradres, de verzendinstellingen en alle dozen
+  en gewichten. Contactpersoonwaarden die `orderbevestiging`, `order bevestiging` of de Engelse
+  variant `order confirmation` bevatten worden automatisch leeggemaakt; dit gebeurt bij zowel een
+  Exact-import als handmatig opslaan. Echte contactnamen blijven ongewijzigd. Geen
+  databasemigratie nodig. De wijziging is lokaal voorbereid; GitHub en Cloud86/Plesk zijn nog niet
+  bijgewerkt.
+
 - De zichtbare applicatienaam is gewijzigd van **ParcelPilot** naar **PietPakket**. Het bestaande
   `PP`-beeldmerk blijft ongewijzigd. In de balk **Zending** kan een nog open levering voortaan met
   een expliciet vinkje als **Afgehaald** worden afgerond. PietPakket maakt dan geen GLS-zending en
@@ -690,7 +698,9 @@ gecontroleerd worden toegepast.
 Werk deze lijst in deze volgorde af:
 
 - Controleer na publicatie het filter **Alleen niet verstuurd**, de gecombineerde knop **Zending
-  opslaan** en de nieuwe positie van **Adres opslaan** met één open levering. Controleer tevens dat
+  opslaan** en daarna de aanvullende vereenvoudiging naar **Alles opslaan** met één open levering.
+  Controleer dat adres, verzendinstellingen en dozen samen worden bewaard en dat een contactpersoon
+  met tekst `orderbevestiging` leeg wordt opgeslagen. Controleer tevens dat
   **Reset** weer alle rijen toont en dat **Tabel leegmaken en opnieuw ophalen** niet meer via menu of
   route beschikbaar is.
 

@@ -68,6 +68,16 @@ final class GlsService
         return [$fitted[0], $fitted[1], $fitted[2]];
     }
 
+    public static function cleanContactPerson(mixed $contact): string
+    {
+        $contact = trim((string) $contact);
+        if (preg_match('/order\s*(?:bevestiging|confirmation)/iu', $contact) === 1) {
+            return '';
+        }
+
+        return $contact;
+    }
+
     /** @param array<string, mixed> $delivery @return array<string, mixed> */
     public function buildPayload(array $delivery): array
     {
