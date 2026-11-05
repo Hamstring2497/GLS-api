@@ -263,7 +263,7 @@ assert(str_contains($html, 'Nieuwe straat'));
 assert(str_contains($html, 'selected-row'));
 assert(str_contains($html, 'E-mailadres *'));
 assert(str_contains($html, 'Toegevoegd'));
-assert(str_contains($html, 'Alleen niet verstuurd'));
+assert(str_contains($html, 'Openstaande zendingen'));
 assert(!str_contains($html, 'Dozen opslaan'));
 assert(str_contains($html, 'form="shipping-details-form" type="number" name="weights[]"'));
 assert(str_contains($html, 'Testlabel maken en afdrukken'));

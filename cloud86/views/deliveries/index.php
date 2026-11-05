@@ -11,7 +11,7 @@
         </label>
         <label class="delivery-filter-check">
             <input id="delivery-unshipped-only" type="checkbox">
-            <span>Alleen niet verstuurd</span>
+            <span>Openstaande zendingen</span>
         </label>
         <button class="button button-secondary" id="delivery-reset" type="button">Reset</button>
         <a class="button" href="/deliveries/new">Nieuwe levering</a>

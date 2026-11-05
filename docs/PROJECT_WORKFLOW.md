@@ -256,8 +256,8 @@ gecontroleerd worden toegepast.
 
 ## 10. Actuele stand — 4 november 2026
 
-- 5 november 2026: de leveringenwerkplek heeft bovenaan een combineerbaar filter **Alleen niet
-  verstuurd**. Dit toont uitsluitend leveringen zonder trackingnummer die niet zijn afgehaald,
+- 5 november 2026: de leveringenwerkplek heeft bovenaan een combineerbaar filter **Openstaande
+  zendingen**. Dit toont uitsluitend leveringen zonder trackingnummer die niet zijn afgehaald,
   samengevoegd of al van labels voorzien; **Reset** herstelt zowel dit filter, de zoektekst als de
   standaardsortering op datum. De risicovolle onderhoudsactie **Tabel leegmaken en opnieuw ophalen**
   en de bijbehorende route zijn verwijderd. **Adres opslaan** staat voortaan rechtsonder in het vak
@@ -697,7 +697,7 @@ gecontroleerd worden toegepast.
 
 Werk deze lijst in deze volgorde af:
 
-- Controleer na publicatie het filter **Alleen niet verstuurd**, de gecombineerde knop **Zending
+- Controleer na publicatie het filter **Openstaande zendingen**, de gecombineerde knop **Zending
   opslaan** en daarna de aanvullende vereenvoudiging naar **Alles opslaan** met één open levering.
   Controleer dat adres, verzendinstellingen en dozen samen worden bewaard en dat een contactpersoon
   met tekst `orderbevestiging` leeg wordt opgeslagen. Controleer tevens dat
