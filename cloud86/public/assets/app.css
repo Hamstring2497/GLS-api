@@ -98,6 +98,7 @@ legend { padding:0 10px; color:var(--green-dark); font-size:1.05rem; font-weight
 .span-2 { grid-column:span 2; }
 
 .detail-stack { display:grid; gap:18px; padding:8px; border-radius:10px; background:var(--paper); }
+.detail-stack>.panel { border:3px solid var(--green); }
 .detail-stack>.address-panel { order:1; }
 .detail-stack>.shipping-panel { order:2; }
 .detail-stack>.units-panel { order:3; }
