@@ -1,7 +1,7 @@
 :root {
     --ink:#142635;
     --muted:#5d6f7c;
-    --paper:#e3ecf2;
+    --paper:#d4e0e8;
     --card:#fff;
     --line:#cbd8e1;
     --green:#0078b4;
@@ -97,7 +97,7 @@ legend { padding:0 10px; color:var(--green-dark); font-size:1.05rem; font-weight
 .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
 .span-2 { grid-column:span 2; }
 
-.detail-stack { display:grid; gap:18px; padding:8px; border-radius:10px; background:#e3ecf2; }
+.detail-stack { display:grid; gap:18px; padding:8px; border-radius:10px; background:var(--paper); }
 .detail-stack>.address-panel { order:1; }
 .detail-stack>.shipping-panel { order:2; }
 .detail-stack>.units-panel { order:3; }
@@ -198,7 +198,7 @@ code { display:inline-block; margin:4px 5px 0 0; padding:6px 9px; border-radius:
 .shipment-title>div { display:flex; flex-wrap:wrap; gap:4px 12px; align-items:baseline; min-width:0; }
 .shipment-title strong { color:var(--ink); font-size:.94rem; }
 .shipment-title span { color:var(--muted); font-size:.78rem; }
-.shipping-form { position:relative; display:grid; grid-template-columns:135px 190px 230px 230px; gap:16px; align-items:end; padding:12px; border:1px solid #c0d0da; border-radius:8px; background:#f4f8fb; }
+.shipping-form { position:relative; display:grid; grid-template-columns:135px 190px 230px 230px; gap:16px; align-items:end; }
 .shipping-form>label,.gls-options-field { color:var(--green-dark); }
 .shipping-form>label,.gls-options-label { font-size:.76rem; font-weight:850; letter-spacing:.05em; line-height:1.25; text-transform:uppercase; }
 .shipping-form select,.shipping-form input,.shipping-form .gls-options summary { border-color:#829aa9; background:#fff; }
