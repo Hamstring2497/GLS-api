@@ -97,7 +97,7 @@ legend { padding:0 10px; color:var(--green-dark); font-size:1.05rem; font-weight
 .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
 .span-2 { grid-column:span 2; }
 
-.detail-stack { display:grid; gap:10px; }
+.detail-stack { display:grid; gap:18px; padding:8px; border-radius:10px; background:#e3ecf2; }
 .detail-stack>.address-panel { order:1; }
 .detail-stack>.shipping-panel { order:2; }
 .detail-stack>.units-panel { order:3; }
@@ -241,8 +241,7 @@ code { display:inline-block; margin:4px 5px 0 0; padding:6px 9px; border-radius:
 .field-missing { color:#8d5b00; }
 .missing-summary { color:#765000; }
 .missing-summary strong { color:#765000; }
-.address-form { display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:13px 15px; padding:4px; }
-.address-form input { background:#fff; }
+.address-form { display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:7px 9px; }
 .address-form .field-name,.address-form .field-name-2,.address-form .field-name-3 { grid-column:span 4; }
 .address-form .field-street { grid-column:span 4; }
 .address-form .field-house-no { grid-column:span 2; }
