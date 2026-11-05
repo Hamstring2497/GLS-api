@@ -189,6 +189,9 @@ code { display:inline-block; margin:4px 5px 0 0; padding:6px 9px; border-radius:
 .section-bar { min-height:42px; margin:-18px -18px 10px; padding:8px 14px; display:flex; align-items:center; justify-content:space-between; gap:18px; border-bottom:1px solid #b8d5e4; background:var(--green-soft); }
 .section-bar h2 { margin:0; color:var(--green-dark); font-size:1.08rem; letter-spacing:-.02em; white-space:nowrap; }
 .section-bar>span { color:var(--muted); font-size:.8rem; }
+.address-panel .section-bar,.shipping-panel .section-bar { min-height:48px; border-bottom:2px solid #8db8cd; background:#d7ebf5; box-shadow:inset 5px 0 0 var(--green); }
+.address-panel .section-bar h2,.shipping-panel .section-bar h2 { color:#003f61; font-size:1.14rem; font-weight:900; letter-spacing:-.025em; }
+.address-panel .section-bar>span,.shipping-panel .shipment-title span { color:#4b6575; }
 .shipping-panel { margin-bottom:10px; padding:14px; border-top:4px solid var(--green); }
 .shipping-bar { margin:-14px -14px 10px; }
 .shipment-title { display:flex; align-items:center; gap:20px; min-width:0; }
@@ -238,7 +241,8 @@ code { display:inline-block; margin:4px 5px 0 0; padding:6px 9px; border-radius:
 .field-missing { color:#8d5b00; }
 .missing-summary { color:#765000; }
 .missing-summary strong { color:#765000; }
-.address-form { display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:7px 9px; }
+.address-form { display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:13px 15px; padding:4px; }
+.address-form input { background:#fff; }
 .address-form .field-name,.address-form .field-name-2,.address-form .field-name-3 { grid-column:span 4; }
 .address-form .field-street { grid-column:span 4; }
 .address-form .field-house-no { grid-column:span 2; }
