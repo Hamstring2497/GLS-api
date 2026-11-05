@@ -207,6 +207,11 @@ $addressFields = [
                     <input class="<?= $fieldIssue !== null ? 'is-missing' : '' ?>" name="<?= e($field) ?>" value="<?= e($delivery['address'][$field] ?? '') ?>" <?= $locked ? 'disabled' : '' ?> <?= $required ? 'required' : '' ?> type="<?= $field === 'email' ? 'email' : 'text' ?>" <?= $maxLength !== null ? 'maxlength="' . e($maxLength) . '"' : '' ?><?= $maxLength !== null ? ' title="Maximaal ' . e($maxLength) . ' tekens"' : '' ?>>
                 </label>
             <?php endforeach; ?>
+            <?php if (!$locked): ?>
+                <div class="address-footer-actions">
+                    <button class="button" type="submit">Adres opslaan</button>
+                </div>
+            <?php endif; ?>
         </form>
     </section>
 
@@ -283,27 +288,25 @@ $addressFields = [
             </div>
         <?php else: ?>
             <?php $parcelRows = $delivery['parcels'] !== [] ? $delivery['parcels'] : [['weight_kg' => '']]; ?>
-            <form method="post" action="/deliveries/<?= rawurlencode((string) $delivery['exact_entry_id']) ?>/parcels" class="stack">
-                <input type="hidden" name="_token" value="<?= e(\App\Security::csrfToken()) ?>">
+            <div class="stack">
                 <div id="weights">
                     <?php foreach ($parcelRows as $index => $parcel): ?>
                         <div class="weight-row">
-                            <label class="weight-label"><span>Doos <?= $index + 1 ?></span><span class="weight-input"><input type="number" name="weights[]" value="<?= $parcel['weight_kg'] !== '' ? e(number_format((float) $parcel['weight_kg'], 0, '.', '')) : '' ?>" min="1" max="<?= $maxWeight ?>" step="1" inputmode="numeric" placeholder="0"><span>kg</span></span></label>
+                            <label class="weight-label"><span>Doos <?= $index + 1 ?></span><span class="weight-input"><input form="shipping-details-form" type="number" name="weights[]" value="<?= $parcel['weight_kg'] !== '' ? e(number_format((float) $parcel['weight_kg'], 0, '.', '')) : '' ?>" min="1" max="<?= $maxWeight ?>" step="1" inputmode="numeric" placeholder="0"><span>kg</span></span></label>
                             <button class="button button-secondary button-small" type="button" onclick="removeParcel(this)">Wissen</button>
                         </div>
                     <?php endforeach; ?>
                 </div>
                 <div class="units-actions">
                     <button class="button button-secondary" type="button" onclick="addParcel()">+ Doos toevoegen</button>
-                    <button class="button" type="submit">Dozen opslaan</button>
                 </div>
-            </form>
+            </div>
             <script>
             function addParcel() {
                 const list = document.getElementById('weights');
                 const row = document.createElement('div');
                 row.className = 'weight-row';
-                row.innerHTML = '<label class="weight-label"><span>Doos</span><span class="weight-input"><input type="number" name="weights[]" min="1" max="<?= $maxWeight ?>" step="1" inputmode="numeric" placeholder="0"><span>kg</span></span></label><button class="button button-secondary button-small" type="button" onclick="removeParcel(this)">Wissen</button>';
+                row.innerHTML = '<label class="weight-label"><span>Doos</span><span class="weight-input"><input form="shipping-details-form" type="number" name="weights[]" min="1" max="<?= $maxWeight ?>" step="1" inputmode="numeric" placeholder="0"><span>kg</span></span></label><button class="button button-secondary button-small" type="button" onclick="removeParcel(this)">Wissen</button>';
                 list.appendChild(row);
                 renumberParcels();
             }
@@ -348,7 +351,6 @@ $addressFields = [
         <?php if (!$locked): ?>
             <div class="shipment-footer-actions">
                 <button class="button" type="submit" form="shipping-details-form">Zending opslaan</button>
-                <button class="button" type="submit" form="address-details-form">Adres opslaan</button>
             </div>
         <?php endif; ?>
     </section>

@@ -256,6 +256,17 @@ gecontroleerd worden toegepast.
 
 ## 10. Actuele stand — 4 november 2026
 
+- 5 november 2026: de leveringenwerkplek heeft bovenaan een combineerbaar filter **Alleen niet
+  verstuurd**. Dit toont uitsluitend leveringen zonder trackingnummer die niet zijn afgehaald,
+  samengevoegd of al van labels voorzien; **Reset** herstelt zowel dit filter, de zoektekst als de
+  standaardsortering op datum. De risicovolle onderhoudsactie **Tabel leegmaken en opnieuw ophalen**
+  en de bijbehorende route zijn verwijderd. **Adres opslaan** staat voortaan rechtsonder in het vak
+  **Afleveradres**. De aparte knop **Dozen opslaan** is vervallen: **Zending opslaan** bewaart nu in
+  één handeling zowel de verzendinstellingen als alle ingevulde dozen en gewichten. Er is geen
+  databasemigratie nodig. `git diff --check` en de negen Python-referentietests zijn geslaagd; de
+  PHP-smoketest kan lokaal niet worden uitgevoerd omdat PHP ontbreekt. De wijziging is lokaal
+  voorbereid; GitHub en Cloud86/Plesk zijn nog niet bijgewerkt.
+
 - De zichtbare applicatienaam is gewijzigd van **ParcelPilot** naar **PietPakket**. Het bestaande
   `PP`-beeldmerk blijft ongewijzigd. In de balk **Zending** kan een nog open levering voortaan met
   een expliciet vinkje als **Afgehaald** worden afgerond. PietPakket maakt dan geen GLS-zending en
@@ -677,6 +688,11 @@ gecontroleerd worden toegepast.
 ## 11. Volgende stappen
 
 Werk deze lijst in deze volgorde af:
+
+- Controleer na publicatie het filter **Alleen niet verstuurd**, de gecombineerde knop **Zending
+  opslaan** en de nieuwe positie van **Adres opslaan** met één open levering. Controleer tevens dat
+  **Reset** weer alle rijen toont en dat **Tabel leegmaken en opnieuw ophalen** niet meer via menu of
+  route beschikbaar is.
 
 - Test de gepubliceerde afhaalroute bij de eerstvolgende echte afhaallevering. Controleer dat geen
   GLS-aanvraag of label ontstaat, de status **Afgehaald** wordt, Exact het nummer

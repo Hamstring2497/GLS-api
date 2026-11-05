@@ -9,6 +9,10 @@
         <label class="delivery-search">Zoeken
             <input id="delivery-search" type="search" placeholder="Order, ontvanger, adres…" autocomplete="off">
         </label>
+        <label class="delivery-filter-check">
+            <input id="delivery-unshipped-only" type="checkbox">
+            <span>Alleen niet verstuurd</span>
+        </label>
         <button class="button button-secondary" id="delivery-reset" type="button">Reset</button>
         <a class="button" href="/deliveries/new">Nieuwe levering</a>
         <?php if ((\App\Security::user()['role'] ?? '') === 'admin'): ?>
@@ -101,7 +105,7 @@
                     $tableStatusClass = 'ready';
                 }
                 ?>
-                <tr class="delivery-row <?= $selectedDelivery && $selectedDelivery['exact_entry_id'] === $delivery['exact_entry_id'] ? 'selected-row' : '' ?> <?= in_array($delivery['status'], ['ready', 'labels_created', 'collected'], true) ? 'completed-row' : '' ?> <?= in_array($delivery['status'], ['labels_created', 'collected'], true) ? 'shipment-ready-row' : '' ?> <?= in_array($delivery['status'], ['gls_processing', 'gls_unknown'], true) ? 'gls-pending-row' : '' ?> <?= $isQuickMergeCandidate ? 'merge-candidate-row' : '' ?>" data-delivery-url="<?= e($deliveryUrl) ?>" data-merge-candidate="<?= $isQuickMergeCandidate ? '1' : '0' ?>" data-delivery-id="<?= e($delivery['exact_entry_id']) ?>" data-delivery-number="<?= e($delivery['delivery_number']) ?>" data-order-number="<?= e($delivery['order_number']) ?>" data-sort-order="<?= e($delivery['order_number']) ?>" data-sort-date="<?= e($delivery['shipping_date'] ?? '') ?>" data-sort-added="<?= e($delivery['created_at'] ?? '') ?>" data-sort-recipient="<?= e($delivery['address']['name']) ?>" data-sort-street="<?= e($delivery['address']['street']) ?>" data-sort-postcode="<?= e($delivery['address']['zip_code']) ?>" tabindex="0" aria-label="Selecteer levering <?= e($delivery['delivery_number']) ?>" aria-selected="<?= $selectedDelivery && $selectedDelivery['exact_entry_id'] === $delivery['exact_entry_id'] ? 'true' : 'false' ?>">
+                <tr class="delivery-row <?= $selectedDelivery && $selectedDelivery['exact_entry_id'] === $delivery['exact_entry_id'] ? 'selected-row' : '' ?> <?= in_array($delivery['status'], ['ready', 'labels_created', 'collected'], true) ? 'completed-row' : '' ?> <?= in_array($delivery['status'], ['labels_created', 'collected'], true) ? 'shipment-ready-row' : '' ?> <?= in_array($delivery['status'], ['gls_processing', 'gls_unknown'], true) ? 'gls-pending-row' : '' ?> <?= $isQuickMergeCandidate ? 'merge-candidate-row' : '' ?>" data-delivery-url="<?= e($deliveryUrl) ?>" data-merge-candidate="<?= $isQuickMergeCandidate ? '1' : '0' ?>" data-unshipped="<?= $delivery['tracking_numbers'] === [] && $mergedIntoId === '' && !in_array($delivery['status'], ['labels_created', 'collected'], true) ? '1' : '0' ?>" data-delivery-id="<?= e($delivery['exact_entry_id']) ?>" data-delivery-number="<?= e($delivery['delivery_number']) ?>" data-order-number="<?= e($delivery['order_number']) ?>" data-sort-order="<?= e($delivery['order_number']) ?>" data-sort-date="<?= e($delivery['shipping_date'] ?? '') ?>" data-sort-added="<?= e($delivery['created_at'] ?? '') ?>" data-sort-recipient="<?= e($delivery['address']['name']) ?>" data-sort-street="<?= e($delivery['address']['street']) ?>" data-sort-postcode="<?= e($delivery['address']['zip_code']) ?>" tabindex="0" aria-label="Selecteer levering <?= e($delivery['delivery_number']) ?>" aria-selected="<?= $selectedDelivery && $selectedDelivery['exact_entry_id'] === $delivery['exact_entry_id'] ? 'true' : 'false' ?>">
                     <td><strong><?= e($delivery['delivery_number']) ?></strong></td>
                     <td><?= e($delivery['order_number']) ?></td>
                     <td><?= e($delivery['shipping_date'] ?: '—') ?></td>
@@ -157,6 +161,7 @@
         const tableBody = document.getElementById('delivery-table-body');
         const tableRows = tableBody ? Array.from(tableBody.querySelectorAll('.delivery-row')) : [];
         const searchInput = document.getElementById('delivery-search');
+        const unshippedOnly = document.getElementById('delivery-unshipped-only');
         const resetButton = document.getElementById('delivery-reset');
         const sortButtons = Array.from(document.querySelectorAll('.table-sort'));
         let sortKey = 'date';
@@ -165,8 +170,11 @@
         const normalized = value => String(value || '').toLocaleLowerCase('nl-NL').trim();
         const filterRows = () => {
             const query = normalized(searchInput?.value);
+            const onlyOpen = Boolean(unshippedOnly?.checked);
             tableRows.forEach(row => {
-                row.hidden = query !== '' && !normalized(row.textContent).includes(query);
+                const missesSearch = query !== '' && !normalized(row.textContent).includes(query);
+                const isAlreadyHandled = onlyOpen && row.dataset.unshipped !== '1';
+                row.hidden = missesSearch || isAlreadyHandled;
             });
         };
         const updateSortState = () => {
@@ -205,8 +213,10 @@
             sortRows();
         }));
         searchInput?.addEventListener('input', filterRows);
+        unshippedOnly?.addEventListener('change', filterRows);
         resetButton?.addEventListener('click', () => {
             if (searchInput) searchInput.value = '';
+            if (unshippedOnly) unshippedOnly.checked = false;
             sortKey = 'date';
             sortDirection = 'desc';
             sortRows();

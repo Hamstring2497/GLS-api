@@ -148,45 +148,6 @@ try {
         redirect('/');
     }
 
-    if ($method === 'POST' && $path === '/maintenance/refresh-deliveries') {
-        Security::verifyCsrf();
-        if ((Security::user()['role'] ?? '') !== 'admin') {
-            abort(403, 'Alleen een beheerder kan de levertabel opnieuw opbouwen.');
-        }
-        if (($_POST['confirm_refresh'] ?? '') !== 'yes') {
-            abort(422, 'Bevestig eerst dat de volledige levertabel opnieuw mag worden opgebouwd.');
-        }
-
-        $removed = $repository->clearAll();
-        try {
-            $result = (new ExactService(Database::connect()))->syncGoodsDeliveries($repository);
-        } catch (ExactException $error) {
-            error_log('Exact opnieuw ophalen na legen tabel: ' . $error->getMessage());
-            flash(
-                'warning',
-                sprintf(
-                    '%d lokale levering(en) verwijderd. Opnieuw ophalen uit Exact is nog niet gelukt: %s',
-                    $removed,
-                    $error->getMessage()
-                )
-            );
-            redirect('/');
-        }
-
-        $message = sprintf(
-            '%d lokale levering(en) verwijderd; %d levering(en) opnieuw uit Exact opgehaald.',
-            $removed,
-            $result['imported']
-        );
-        if ($result['errors'] !== []) {
-            $message .= ' Controle nodig: ' . implode(' | ', array_slice($result['errors'], 0, 3));
-            flash('warning', $message);
-        } else {
-            flash('success', $message);
-        }
-        redirect('/');
-    }
-
     if ($method === 'GET' && $path === '/maintenance/tracking-import') {
         if ((Security::user()['role'] ?? '') !== 'admin') {
             abort(403, 'Alleen een beheerder kan bestaande GLS-zendingen koppelen.');
@@ -391,6 +352,25 @@ try {
                 abort(422, 'PointDeliveryFlex kan alleen samen met PointDelivery worden gekozen.');
             }
         }
+        $weights = [];
+        foreach ($_POST['weights'] ?? [] as $index => $rawWeight) {
+            $normalizedWeight = trim(str_replace(',', '.', (string) $rawWeight));
+            if ($normalizedWeight === '') {
+                continue;
+            }
+            if (!is_numeric($normalizedWeight) || (float) $normalizedWeight < 1 || floor((float) $normalizedWeight) !== (float) $normalizedWeight) {
+                abort(422, sprintf('Vul voor doos %d een gewicht in hele kilo\'s in.', $index + 1));
+            }
+            $weights[] = (float) (int) $normalizedWeight;
+        }
+        $maxWeight = $shipType === 'F'
+            ? (GlsService::FREIGHT_UNITS[$freightUnitType] ?? 32)
+            : 32;
+        foreach ($weights as $index => $weight) {
+            if ($weight > $maxWeight) {
+                abort(422, sprintf('Doos %d is zwaarder dan %d kg.', $index + 1, $maxWeight));
+            }
+        }
         $repository->updateShippingDetails(
             $id,
             $shipType,
@@ -399,7 +379,13 @@ try {
             $glsProduct,
             $glsOptions
         );
-        flash('success', 'Verzendgegevens opgeslagen.');
+        $repository->replaceParcels($id, $weights);
+        flash(
+            $weights === [] ? 'info' : 'success',
+            $weights === []
+                ? 'Zending opgeslagen. Vul minimaal één doos met gewicht in om een label te kunnen maken.'
+                : 'Zending en dozen opgeslagen.'
+        );
         redirect('/?delivery=' . rawurlencode($id));
     }
 
