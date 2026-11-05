@@ -8,7 +8,7 @@
     --green-dark:#004d75;
     --green-soft:#e6f2f8;
     --lime:#55b6e7;
-    --field:#f8fbfd;
+    --field:#fff;
     --amber:#8d5b00;
     --red:#9b2c2c;
     --success:#287a4b;
@@ -90,7 +90,7 @@ label { display:grid; gap:4px; color:var(--green-dark); font-size:.76rem; font-w
 input,select,textarea { width:100%; min-height:39px; border:2px solid #a8bbc8; border-radius:6px; padding:7px 10px; background:var(--field); color:var(--ink); font-size:1rem; font-weight:600; letter-spacing:0; text-transform:none; box-shadow:inset 0 1px 2px rgba(16,56,82,.04); }
 input:hover,select:hover,textarea:hover { border-color:#7596aa; }
 input:focus,select:focus,textarea:focus { outline:4px solid rgba(85,182,231,.42); outline-offset:1px; border-color:#005f94; background:#fff; box-shadow:0 0 0 1px #005f94,inset 0 1px 2px rgba(16,56,82,.04); }
-input:disabled,select:disabled,textarea:disabled { border-color:#d3dee5; background:#eef3f6; color:#4e606c; opacity:1; }
+input:disabled,select:disabled,textarea:disabled { border-color:#b9cad5; background:#f7fafc; color:#425766; opacity:1; }
 fieldset { border:1px solid var(--line); border-left:4px solid var(--green); border-radius:10px; padding:22px; margin:0 0 24px; background:#fbfcfb; }
 legend { padding:0 10px; color:var(--green-dark); font-size:1.05rem; font-weight:850; }
 .form-grid { padding:28px; }
