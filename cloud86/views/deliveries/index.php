@@ -13,7 +13,7 @@
         <label class="delivery-search">Zoeken
             <input id="delivery-search" type="search" placeholder="Order, ontvanger, adres…" autocomplete="off">
         </label>
-        <button class="button button-secondary" id="delivery-reset" type="button">Reset</button>
+        <button class="button" id="delivery-reset" type="button">Reset filter</button>
         <a class="button" href="/deliveries/new">Nieuwe levering</a>
         <?php if ((\App\Security::user()['role'] ?? '') === 'admin'): ?>
             <?php if (!$exactStatus['connected']): ?>
