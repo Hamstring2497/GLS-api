@@ -6,12 +6,12 @@
         <p class="muted">Selecteer een regel, controleer het adres en voer de dozen in.</p>
     </div>
     <div class="overview-toolbar">
-        <label class="delivery-search">Zoeken
-            <input id="delivery-search" type="search" placeholder="Order, ontvanger, adres…" autocomplete="off">
-        </label>
         <label class="delivery-filter-check">
             <input id="delivery-unshipped-only" type="checkbox">
             <span>Openstaande zendingen</span>
+        </label>
+        <label class="delivery-search">Zoeken
+            <input id="delivery-search" type="search" placeholder="Order, ontvanger, adres…" autocomplete="off">
         </label>
         <button class="button button-secondary" id="delivery-reset" type="button">Reset</button>
         <a class="button" href="/deliveries/new">Nieuwe levering</a>

@@ -353,6 +353,12 @@ gecontroleerd worden toegepast.
   oplopend/aflopend sorteerbaar. Bovenaan staan zoeken en **Reset** naast de twee hoofdacties;
   Reset herstelt het ongefilterde overzicht met datum aflopend. Meldingen met **Gezien** staan
   voortaan pas onder de volledige werkplek.
+- In de werkbalk staat **Openstaande zendingen** vóór het zoekveld. De knop **Alles opslaan**
+  bewaart in één handeling het afleveradres, de verzendinstellingen en alle ingevulde dozen;
+  afzonderlijke opslagknoppen zijn niet meer nodig. Alleen nog niet verzonden leveringen kunnen
+  via **Onderhoud → Zending wissen** uit de werkvoorraad worden verwijderd. Na een echte
+  GLS-labelaanmaak blokkeert PietPakket verwijderen bewust: annuleren moet eerst bij GLS worden
+  ondersteund en bevestigd om een actieve GLS-zending niet alleen lokaal te verbergen.
 - Labelbediening vereenvoudigd: **Label maken en afdrukken** maakt de zending zonder extra
   bevestigingsvensters, opent direct de opgeslagen officiële GLS-PDF en probeert het afdrukvenster
   te starten. Een bestaand label gebruikt **Label openen en afdrukken** en doet geen nieuwe
