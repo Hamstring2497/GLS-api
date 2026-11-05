@@ -254,7 +254,7 @@ gecontroleerd worden toegepast.
 - Houd de maximale GLS-doosgrens van 32 kg aan.
 - Gebruik HTTPS en houd `src`, `views`, `database`, `storage` en `.env` buiten de document root.
 
-## 10. Actuele stand — 4 november 2026
+## 10. Actuele stand — 5 november 2026
 
 - 5 november 2026: de leveringenwerkplek heeft bovenaan een combineerbaar filter **Openstaande
   zendingen**. Dit toont uitsluitend leveringen zonder trackingnummer die niet zijn afgehaald,
@@ -264,16 +264,16 @@ gecontroleerd worden toegepast.
   **Afleveradres**. De aparte knop **Dozen opslaan** is vervallen: **Zending opslaan** bewaart nu in
   één handeling zowel de verzendinstellingen als alle ingevulde dozen en gewichten. Er is geen
   databasemigratie nodig. `git diff --check` en de negen Python-referentietests zijn geslaagd; de
-  PHP-smoketest kan lokaal niet worden uitgevoerd omdat PHP ontbreekt. De wijziging is lokaal
-  voorbereid; GitHub en Cloud86/Plesk zijn nog niet bijgewerkt.
+  PHP-smoketest kan lokaal niet worden uitgevoerd omdat PHP ontbreekt. De wijziging is gepubliceerd
+  op GitHub en Cloud86/Plesk.
 
 - 5 november 2026: de opslag is verder vereenvoudigd tot één knop **Alles opslaan** rechtsonder in
   **Afleveradres**. Deze bewaart in één keer het afleveradres, de verzendinstellingen en alle dozen
   en gewichten. Contactpersoonwaarden die `orderbevestiging`, `order bevestiging` of de Engelse
   variant `order confirmation` bevatten worden automatisch leeggemaakt; dit gebeurt bij zowel een
   Exact-import als handmatig opslaan. Echte contactnamen blijven ongewijzigd. Geen
-  databasemigratie nodig. De wijziging is lokaal voorbereid; GitHub en Cloud86/Plesk zijn nog niet
-  bijgewerkt.
+  databasemigratie nodig. Applicatiecommit `617ad51` staat lokaal, op GitHub en via Plesk op
+  Cloud86. De Plesk-publicatie is voltooid en `/health` meldt `status: ok` en `gls_mode: live`.
 
 - De zichtbare applicatienaam is gewijzigd van **ParcelPilot** naar **PietPakket**. Het bestaande
   `PP`-beeldmerk blijft ongewijzigd. In de balk **Zending** kan een nog open levering voortaan met
