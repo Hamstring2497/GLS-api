@@ -254,7 +254,12 @@ gecontroleerd worden toegepast.
 - Houd de maximale GLS-doosgrens van 32 kg aan.
 - Gebruik HTTPS en houd `src`, `views`, `database`, `storage` en `.env` buiten de document root.
 
-## 10. Actuele stand — 5 november 2026
+## 10. Actuele stand — 6 november 2026
+
+- 6 november 2026: de gecombineerde opslagknop heet weer **Zending opslaan** en staat zichtbaar
+  bij **Dozen en gewicht**, naast **+ Doos toevoegen**. De knop bewaart nog steeds in één handeling
+  het afleveradres, de verzendinstellingen en alle ingevulde dozen en gewichten; er zijn geen
+  afzonderlijke opslagknoppen nodig. Geen databasemigratie nodig.
 
 - 5 november 2026: de leveringenwerkplek heeft bovenaan een combineerbaar filter **Openstaande
   zendingen**. Dit toont uitsluitend leveringen zonder trackingnummer die niet zijn afgehaald,
@@ -703,8 +708,8 @@ gecontroleerd worden toegepast.
 
 Werk deze lijst in deze volgorde af:
 
-- Controleer na publicatie het filter **Openstaande zendingen**, de gecombineerde knop **Zending
-  opslaan** en daarna de aanvullende vereenvoudiging naar **Alles opslaan** met één open levering.
+- Controleer na publicatie het filter **Openstaande zendingen** en de gecombineerde knop **Zending
+  opslaan** bij **Dozen en gewicht** met één open levering.
   Controleer dat adres, verzendinstellingen en dozen samen worden bewaard en dat een contactpersoon
   met tekst `orderbevestiging` leeg wordt opgeslagen. Controleer tevens dat
   **Reset** weer alle rijen toont en dat **Tabel leegmaken en opnieuw ophalen** niet meer via menu of

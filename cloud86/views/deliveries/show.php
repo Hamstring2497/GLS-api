@@ -206,11 +206,6 @@ $addressFields = [
                     <input form="shipping-details-form" class="<?= $fieldIssue !== null ? 'is-missing' : '' ?>" name="<?= e($field) ?>" value="<?= e($delivery['address'][$field] ?? '') ?>" <?= $locked ? 'disabled' : '' ?> <?= $required ? 'required' : '' ?> type="<?= $field === 'email' ? 'email' : 'text' ?>" <?= $maxLength !== null ? 'maxlength="' . e($maxLength) . '"' : '' ?><?= $maxLength !== null ? ' title="Maximaal ' . e($maxLength) . ' tekens"' : '' ?>>
                 </label>
             <?php endforeach; ?>
-            <?php if (!$locked): ?>
-                <div class="address-footer-actions">
-                    <button class="button" type="submit" form="shipping-details-form">Alles opslaan</button>
-                </div>
-            <?php endif; ?>
         </div>
     </section>
 
@@ -298,6 +293,7 @@ $addressFields = [
                 </div>
                 <div class="units-actions">
                     <button class="button button-secondary" type="button" onclick="addParcel()">+ Doos toevoegen</button>
+                    <button class="button" type="submit" form="shipping-details-form">Zending opslaan</button>
                 </div>
             </div>
             <script>

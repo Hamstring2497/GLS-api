@@ -255,8 +255,6 @@ code { display:inline-block; margin:4px 5px 0 0; padding:6px 9px; border-radius:
 .address-form .field-email { grid-column:span 5; }
 .address-form .field-note-1,.address-form .field-note-2 { grid-column:span 5; }
 .address-panel { border-top:4px solid var(--green); }
-.address-footer-actions { grid-column:1/-1; display:flex; justify-content:flex-end; margin-top:2px; }
-.address-footer-actions .button { width:190px; min-height:44px; }
 .units-panel { border-top:4px solid var(--green); }
 .shipment-ready-panel { border-top-color:var(--success); }
 .shipment-ready-panel .units-bar { background:var(--success-soft); border-bottom-color:#9dcbaa; }

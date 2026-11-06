@@ -270,7 +270,8 @@ assert(str_contains($html, 'form="shipping-details-form" type="number" name="wei
 assert(str_contains($html, 'Testlabel maken en afdrukken'));
 assert(str_contains($html, 'createAndPrintGlsLabel'));
 assert(str_contains($html, 'name="shipping_date_confirmed"'));
-assert(str_contains($html, 'form="shipping-details-form">Alles opslaan</button>'));
+assert(str_contains($html, 'form="shipping-details-form">Zending opslaan</button>'));
+assert(strpos($html, '>Dozen en gewicht</h2>') < strpos($html, '>Zending opslaan</button>'));
 assert(!str_contains($html, '>Adres opslaan</button>'));
 assert(str_contains($html, 'niet-opgeslagen wijzigingen'));
 assert(str_contains($html, 'Naam 2'));
