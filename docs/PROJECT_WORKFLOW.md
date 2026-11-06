@@ -259,7 +259,9 @@ gecontroleerd worden toegepast.
 - 6 november 2026: de gecombineerde opslagknop heet weer **Zending opslaan** en staat zichtbaar
   bij **Dozen en gewicht**, naast **+ Doos toevoegen**. De knop bewaart nog steeds in één handeling
   het afleveradres, de verzendinstellingen en alle ingevulde dozen en gewichten; er zijn geen
-  afzonderlijke opslagknoppen nodig. Geen databasemigratie nodig.
+  afzonderlijke opslagknoppen nodig. Geen databasemigratie nodig. Applicatiecommit `c6ce58f` staat
+  lokaal, op GitHub en via Plesk op Cloud86; de publicatietaak is voltooid en `/health` meldt
+  `status: ok` en `gls_mode: live`. De knop zelf moet nog eenmaal ingelogd visueel worden gecontroleerd.
 
 - 5 november 2026: de leveringenwerkplek heeft bovenaan een combineerbaar filter **Openstaande
   zendingen**. Dit toont uitsluitend leveringen zonder trackingnummer die niet zijn afgehaald,
