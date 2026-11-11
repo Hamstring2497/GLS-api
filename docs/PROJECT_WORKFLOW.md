@@ -258,6 +258,15 @@ gecontroleerd worden toegepast.
 
 ## 10. Actuele stand — 11 november 2026
 
+- 11 november 2026: labelaanmaak en herafdruk openen voortaan iedere keer in een eigen nieuwe
+  browsertab. De labelaanvraag gebruikt een normale formulier-POST naar die tab in plaats van een
+  `fetch` naar een tijdelijke blob-URL. Daardoor blijft het leveringenoverzicht op zijn plaats,
+  wordt de bestaande werk-tab niet automatisch herladen en probeert PietPakket het afdrukscherm te
+  openen zodra de beveiligde PDF-labelroute geladen is. **Onderhoud → Zending wissen** verdwijnt
+  niet meer bij een geselecteerde, reeds afgehandelde zending: de optie blijft dan zichtbaar als
+  **Zending wissen (niet mogelijk)**; bij een open, wisbare zending blijft de actie actief. Geen
+  databasemigratie nodig. Publicatie en ingelogde productiecontrole zijn nog niet uitgevoerd.
+
 - 11 november 2026: een gezamenlijke GLS-referentie toont maximaal drie unieke orderdelen, zoals
   `5291 / 5301 / 5298`. Vanaf vier gecombineerde leveringen, of zodra een afwijkende combinatie
   anders langer dan 20 tekens zou worden, gebruikt PietPakket automatisch de stabiele referentie
@@ -729,6 +738,13 @@ gecontroleerd worden toegepast.
 ## 11. Volgende stappen
 
 Werk deze lijst in deze volgorde af:
+
+- Publiceer de aangepaste label- en onderhoudsbediening. Maak met één nog niet verzonden levering
+  één label en controleer dat een afzonderlijke nieuwe tab opent, het afdrukscherm verschijnt en de
+  oorspronkelijke werk-tab niet herlaadt of naar voren springt. Open daarna hetzelfde opgeslagen
+  label opnieuw en controleer dat opnieuw een afzonderlijke tab ontstaat zonder tweede GLS-call.
+  Controleer op beide magazijncomputers dat **Zending wissen** bij een open zending actief blijft
+  en bij een afgehandelde zending zichtbaar maar uitgeschakeld is.
 
 - Publiceer de referentie- en datumweergave van 11 november 2026. Controleer een combinatie van
   drie leveringen (`1234 / 5678 / 9012`) en vier leveringen (`Samen-dd-mm-jj`) zonder een nieuw

@@ -32,7 +32,7 @@ $canDeleteSelectedDelivery = isset($selectedDelivery)
         <nav>
             <?php if (\App\Security::user()): ?><span class="user-name"><?= e(\App\Security::user()['display_name']) ?></span><?php endif; ?>
             <a href="/">Leveringen</a>
-            <?php if ((\App\Security::user()['role'] ?? '') === 'admin' || $canDeleteSelectedDelivery): ?>
+            <?php if ((\App\Security::user()['role'] ?? '') === 'admin' || isset($selectedDelivery)): ?>
                 <details class="maintenance-menu">
                     <summary>Onderhoud</summary>
                     <div class="maintenance-menu-panel">
@@ -43,6 +43,8 @@ $canDeleteSelectedDelivery = isset($selectedDelivery)
                                 <input type="hidden" name="supervisor_confirmation" value="no">
                                 <button class="maintenance-delete" type="submit">Zending wissen</button>
                             </form>
+                        <?php elseif (isset($selectedDelivery)): ?>
+                            <button class="maintenance-delete" type="button" disabled title="Alleen een nog niet verzonden zending kan worden gewist.">Zending wissen (niet mogelijk)</button>
                         <?php endif; ?>
                         <?php if ((\App\Security::user()['role'] ?? '') === 'admin'): ?>
                             <a class="maintenance-link" href="/maintenance/tracking-import">Bestaande GLS-zending koppelen</a>
@@ -98,57 +100,49 @@ if (exactSyncForm) {
     });
 }
 function openLabelAndPrint(url) {
-    const printWindow = window.open('', 'gls-label-print');
+    const printWindow = window.open(url, '_blank');
     if (!printWindow) {
         alert('Sta pop-ups toe om het GLS-label direct te kunnen afdrukken.');
         return false;
     }
-    printWindow.document.write('<p style="font:16px sans-serif;padding:24px">GLS-label wordt geopend…</p>');
-    printWindow.location.href = url;
-    window.setTimeout(() => {
-        try { printWindow.focus(); printWindow.print(); } catch (error) { /* Het PDF-venster blijft beschikbaar. */ }
-    }, 1200);
+    printLabelWindowWhenReady(printWindow);
     return false;
+}
+function printLabelWindowWhenReady(printWindow) {
+    const startedAt = Date.now();
+    const timer = window.setInterval(() => {
+        if (printWindow.closed || Date.now() - startedAt > 120000) {
+            window.clearInterval(timer);
+            return;
+        }
+        try {
+            const path = printWindow.location.pathname;
+            if (!/\/deliveries\/[^/]+\/label$/.test(path)) return;
+            window.clearInterval(timer);
+            window.setTimeout(() => {
+                try { printWindow.focus(); printWindow.print(); } catch (error) { /* De PDF-tab blijft beschikbaar. */ }
+            }, 800);
+        } catch (error) { /* Wacht totdat de nieuwe tab de labelroute heeft geladen. */ }
+    }, 250);
 }
 function createAndPrintGlsLabel(form) {
     const button = form.querySelector('button[type="submit"]');
     form.elements.confirm_gls_request.value = 'yes';
-    if (button) button.disabled = true;
-    const printWindow = window.open('', 'gls-label-print');
+    const printWindow = window.open('', '_blank');
     if (!printWindow) {
-        if (button) button.disabled = false;
         alert('Sta pop-ups toe om het GLS-label direct te kunnen afdrukken.');
         return false;
     }
+    const targetName = `gls-label-print-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    printWindow.name = targetName;
+    form.target = targetName;
     printWindow.document.write('<p style="font:16px sans-serif;padding:24px">GLS-label wordt aangemaakt…</p>');
-    fetch(form.action, {
-        method: 'POST',
-        body: new FormData(form),
-        credentials: 'same-origin',
-        redirect: 'follow'
-    }).then(async response => {
-        const contentType = response.headers.get('content-type') || '';
-        if (!response.ok || !contentType.includes('application/pdf')) {
-            const html = await response.text();
-            printWindow.document.open();
-            printWindow.document.write(html);
-            printWindow.document.close();
-            if (button) button.disabled = false;
-            return;
-        }
-        const pdfUrl = URL.createObjectURL(await response.blob());
-        printWindow.location.href = pdfUrl;
-        window.setTimeout(() => {
-            try { printWindow.focus(); printWindow.print(); } catch (error) { /* Het PDF-venster blijft beschikbaar. */ }
-        }, 1200);
-        window.setTimeout(() => { window.location.reload(); }, 1800);
-    }).catch(() => {
-        printWindow.document.open();
-        printWindow.document.write('<p style="font:16px sans-serif;padding:24px">Het label kon niet worden geopend. Sluit dit venster en probeer het opnieuw.</p>');
-        printWindow.document.close();
-        if (button) button.disabled = false;
-    });
-    return false;
+    if (button) {
+        button.disabled = true;
+        button.textContent = 'Label wordt aangemaakt…';
+    }
+    printLabelWindowWhenReady(printWindow);
+    return true;
 }
 function confirmGlsRelease(form) {
     if (!confirm('Heeft u in GLS gecontroleerd dat deze aanvraag géén zending heeft aangemaakt?')) return false;
