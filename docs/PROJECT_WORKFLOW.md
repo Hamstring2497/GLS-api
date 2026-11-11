@@ -265,7 +265,12 @@ gecontroleerd worden toegepast.
   openen zodra de beveiligde PDF-labelroute geladen is. **Onderhoud → Zending wissen** verdwijnt
   niet meer bij een geselecteerde, reeds afgehandelde zending: de optie blijft dan zichtbaar als
   **Zending wissen (niet mogelijk)**; bij een open, wisbare zending blijft de actie actief. Geen
-  databasemigratie nodig. Publicatie en ingelogde productiecontrole zijn nog niet uitgevoerd.
+  databasemigratie nodig. Applicatiecommit `9a0734a` staat lokaal, op GitHub en via Plesk op
+  Cloud86. Plesk toont deze commit als laatste versie, `/health` meldt `status: ok` en
+  `gls_mode: live`, en de productie-loginpagina bevat de nieuwe unieke-tab- en printlogica. Er is
+  bij deze controle geen GLS-zending aangemaakt en niets naar Exact geschreven. De bediening moet
+  nog ingelogd met een bestaande opgeslagen PDF en bij de eerstvolgende echte labelaanmaak worden
+  gecontroleerd.
 
 - 11 november 2026: een gezamenlijke GLS-referentie toont maximaal drie unieke orderdelen, zoals
   `5291 / 5301 / 5298`. Vanaf vier gecombineerde leveringen, of zodra een afwijkende combinatie
@@ -739,7 +744,7 @@ gecontroleerd worden toegepast.
 
 Werk deze lijst in deze volgorde af:
 
-- Publiceer de aangepaste label- en onderhoudsbediening. Maak met één nog niet verzonden levering
+- Controleer de gepubliceerde label- en onderhoudsbediening. Maak met één nog niet verzonden levering
   één label en controleer dat een afzonderlijke nieuwe tab opent, het afdrukscherm verschijnt en de
   oorspronkelijke werk-tab niet herlaadt of naar voren springt. Open daarna hetzelfde opgeslagen
   label opnieuw en controleer dat opnieuw een afzonderlijke tab ontstaat zonder tweede GLS-call.
