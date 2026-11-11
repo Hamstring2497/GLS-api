@@ -73,7 +73,7 @@ $addressFields = [
             <h2>Zending</h2>
             <div>
                 <strong>Levering <?= e($delivery['delivery_number']) ?> · <?= e($delivery['address']['name']) ?></strong>
-                <span>Order <?= e($delivery['order_number']) ?> · <?= e($delivery['shipping_date'] ?: 'geen verzenddatum') ?></span>
+                <span>Order <?= e($delivery['order_number']) ?> · <?= e(($delivery['shipping_date'] ?? '') !== '' ? format_nl_date($delivery['shipping_date']) : 'geen verzenddatum') ?></span>
             </div>
         </div>
         <div class="heading-actions">

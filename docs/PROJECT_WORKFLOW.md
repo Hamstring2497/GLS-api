@@ -258,6 +258,15 @@ gecontroleerd worden toegepast.
 
 ## 10. Actuele stand — 11 november 2026
 
+- 11 november 2026: een gezamenlijke GLS-referentie toont maximaal drie unieke orderdelen, zoals
+  `5291 / 5301 / 5298`. Vanaf vier gecombineerde leveringen, of zodra een afwijkende combinatie
+  anders langer dan 20 tekens zou worden, gebruikt PietPakket automatisch de stabiele referentie
+  `Samen-dd-mm-jj` op basis van de leverdatum van de hoofdlevering. In het overzicht heet **Datum**
+  voortaan **Leverdatum** (de geplande datum uit Exact). **Toegevoegd** is de datum waarop
+  PietPakket de levering lokaal heeft ingelezen. Beide datums staan als `dd-mm-jjjj`; de sortering
+  blijft de oorspronkelijke ISO-waarden gebruiken. Geen databasemigratie nodig. Publicatie en
+  ingelogde productiecontrole zijn nog niet uitgevoerd.
+
 - 11 november 2026: het maximale gewicht in de werkplek volgt direct de actuele verzendkeuze.
   Parcel blijft maximaal 32 kg per doos; bij Freight gebruikt ieder vrachttype zijn eigen bestaande
   GLS-limiet (CO 32, LG 25, MP 300, PL 675, BP 850, RL 350 en XL 1000 kg). Het scherm toont de
@@ -720,6 +729,11 @@ gecontroleerd worden toegepast.
 ## 11. Volgende stappen
 
 Werk deze lijst in deze volgorde af:
+
+- Publiceer de referentie- en datumweergave van 11 november 2026. Controleer een combinatie van
+  drie leveringen (`1234 / 5678 / 9012`) en vier leveringen (`Samen-dd-mm-jj`) zonder een nieuw
+  GLS-label aan te maken. Controleer ook dat **Leverdatum** en **Toegevoegd** als `dd-mm-jjjj`
+  verschijnen en chronologisch goed blijven sorteren.
 
 - Publiceer de wijziging van 11 november 2026 en controleer ingelogd dat wisselen tussen Parcel en
   alle Freight-vrachttypen de zichtbare gewichtslimiet en het maximum van alle gewichtsvelden direct

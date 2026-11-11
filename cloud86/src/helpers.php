@@ -23,6 +23,17 @@ function gls_tracking_url(mixed $trackingNumber): ?string
     return 'https://tracking.gls.nl/customer-track-and-trace/parcels/' . rawurlencode($trackingNumber);
 }
 
+/** Zet een ISO-datum of SQL-datumtijd om naar de Nederlandse weergave dd-mm-jjjj. */
+function format_nl_date(mixed $value): string
+{
+    $value = trim((string) $value);
+    if (preg_match('/^(\d{4})-(\d{2})-(\d{2})/', $value, $matches) !== 1) {
+        return '—';
+    }
+
+    return sprintf('%s-%s-%s', $matches[3], $matches[2], $matches[1]);
+}
+
 /** @param array<string, mixed> $data */
 function view(string $name, array $data = []): never
 {

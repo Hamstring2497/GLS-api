@@ -61,6 +61,9 @@ assert(App\ExactService::DELIVERY_SYNC_START_DATE === '2026-11-01');
 assert(gls_tracking_url('73220023887426') === 'https://tracking.gls.nl/customer-track-and-trace/parcels/73220023887426');
 assert(gls_tracking_url('MOCK-ABC123') === null);
 assert(gls_tracking_url('7322/0023') === null);
+assert(format_nl_date('2026-11-09') === '09-11-2026');
+assert(format_nl_date('2026-11-09 13:45:00') === '09-11-2026');
+assert(format_nl_date('') === '—');
 assert(App\GlsService::fitAddressNameLines([
     'Heijmans Utiliteit B.V. - Rosmalen', '', '',
 ]) === ['Heijmans Utiliteit B.V. -', '', '']);
@@ -263,6 +266,9 @@ assert(str_contains($html, 'Nieuwe straat'));
 assert(str_contains($html, 'selected-row'));
 assert(str_contains($html, 'E-mailadres *'));
 assert(str_contains($html, 'Toegevoegd'));
+assert(str_contains($html, 'Leverdatum'));
+assert(str_contains($html, 'Geplande leverdatum uit Exact'));
+assert(str_contains($html, 'Datum waarop PietPakket de levering heeft ingelezen'));
 assert(str_contains($html, 'Openstaande zendingen'));
 assert(strpos($html, 'Openstaande zendingen') < strpos($html, 'id="delivery-search"'));
 assert(str_contains($html, "sessionStorage.getItem(openFilterStorageKey) === '1'"));
@@ -350,7 +356,7 @@ assert($repository->find('second')['status'] === 'discarded');
 
 $repository->save([
     'exact_entry_id' => 'merge-primary', 'delivery_number' => 'DEL-20',
-    'order_number' => 'ORD-2000', 'shipping_date' => null,
+    'order_number' => 'ORD-2000', 'shipping_date' => '2026-11-09',
     'name' => 'Samen BV', 'street' => 'Samenstraat', 'house_no' => '8',
     'zip_code' => '1111 AA', 'city' => 'Utrecht', 'country_code' => 'NL',
     'email' => 'samen@example.com',
@@ -383,11 +389,32 @@ assert($merged['effective_reference'] === '2000 / 2001');
 assert($repository->find('merge-child')['merged_into_exact_entry_id'] === 'merge-primary');
 assert($gls->buildPayload($merged)['reference'] === '2000 / 2001');
 assert(delivery_missing_data($merged) === []);
+$repository->save([
+    'exact_entry_id' => 'merge-child-2', 'delivery_number' => 'DEL-22',
+    'order_number' => 'ORD-2002', 'shipping_date' => '2026-11-09',
+    'name' => 'Samen BV', 'street' => 'Samenstraat', 'house_no' => '8',
+    'zip_code' => '1111 AA', 'city' => 'Utrecht', 'country_code' => 'NL',
+    'email' => 'samen@example.com',
+]);
+$repository->setMergedDeliveries('merge-primary', ['merge-child', 'merge-child-2']);
+assert($repository->find('merge-primary')['effective_reference'] === '2000 / 2001 / 2002');
+$repository->save([
+    'exact_entry_id' => 'merge-child-3', 'delivery_number' => 'DEL-23',
+    'order_number' => 'ORD-2003', 'shipping_date' => '2026-11-09',
+    'name' => 'Samen BV', 'street' => 'Samenstraat', 'house_no' => '8',
+    'zip_code' => '1111 AA', 'city' => 'Utrecht', 'country_code' => 'NL',
+    'email' => 'samen@example.com',
+]);
+$repository->setMergedDeliveries('merge-primary', ['merge-child', 'merge-child-2', 'merge-child-3']);
+$merged = $repository->find('merge-primary');
+assert($merged['effective_reference'] === 'Samen-09-11-26');
+assert(mb_strlen($merged['effective_reference']) <= App\GlsService::REFERENCE_MAX_LENGTH);
+assert($gls->buildPayload($merged)['reference'] === 'Samen-09-11-26');
 $imported = $repository->importExistingTracking([[
-    'delivery_ids' => ['DEL-20', 'DEL-21'],
+    'delivery_ids' => ['DEL-20', 'DEL-21', 'DEL-22', 'DEL-23'],
     'tracking_numbers' => ['73220023886849'],
 ]]);
-assert($imported === 2);
+assert($imported === 4);
 assert($repository->find('merge-primary')['tracking_numbers'] === ['73220023886849']);
 assert($repository->find('merge-child')['status'] === 'labels_created');
 assert($repository->find('merge-child')['last_gls_state'] === 'tracking_imported');

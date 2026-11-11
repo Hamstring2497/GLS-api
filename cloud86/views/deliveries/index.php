@@ -63,8 +63,8 @@
             <thead><tr>
                 <th>Levering</th>
                 <th><button class="table-sort" type="button" data-sort-key="order">Order</button></th>
-                <th aria-sort="descending"><button class="table-sort active" type="button" data-sort-key="date">Datum</button></th>
-                <th><button class="table-sort" type="button" data-sort-key="added">Toegevoegd</button></th>
+                <th aria-sort="descending"><button class="table-sort active" type="button" data-sort-key="date" title="Geplande leverdatum uit Exact">Leverdatum</button></th>
+                <th><button class="table-sort" type="button" data-sort-key="added" title="Datum waarop PietPakket de levering heeft ingelezen">Toegevoegd</button></th>
                 <th><button class="table-sort" type="button" data-sort-key="recipient">Ontvanger</button></th>
                 <th><button class="table-sort" type="button" data-sort-key="street">Straat</button></th>
                 <th>Huisnr.</th>
@@ -108,8 +108,8 @@
                 <tr class="delivery-row <?= $selectedDelivery && $selectedDelivery['exact_entry_id'] === $delivery['exact_entry_id'] ? 'selected-row' : '' ?> <?= in_array($delivery['status'], ['ready', 'labels_created', 'collected'], true) ? 'completed-row' : '' ?> <?= in_array($delivery['status'], ['labels_created', 'collected'], true) ? 'shipment-ready-row' : '' ?> <?= in_array($delivery['status'], ['gls_processing', 'gls_unknown'], true) ? 'gls-pending-row' : '' ?> <?= $isQuickMergeCandidate ? 'merge-candidate-row' : '' ?>" data-delivery-url="<?= e($deliveryUrl) ?>" data-merge-candidate="<?= $isQuickMergeCandidate ? '1' : '0' ?>" data-unshipped="<?= $delivery['tracking_numbers'] === [] && $mergedIntoId === '' && !in_array($delivery['status'], ['labels_created', 'collected'], true) ? '1' : '0' ?>" data-delivery-id="<?= e($delivery['exact_entry_id']) ?>" data-delivery-number="<?= e($delivery['delivery_number']) ?>" data-order-number="<?= e($delivery['order_number']) ?>" data-sort-order="<?= e($delivery['order_number']) ?>" data-sort-date="<?= e($delivery['shipping_date'] ?? '') ?>" data-sort-added="<?= e($delivery['created_at'] ?? '') ?>" data-sort-recipient="<?= e($delivery['address']['name']) ?>" data-sort-street="<?= e($delivery['address']['street']) ?>" data-sort-postcode="<?= e($delivery['address']['zip_code']) ?>" tabindex="0" aria-label="Selecteer levering <?= e($delivery['delivery_number']) ?>" aria-selected="<?= $selectedDelivery && $selectedDelivery['exact_entry_id'] === $delivery['exact_entry_id'] ? 'true' : 'false' ?>">
                     <td><strong><?= e($delivery['delivery_number']) ?></strong></td>
                     <td><?= e($delivery['order_number']) ?></td>
-                    <td><?= e($delivery['shipping_date'] ?: '—') ?></td>
-                    <td><?= e(($delivery['created_at'] ?? '') !== '' ? substr((string) $delivery['created_at'], 0, 10) : '—') ?></td>
+                    <td><?= e(format_nl_date($delivery['shipping_date'] ?? '')) ?></td>
+                    <td><?= e(format_nl_date($delivery['created_at'] ?? '')) ?></td>
                     <td><?= e($delivery['address']['name']) ?></td>
                     <td><?= e($delivery['address']['street']) ?></td>
                     <td><?= e(trim((string) $delivery['address']['house_no'] . ' ' . (string) ($delivery['address']['house_no_addition'] ?? ''))) ?></td>

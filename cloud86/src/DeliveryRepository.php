@@ -8,6 +8,8 @@ use PDO;
 
 final class DeliveryRepository
 {
+    private const MAX_VISIBLE_REFERENCE_PARTS = 3;
+
     public function __construct(private readonly PDO $db)
     {
     }
@@ -111,14 +113,6 @@ final class DeliveryRepository
                 );
             }
             $members[] = $candidate;
-        }
-
-        $referenceParts = [trim((string) $primary['shipment_reference'])];
-        foreach ($members as $member) {
-            $referenceParts[] = $this->referenceFromOrder((string) $member['order_number']);
-        }
-        if (mb_strlen(implode(' / ', array_values(array_unique(array_filter($referenceParts))))) > GlsService::REFERENCE_MAX_LENGTH) {
-            throw new \InvalidArgumentException('De gezamenlijke GLS-referentie is langer dan 20 tekens.');
         }
 
         $this->db->beginTransaction();
@@ -663,6 +657,11 @@ final class DeliveryRepository
         foreach ($mergedDeliveries as $mergedDelivery) {
             $referenceParts[] = $this->referenceFromOrder((string) $mergedDelivery['order_number']);
         }
+        $effectiveReference = $this->combinedReference(
+            $referenceParts,
+            (string) ($row['shipping_date'] ?? ''),
+            (string) ($row['created_at'] ?? '')
+        );
 
         return array_merge($row, [
             'ship_type' => $row['ship_type'] ?? 'P',
@@ -676,11 +675,28 @@ final class DeliveryRepository
             'tracking_numbers' => $numbers,
             'parcels' => $statement->fetchAll(),
             'merged_deliveries' => $mergedDeliveries,
-            'effective_reference' => implode(
-                ' / ',
-                array_values(array_unique(array_filter(array_map('trim', $referenceParts))))
-            ),
+            'effective_reference' => $effectiveReference,
         ]);
+    }
+
+    /** @param list<string> $referenceParts */
+    private function combinedReference(array $referenceParts, string $shippingDate, string $createdAt): string
+    {
+        $referenceParts = array_values(array_unique(array_filter(array_map('trim', $referenceParts))));
+        $combined = implode(' / ', $referenceParts);
+        if (
+            count($referenceParts) <= self::MAX_VISIBLE_REFERENCE_PARTS
+            && mb_strlen($combined) <= GlsService::REFERENCE_MAX_LENGTH
+        ) {
+            return $combined;
+        }
+
+        $dateSource = $shippingDate !== '' ? $shippingDate : $createdAt;
+        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})/', $dateSource, $matches) === 1) {
+            return sprintf('Samen-%s-%s-%s', $matches[3], $matches[2], substr($matches[1], -2));
+        }
+
+        return 'Samen-' . date('d-m-y');
     }
 
     /** @param array<string, mixed> $left @param array<string, mixed> $right */
