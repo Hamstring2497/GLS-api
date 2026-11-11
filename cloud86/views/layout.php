@@ -126,6 +126,7 @@ function printLabelWindowWhenReady(printWindow) {
     }, 250);
 }
 function createAndPrintGlsLabel(form) {
+    if (typeof validateShipmentDetails === 'function' && !validateShipmentDetails()) return false;
     const button = form.querySelector('button[type="submit"]');
     form.elements.confirm_gls_request.value = 'yes';
     const printWindow = window.open('', '_blank');

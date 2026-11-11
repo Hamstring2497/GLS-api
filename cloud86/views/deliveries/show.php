@@ -203,7 +203,7 @@ $addressFields = [
             <?php foreach ($addressFields as [$field, $label, $className, $required, $maxLength]): ?>
                 <?php $fieldIssue = $missingData[$field] ?? null; ?>
                 <label class="<?= e($className) ?> <?= $fieldIssue !== null ? 'field-missing' : '' ?>"><?= e($label) ?><?= $required ? ' *' : '' ?><?= $fieldIssue !== null ? ' — controleer' : '' ?>
-                    <input form="shipping-details-form" class="<?= $fieldIssue !== null ? 'is-missing' : '' ?>" name="<?= e($field) ?>" value="<?= e($delivery['address'][$field] ?? '') ?>" <?= $locked ? 'disabled' : '' ?> <?= $required ? 'required' : '' ?> type="<?= $field === 'email' ? 'email' : 'text' ?>" <?= $maxLength !== null ? 'maxlength="' . e($maxLength) . '"' : '' ?><?= $maxLength !== null ? ' title="Maximaal ' . e($maxLength) . ' tekens"' : '' ?>>
+                    <input form="shipping-details-form" class="<?= $fieldIssue !== null ? 'is-missing' : '' ?>" name="<?= e($field) ?>" value="<?= e($delivery['address'][$field] ?? '') ?>" <?= $locked ? 'disabled' : '' ?> <?= $required ? 'required' : '' ?> type="<?= $field === 'email' ? 'email' : 'text' ?>" <?= $field === 'zip_code' ? 'id="address-zip-code"' : '' ?> <?= $field === 'country_code' ? 'id="address-country-code" pattern="[A-Za-z]{2}" title="Gebruik een ISO-landcode van twee letters, bijvoorbeeld BE of NL"' : '' ?> <?= $maxLength !== null ? 'maxlength="' . e($maxLength) . '"' : '' ?><?= $maxLength !== null && $field !== 'country_code' ? ' title="Maximaal ' . e($maxLength) . ' tekens"' : '' ?>>
                 </label>
             <?php endforeach; ?>
         </div>
@@ -311,6 +311,32 @@ $addressFields = [
                 const hint = document.querySelector('#weight-limit-hint strong');
                 if (hint) hint.textContent = `${maxWeight} kg`;
             }
+            function validateShipmentDetails() {
+                const form = document.getElementById('shipping-details-form');
+                const postalCode = document.getElementById('address-zip-code');
+                const countryCode = document.getElementById('address-country-code');
+                if (!form) return true;
+
+                if (postalCode && countryCode) {
+                    const country = countryCode.value.trim().toUpperCase();
+                    const postcode = postalCode.value.trim().toUpperCase().replace(/\s+/g, '');
+                    let message = '';
+                    if (country === 'BE' && !/^(?:(?:BE|B)-?)?\d{4}$/.test(postcode)) {
+                        message = 'Vul voor België vier cijfers in, bijvoorbeeld 2200 of B-2200.';
+                    } else if (country === 'NL' && !/^\d{4}[A-Z]{2}$/.test(postcode)) {
+                        message = 'Vul een Nederlandse postcode in, bijvoorbeeld 1234 AB.';
+                    }
+                    postalCode.setCustomValidity(message);
+                }
+
+                const firstInvalid = form.querySelector(':invalid');
+                if (!firstInvalid) return true;
+                firstInvalid.classList.add('is-missing');
+                firstInvalid.closest('label')?.classList.add('field-missing');
+                firstInvalid.focus();
+                firstInvalid.reportValidity();
+                return false;
+            }
             function addParcel() {
                 const list = document.getElementById('weights');
                 const row = document.createElement('div');
@@ -356,6 +382,17 @@ $addressFields = [
                 document.getElementById('express-delivery-fields').hidden = !parcel || selected !== 'express_delivery';
             }
             document.querySelectorAll('input[name="gls_product"]').forEach((field) => field.addEventListener('change', updateGlsOptions));
+            document.getElementById('shipping-details-form').addEventListener('submit', (event) => {
+                if (!validateShipmentDetails()) event.preventDefault();
+            });
+            document.querySelectorAll('#shipping-details-form input, #shipping-details-form select').forEach((field) => {
+                field.addEventListener('input', () => {
+                    field.setCustomValidity('');
+                    document.getElementById('address-zip-code')?.setCustomValidity('');
+                    field.classList.remove('is-missing');
+                    field.closest('label')?.classList.remove('field-missing');
+                });
+            });
             updateWeightLimits();
             updateGlsOptions();
             </script>

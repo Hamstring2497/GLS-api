@@ -258,6 +258,13 @@ gecontroleerd worden toegepast.
 
 ## 10. Actuele stand — 11 november 2026
 
+- 11 november 2026: vóór **Zending opslaan** en **Label maken en afdrukken** controleert de
+  browser de verplichte adres- en verzendvelden. Bij een fout krijgt het eerste onjuiste veld focus,
+  een zichtbare markering en een concrete browsermelding. Voor België wordt een viercijferige
+  postcode verwacht (`2200` of `B-2200`), voor Nederland `1234 AB`, en de landcode moet uit twee
+  letters bestaan. De bestaande servervalidatie blijft de leidende tweede veiligheidslaag. Geen
+  databasemigratie nodig. Publicatie en ingelogde productiecontrole zijn nog niet uitgevoerd.
+
 - 11 november 2026: Belgische postcodes uit Exact kunnen een historische landprefix bevatten,
   zoals `B-2200` bij landcode `BE`. PietPakket verwijdert voor de GLS-payload uitsluitend bij
   Belgische adressen de prefix `B-` of `BE-` en verstuurt dan de vereiste vier cijfers (`2200`).
@@ -752,6 +759,10 @@ gecontroleerd worden toegepast.
 ## 11. Volgende stappen
 
 Werk deze lijst in deze volgorde af:
+
+- Publiceer en controleer de veldmeldingen met bewust ongeldige Belgische en Nederlandse postcodes,
+  een ongeldige landcode en een leeg verplicht adresveld. Controleer dat de GLS-aanvraag niet start,
+  het juiste veld focus krijgt en na correctie normaal kan worden opgeslagen.
 
 - Controleer de gepubliceerde Belgische postcodecorrectie met levering `9080535`, landcode `BE` en
   zichtbare postcode `B-2200`. Controleer dat de GLS-payload postcode `2200` gebruikt en dat de
