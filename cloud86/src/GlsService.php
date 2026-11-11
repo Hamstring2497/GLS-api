@@ -78,6 +78,21 @@ final class GlsService
         return $contact;
     }
 
+    public static function normalizePostalCode(mixed $postalCode, mixed $countryCode): string
+    {
+        $postalCode = strtoupper(preg_replace('/\s+/', '', trim((string) $postalCode)) ?? '');
+        $countryCode = strtoupper(trim((string) $countryCode));
+
+        if ($countryCode === 'BE') {
+            $postalCode = preg_replace('/^(?:BE|B)-?/', '', $postalCode) ?? $postalCode;
+            if (preg_match('/^\d{4}$/', $postalCode) !== 1) {
+                throw new \InvalidArgumentException('Belgische postcode moet uit vier cijfers bestaan, bijvoorbeeld 2200.');
+            }
+        }
+
+        return $postalCode;
+    }
+
     /** @param array<string, mixed> $delivery @return array<string, mixed> */
     public function buildPayload(array $delivery): array
     {
@@ -159,7 +174,7 @@ final class GlsService
             'name1' => $address['name'],
             'street' => $address['street'],
             'houseNo' => trim((string) $address['house_no']),
-            'zipCode' => strtoupper(str_replace(' ', '', (string) $address['zip_code'])),
+            'zipCode' => self::normalizePostalCode($address['zip_code'], $address['country_code']),
             'city' => $address['city'],
             'countryCode' => strtoupper((string) $address['country_code']),
             // Deze werkplek verwerkt zakelijke Exact-relaties; GLS-code "b" staat voor business.

@@ -77,6 +77,15 @@ assert(App\GlsService::cleanContactPerson('Orderbevestiging') === '');
 assert(App\GlsService::cleanContactPerson('ORDER BEVESTIGING per e-mail') === '');
 assert(App\GlsService::cleanContactPerson('Order confirmation') === '');
 assert(App\GlsService::cleanContactPerson('Mevr. Schut-Aabers') === 'Mevr. Schut-Aabers');
+assert(App\GlsService::normalizePostalCode('1234 AB', 'NL') === '1234AB');
+assert(App\GlsService::normalizePostalCode('B-2200', 'BE') === '2200');
+assert(App\GlsService::normalizePostalCode('BE-2200', 'be') === '2200');
+try {
+    App\GlsService::normalizePostalCode('B-22A0', 'BE');
+    assert(false, 'Ongeldige Belgische postcode mocht niet worden geaccepteerd.');
+} catch (InvalidArgumentException $error) {
+    assert(str_contains($error->getMessage(), 'vier cijfers'));
+}
 $repository->save([
     'exact_entry_id' => 'test-delivery', 'delivery_number' => 'DEL-9',
     'order_number' => 'ORD-2026-1234', 'shipping_date' => null,
@@ -120,6 +129,10 @@ assert(!isset($parcel['units'][0]['unitType']));
 assert(count($parcel['units']) === 2);
 assert(!isset($parcel['shippingDate']));
 assert(!isset($parcel['services']));
+$belgianDelivery = $delivery;
+$belgianDelivery['address']['zip_code'] = 'B-2200';
+$belgianDelivery['address']['country_code'] = 'BE';
+assert($gls->buildPayload($belgianDelivery)['addresses']['deliveryAddress']['zipCode'] === '2200');
 $redactedParcel = $gls->redact($parcel);
 assert($redactedParcel['username'] === '***');
 assert($redactedParcel['password'] === '***');
