@@ -263,7 +263,10 @@ gecontroleerd worden toegepast.
   een zichtbare markering en een concrete browsermelding. Voor België wordt een viercijferige
   postcode verwacht (`2200` of `B-2200`), voor Nederland `1234 AB`, en de landcode moet uit twee
   letters bestaan. De bestaande servervalidatie blijft de leidende tweede veiligheidslaag. Geen
-  databasemigratie nodig. Publicatie en ingelogde productiecontrole zijn nog niet uitgevoerd.
+  databasemigratie nodig. Applicatiecommit `63faa01` staat lokaal, op GitHub en via Plesk op
+  Cloud86. Plesk toont deze commit als laatste versie, de nieuwe validatiecode staat op productie en
+  `/health` meldt `status: ok` en `gls_mode: live`. Er is geen GLS-zending aangemaakt en niets naar
+  Exact geschreven. De meldingen moeten nog eenmaal ingelogd visueel worden gecontroleerd.
 
 - 11 november 2026: Belgische postcodes uit Exact kunnen een historische landprefix bevatten,
   zoals `B-2200` bij landcode `BE`. PietPakket verwijdert voor de GLS-payload uitsluitend bij
@@ -760,7 +763,7 @@ gecontroleerd worden toegepast.
 
 Werk deze lijst in deze volgorde af:
 
-- Publiceer en controleer de veldmeldingen met bewust ongeldige Belgische en Nederlandse postcodes,
+- Controleer de gepubliceerde veldmeldingen met bewust ongeldige Belgische en Nederlandse postcodes,
   een ongeldige landcode en een leeg verplicht adresveld. Controleer dat de GLS-aanvraag niet start,
   het juiste veld focus krijgt en na correctie normaal kan worden opgeslagen.
 
