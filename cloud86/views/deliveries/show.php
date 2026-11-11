@@ -283,6 +283,7 @@ $addressFields = [
         <?php else: ?>
             <?php $parcelRows = $delivery['parcels'] !== [] ? $delivery['parcels'] : [['weight_kg' => '']]; ?>
             <div class="stack">
+                <p class="muted weight-limit-hint" id="weight-limit-hint">Maximaal gewicht per doos of vrachteenheid: <strong><?= $maxWeight ?> kg</strong>.</p>
                 <div id="weights">
                     <?php foreach ($parcelRows as $index => $parcel): ?>
                         <div class="weight-row">
@@ -297,11 +298,24 @@ $addressFields = [
                 </div>
             </div>
             <script>
+            const freightMaxWeights = <?= json_encode(\App\GlsService::FREIGHT_UNITS, JSON_UNESCAPED_SLASHES) ?>;
+            function currentMaxWeight() {
+                if (document.getElementById('ship-type').value !== 'F') return 32;
+                return Number(freightMaxWeights[document.getElementById('freight-unit-type').value] || 32);
+            }
+            function updateWeightLimits() {
+                const maxWeight = currentMaxWeight();
+                document.querySelectorAll('#weights input[name="weights[]"]').forEach((input) => {
+                    input.max = String(maxWeight);
+                });
+                const hint = document.querySelector('#weight-limit-hint strong');
+                if (hint) hint.textContent = `${maxWeight} kg`;
+            }
             function addParcel() {
                 const list = document.getElementById('weights');
                 const row = document.createElement('div');
                 row.className = 'weight-row';
-                row.innerHTML = '<label class="weight-label"><span>Doos</span><span class="weight-input"><input form="shipping-details-form" type="number" name="weights[]" min="1" max="<?= $maxWeight ?>" step="1" inputmode="numeric" placeholder="0"><span>kg</span></span></label><button class="button button-secondary button-small" type="button" onclick="removeParcel(this)">Wissen</button>';
+                row.innerHTML = `<label class="weight-label"><span>Doos</span><span class="weight-input"><input form="shipping-details-form" type="number" name="weights[]" min="1" max="${currentMaxWeight()}" step="1" inputmode="numeric" placeholder="0"><span>kg</span></span></label><button class="button button-secondary button-small" type="button" onclick="removeParcel(this)">Wissen</button>`;
                 list.appendChild(row);
                 renumberParcels();
             }
@@ -318,8 +332,10 @@ $addressFields = [
             function renumberParcels() { document.querySelectorAll('#weights .weight-label > span:first-child').forEach((label, index) => { label.textContent = `Doos ${index + 1}`; }); }
             document.getElementById('ship-type').addEventListener('change', function () {
                 document.getElementById('freight-unit-type').disabled = this.value !== 'F';
+                updateWeightLimits();
                 updateGlsOptions();
             });
+            document.getElementById('freight-unit-type').addEventListener('change', updateWeightLimits);
             function updateGlsOptions() {
                 const parcel = document.getElementById('ship-type').value === 'P';
                 const options = document.getElementById('gls-options');
@@ -340,6 +356,7 @@ $addressFields = [
                 document.getElementById('express-delivery-fields').hidden = !parcel || selected !== 'express_delivery';
             }
             document.querySelectorAll('input[name="gls_product"]').forEach((field) => field.addEventListener('change', updateGlsOptions));
+            updateWeightLimits();
             updateGlsOptions();
             </script>
         <?php endif; ?>

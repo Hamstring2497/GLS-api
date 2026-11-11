@@ -7,7 +7,8 @@ Deze map is bedoeld voor het Cloud86 WooCommerce Power-pakket en heeft geen Comp
 
 - beveiligde magazijnlogin;
 - handmatig toevoegen van een testlevering;
-- één of meer dozen met maximaal 32 kg per doos;
+- één of meer eenheden in hele kilo's: Parcel maximaal 32 kg per doos en Freight volgens de limiet
+  van het gekozen vrachttype;
 - GLS `CreateLabel`-payload volgens de aangeleverde Shipping API;
 - veilige mockmodus zonder echte GLS-zendingen;
 - echte HTTPS-aanroep met de GLS-login en, wanneer verstrekt, een optionele subscription key;

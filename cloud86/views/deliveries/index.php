@@ -164,8 +164,25 @@
         const unshippedOnly = document.getElementById('delivery-unshipped-only');
         const resetButton = document.getElementById('delivery-reset');
         const sortButtons = Array.from(document.querySelectorAll('.table-sort'));
+        const openFilterStorageKey = 'pietpakket.openDeliveriesOnly';
         let sortKey = 'date';
         let sortDirection = 'desc';
+
+        const readOpenFilter = () => {
+            try {
+                return sessionStorage.getItem(openFilterStorageKey) === '1';
+            } catch (error) {
+                return false;
+            }
+        };
+        const storeOpenFilter = (active) => {
+            try {
+                sessionStorage.setItem(openFilterStorageKey, active ? '1' : '0');
+            } catch (error) {
+                // Filtering blijft werken wanneer browseropslag is geblokkeerd.
+            }
+        };
+        if (unshippedOnly) unshippedOnly.checked = readOpenFilter();
 
         const normalized = value => String(value || '').toLocaleLowerCase('nl-NL').trim();
         const filterRows = () => {
@@ -213,10 +230,14 @@
             sortRows();
         }));
         searchInput?.addEventListener('input', filterRows);
-        unshippedOnly?.addEventListener('change', filterRows);
+        unshippedOnly?.addEventListener('change', () => {
+            storeOpenFilter(unshippedOnly.checked);
+            filterRows();
+        });
         resetButton?.addEventListener('click', () => {
             if (searchInput) searchInput.value = '';
             if (unshippedOnly) unshippedOnly.checked = false;
+            storeOpenFilter(false);
             sortKey = 'date';
             sortDirection = 'desc';
             sortRows();

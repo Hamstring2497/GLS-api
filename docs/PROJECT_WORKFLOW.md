@@ -125,7 +125,8 @@ geteste referentie voor de GLS-contracten. Nieuwe productiewerkzaamheden horen i
 - Als een oudere of afwijkende Exact-administratie geen gekoppelde verkooporder teruggeeft, zet de
   import als veilige terugval het leveringsnummer in `order_number`. Controleer de veldmapping met
   een herkenbare echte levering voordat de referentie als definitief wordt beschouwd.
-- Elk gewicht moet groter dan 0 en maximaal 32 kg zijn.
+- Elk gewicht moet een positief aantal hele kilo's zijn. Parcel staat maximaal 32 kg per doos toe;
+  Freight gebruikt de limiet van het gekozen vrachttype (25 tot en met 1000 kg).
 - De app bouwt één GLS `CreateLabel`-request met het juiste aantal parcels.
 - Vóór iedere labelaanvraag wordt de levering atomair vergrendeld als `gls_processing`, zodat een
   dubbele klik of gelijktijdige aanvraag geen tweede GLS-zending kan maken.
@@ -251,10 +252,20 @@ gecontroleerd worden toegepast.
 - Zet nooit OAuth-tokens, API-responses met persoonsgegevens of wachtwoorden in Git.
 - Een timeout bij `CreateLabel` heeft een onzekere uitkomst. Probeer niet blind opnieuw; controleer
   eerst bij GLS om dubbele zendingen te voorkomen.
-- Houd de maximale GLS-doosgrens van 32 kg aan.
+- Houd voor Parcel de maximale GLS-doosgrens van 32 kg aan. Gebruik bij Freight altijd de limiet
+  van het gekozen vrachttype.
 - Gebruik HTTPS en houd `src`, `views`, `database`, `storage` en `.env` buiten de document root.
 
-## 10. Actuele stand — 6 november 2026
+## 10. Actuele stand — 11 november 2026
+
+- 11 november 2026: het maximale gewicht in de werkplek volgt direct de actuele verzendkeuze.
+  Parcel blijft maximaal 32 kg per doos; bij Freight gebruikt ieder vrachttype zijn eigen bestaande
+  GLS-limiet (CO 32, LG 25, MP 300, PL 675, BP 850, RL 350 en XL 1000 kg). Het scherm toont de
+  actuele limiet en past ook het HTML-maximum van bestaande en nieuw toegevoegde gewichtsvelden aan.
+  De servervalidatie gebruikte deze limieten al en blijft leidend. Daarnaast bewaart de browser de
+  keuze **Openstaande zendingen** tijdens de huidige browsertab. Na opslaan of een statuswijziging
+  blijft het filter daardoor actief; **Reset filter** schakelt het filter bewust uit. Geen
+  databasemigratie nodig. Publicatie en ingelogde productiecontrole zijn nog niet uitgevoerd.
 
 - 6 november 2026: de gecombineerde opslagknop heet weer **Zending opslaan** en staat zichtbaar
   bij **Dozen en gewicht**, naast **+ Doos toevoegen**. De knop bewaart nog steeds in één handeling
@@ -709,6 +720,12 @@ gecontroleerd worden toegepast.
 ## 11. Volgende stappen
 
 Werk deze lijst in deze volgorde af:
+
+- Publiceer de wijziging van 11 november 2026 en controleer ingelogd dat wisselen tussen Parcel en
+  alle Freight-vrachttypen de zichtbare gewichtslimiet en het maximum van alle gewichtsvelden direct
+  aanpast. Activeer daarna **Openstaande zendingen**, wijzig een open levering en controleer na de
+  terugkeer naar het overzicht dat het filter actief blijft. Controleer ook dat **Reset filter** de
+  bewaarde keuze uitschakelt.
 
 - Controleer na publicatie het filter **Openstaande zendingen** en de gecombineerde knop **Zending
   opslaan** bij **Dozen en gewicht** met één open levering.
